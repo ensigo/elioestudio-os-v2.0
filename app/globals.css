@@ -1,0 +1,53 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-elio-smoke text-elio-black antialiased;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-elio-yellow text-white hover:bg-elio-yellow-hover font-medium px-4 py-2 rounded-lg transition-colors shadow-sm;
+  }
+  
+  .card-base {
+    @apply bg-white border border-gray-100 rounded-xl shadow-sm;
+  }
+}
+
+/* Custom Scrollbar for sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: #E5E7EB;
+  border-radius: 20px;
+}
+
+/* --- CSS NUCLEAR: OCULTAR NOTIFICACIONES PERSISTENTES --- */
+/* Bloqueo a nivel de atributos y clases comunes de librerías como Sonner o Hot-Toast */
+[data-sonner-toaster],
+[data-sonner-toast],
+[data-radix-toast-viewport],
+div[data-is-toast="true"],
+li[data-sonner-toast],
+.toaster,
+div[class*="toaster"],
+button[aria-label="Dismiss all"],
+div:has(> button[aria-label="Dismiss all"]) {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    z-index: -9999 !important;
+    height: 0 !important;
+    width: 0 !important;
+    position: fixed !important;
+    bottom: -9999px !important;
+}

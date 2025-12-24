@@ -1,18 +1,32 @@
-// api/clientes.ts (Este código SÍ se puede conectar a la BD en Vercel)
 import { prisma } from '../../lib/prisma';
 
-// Esta función se ejecuta cuando el navegador pide datos a /api/clientes
+/**
+ * Handler para la API de clientes.
+ * Este archivo debe estar en: /api/api/clientes.ts
+ */
 export default async function handler(req: any, res: any) {
-  try {
-    // 1. Buscamos todos los clientes en la base de datos de Neon
-    // OJO: Asegúrate que tu modelo en schema.prisma se llama 'Cliente' (singular)
-    // o cámbialo a 'User' si es el caso.
-    const clientes = await prisma.cliente.findMany();
+  // Solo permitimos el método GET para obtener datos
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Método no permitido' });
+  }
 
-    // 2. Devolvemos los clientes al navegador
-    res.status(200).json(clientes);
-  } catch (error) {
-    console.error("Error al obtener clientes:", error);
-    res.status(500).json({ error: "No se pudo conectar a la base de datos." });
+  try {
+    // 1. Buscamos todos los clientes en la tabla 'clientes' usando el modelo 'Cliente'
+    const clientes = await prisma.cliente.findMany({
+      orderBy: {
+        createdAt: 'desc', // Los más nuevos primero
+      },
+    });
+
+    // 2. Devolvemos la lista de clientes al frontend
+    return res.status(200).json(clientes);
+  } catch (error: any) {
+    // Log detallado del error para ver en Vercel
+    console.error("Error detallado en la base de datos:", error.message);
+    
+    return res.status(500).json({ 
+      error: "Error al conectar con la base de datos",
+      details: error.message 
+    });
   }
 }

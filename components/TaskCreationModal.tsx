@@ -1,25 +1,35 @@
-import React, { useState } from 'react';
-import { MOCK_PROJECTS, MOCK_USERS } from '../lib/mock-data';
+import React, { useState, useEffect } from 'react';
 import { TaskType, TaskPriority } from '../types';
 import { Calendar, Clock, Briefcase, RefreshCw } from 'lucide-react';
+
+interface Proyecto {
+  id: string;
+  title: string;
+}
+
+interface Usuario {
+  id: string;
+  name: string;
+  role: string;
+}
 
 interface TaskCreationModalProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
+  proyectos: Proyecto[];
+  usuarios: Usuario[];
 }
 
-export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, onCancel }) => {
-  // Local state for form fields
+export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, onCancel, proyectos, usuarios }) => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
-    projectId: '',
+    proyectoId: '',
     type: 'OPERATIONAL' as TaskType,
     priority: 'MEDIUM' as TaskPriority,
     assigneeId: '',
     estimatedHours: '',
     dueDate: '',
-    // Recurrence specific
     recurrenceFrequency: 'MONTHLY',
     leadTime: 7
   });
@@ -29,10 +39,7 @@ export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, 
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.title.trim()) newErrors.title = "El título es obligatorio.";
-    if (!formData.projectId) newErrors.projectId = "Proyecto requerido.";
-    if (!formData.assigneeId) newErrors.assigneeId = "Asigna un responsable.";
-    if (!formData.dueDate) newErrors.dueDate = "Fecha límite requerida.";
-
+    if (!formData.proyectoId) newErrors.proyectoId = "Proyecto requerido.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -54,16 +61,16 @@ export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, 
              <span className="flex items-center"><Briefcase size={12} className="mr-1"/> Proyecto <span className="text-red-500 ml-1">*</span></span>
           </label>
           <select
-            value={formData.projectId}
-            onChange={(e) => setFormData({...formData, projectId: e.target.value})}
-            className={`w-full px-3 py-2 border rounded-lg bg-gray-50 focus:bg-white transition-all outline-none ${errors.projectId ? 'border-red-300' : 'border-gray-200'}`}
+            value={formData.proyectoId}
+            onChange={(e) => setFormData({...formData, proyectoId: e.target.value})}
+            className={`w-full px-3 py-2 border rounded-lg bg-gray-50 focus:bg-white transition-all outline-none ${errors.proyectoId ? 'border-red-300' : 'border-gray-200'}`}
           >
             <option value="">Selecciona proyecto...</option>
-            {MOCK_PROJECTS.filter(p => !p.isArchived).map(p => (
+            {proyectos.map(p => (
               <option key={p.id} value={p.id}>{p.title}</option>
             ))}
           </select>
-          {errors.projectId && <p className="text-xs text-red-500 mt-1">{errors.projectId}</p>}
+          {errors.proyectoId && <p className="text-xs text-red-500 mt-1">{errors.proyectoId}</p>}
         </div>
 
         <div>
@@ -92,7 +99,6 @@ export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, 
              </div>
            </div>
            
-           {/* Custom CSS Toggle Switch */}
            <label className="relative inline-flex items-center cursor-pointer">
               <input 
                 type="checkbox" 
@@ -104,7 +110,6 @@ export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, 
            </label>
         </div>
         
-        {/* Conditional Fields */}
         {isRecurring && (
           <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-yellow-200/50 animate-in fade-in slide-in-from-top-1">
              <div>
@@ -166,18 +171,17 @@ export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, 
         </div>
 
         <div className="col-span-2">
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asignado a <span className="text-red-500">*</span></label>
+          <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asignado a</label>
           <select
             value={formData.assigneeId}
             onChange={(e) => setFormData({...formData, assigneeId: e.target.value})}
-            className={`w-full px-3 py-2 border rounded-lg outline-none ${errors.assigneeId ? 'border-red-300' : 'border-gray-200'}`}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
           >
-            <option value="">Selecciona responsable...</option>
-            {MOCK_USERS.map(u => (
+            <option value="">Sin asignar</option>
+            {usuarios.map(u => (
               <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
             ))}
           </select>
-          {errors.assigneeId && <p className="text-xs text-red-500 mt-1">{errors.assigneeId}</p>}
         </div>
 
         <div className="col-span-2">
@@ -188,9 +192,8 @@ export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, 
             type="date"
             value={formData.dueDate}
             onChange={(e) => setFormData({...formData, dueDate: e.target.value})}
-            className={`w-full px-3 py-2 border rounded-lg outline-none ${errors.dueDate ? 'border-red-300' : 'border-gray-200'}`}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
           />
-          {errors.dueDate && <p className="text-xs text-red-500 mt-1">{errors.dueDate}</p>}
         </div>
       </div>
 

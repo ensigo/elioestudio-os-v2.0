@@ -20,7 +20,6 @@ model Cliente {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relación con proyectos
   proyectos Proyecto[]
 
   @@map("clientes")
@@ -37,8 +36,8 @@ model Usuario {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relaciones
   proyectosAsignados Proyecto[] @relation("ResponsableProyecto")
+  tareasAsignadas    Tarea[]    @relation("AsignadoTarea")
 
   @@map("usuarios")
 }
@@ -55,9 +54,29 @@ model Proyecto {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Relaciones
   cliente     Cliente  @relation(fields: [clienteId], references: [id])
   responsable Usuario? @relation("ResponsableProyecto", fields: [responsibleId], references: [id])
+  tareas      Tarea[]
 
   @@map("proyectos")
+}
+
+model Tarea {
+  id             String    @id @default(cuid())
+  title          String
+  description    String?
+  status         String    @default("PENDING")
+  priority       String    @default("MEDIUM")
+  type           String    @default("OPERATIONAL")
+  proyectoId     String
+  assigneeId     String?
+  estimatedHours Float?
+  dueDate        DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  proyecto Proyecto @relation(fields: [proyectoId], references: [id])
+  assignee Usuario? @relation("AsignadoTarea", fields: [assigneeId], references: [id])
+
+  @@map("tareas")
 }

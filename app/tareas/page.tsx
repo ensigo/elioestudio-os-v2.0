@@ -1,45 +1,138 @@
-import React, { useState } from 'react';
-import { MOCK_TASKS, getProjectName, getResponsibleName } from '../../lib/mock-data';
-import { Task } from '../../types';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { TaskCreationModal } from '../../components/TaskCreationModal';
-import { TaskDetailSheet } from '../../components/TaskDetailSheet';
 import { 
-  Plus, Search, Filter, Play, Flag, CheckCircle2, AlertCircle, Clock 
+  Plus, Search, Filter, Play, Flag, CheckCircle2, AlertCircle, Clock, AlertTriangle 
 } from 'lucide-react';
 
+interface Proyecto {
+  id: string;
+  title: string;
+  cliente?: { name: string };
+}
+
+interface Usuario {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface Tarea {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  type: string;
+  proyectoId: string;
+  assigneeId: string | null;
+  estimatedHours: number | null;
+  dueDate: string | null;
+  proyecto?: Proyecto;
+  assignee?: Usuario;
+}
+
 export const TasksPage = () => {
-  const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+  const [tasks, setTasks] = useState<Tarea[]>([]);
+  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+
+  // --- CARGAR DATOS ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [tareasRes, proyectosRes, usuariosRes] = await Promise.all([
+          fetch('/api/tareas'),
+          fetch('/api/proyectos'),
+          fetch('/api/usuarios')
+        ]);
+
+        if (!tareasRes.ok || !proyectosRes.ok || !usuariosRes.ok) {
+          throw new Error('Error al cargar datos');
+        }
+
+        const [tareasData, proyectosData, usuariosData] = await Promise.all([
+          tareasRes.json(),
+          proyectosRes.json(),
+          usuariosRes.json()
+        ]);
+
+        setTasks(tareasData);
+        setProyectos(proyectosData);
+        setUsuarios(usuariosData);
+      } catch (err: any) {
+        setError(err.message);
+        console.error('Error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // --- CREAR TAREA ---
+  const handleCreateTask = async (data: any) => {
+    try {
+      const response = await fetch('/api/tareas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: data.title,
+          proyectoId: data.proyectoId,
+          type: data.type,
+          priority: data.priority,
+          assigneeId: data.assigneeId || null,
+          estimatedHours: data.estimatedHours || null,
+          dueDate: data.dueDate || null
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear tarea');
+      }
+
+      const nuevaTarea = await response.json();
+      setTasks([nuevaTarea, ...tasks]);
+      setIsCreateModalOpen(false);
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  // --- LOADING ---
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <p className="text-xl text-elio-yellow animate-pulse">Cargando tareas...</p>
+      </div>
+    );
+  }
+
+  // --- ERROR ---
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-96 bg-red-50 p-6 rounded-lg border border-red-200">
+        <AlertTriangle size={24} className="text-red-500 mr-3" />
+        <p className="text-red-700 font-medium">Error: {error}</p>
+      </div>
+    );
+  }
 
   // Sorting: Put urgent/overdue first
   const sortedTasks = [...tasks].sort((a, b) => {
-    // Logic: Urgent priority first, then Overdue dates
     if (a.priority === 'URGENT' && b.priority !== 'URGENT') return -1;
     if (b.priority === 'URGENT' && a.priority !== 'URGENT') return 1;
     return new Date(a.dueDate || '').getTime() - new Date(b.dueDate || '').getTime();
   });
 
-  const handleCreateTask = (data: any) => {
-    const newTask: Task = {
-      id: `t${Date.now()}`,
-      ...data,
-      status: 'PENDING',
-      subtasks: []
-    };
-    setTasks([...tasks, newTask]);
-    setIsCreateModalOpen(false);
-  };
-
-  const handleUpdateTask = (updatedTask: Task) => {
-    setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
-    setSelectedTask(updatedTask); // Keep sheet updated
-  };
-
-  const isOverdue = (dateStr?: string) => {
+  const isOverdue = (dateStr?: string | null) => {
     if (!dateStr) return false;
     const date = new Date(dateStr);
     const today = new Date();
@@ -47,7 +140,7 @@ export const TasksPage = () => {
     return date < today;
   };
   
-  const isToday = (dateStr?: string) => {
+  const isToday = (dateStr?: string | null) => {
     if (!dateStr) return false;
     const date = new Date(dateStr).toISOString().split('T')[0];
     const today = new Date().toISOString().split('T')[0];
@@ -61,6 +154,11 @@ export const TasksPage = () => {
       case 'MEDIUM': return <Flag size={16} className="text-blue-500" />;
       default: return <Flag size={16} className="text-gray-300" />;
     }
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'Sin fecha';
+    return new Date(dateStr).toLocaleDateString('es-ES');
   };
 
   return (
@@ -90,7 +188,7 @@ export const TasksPage = () => {
         </div>
       </div>
 
-      {/* Advanced Data Table */}
+      {/* Data Table */}
       <Card noPadding className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -105,99 +203,27 @@ export const TasksPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {sortedTasks.map(task => {
-                const overdue = isOverdue(task.dueDate) && task.status !== 'CLOSED' && task.status !== 'APPROVED';
-                const today = isToday(task.dueDate) && task.status !== 'CLOSED' && task.status !== 'APPROVED';
-                
-                return (
-                  <tr 
-                    key={task.id} 
-                    onClick={() => setSelectedTask(task)}
-                    className="group hover:bg-gray-50 transition-colors cursor-pointer"
-                  >
-                    {/* Timer Column */}
-                    <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                       <button className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm">
-                         <Play size={14} className="ml-0.5 fill-current" />
-                       </button>
-                    </td>
+              {sortedTasks.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                    No hay tareas. ¡Crea la primera!
+                  </td>
+                </tr>
+              ) : (
+                sortedTasks.map(task => {
+                  const overdue = isOverdue(task.dueDate) && task.status !== 'CLOSED' && task.status !== 'APPROVED';
+                  const today = isToday(task.dueDate) && task.status !== 'CLOSED' && task.status !== 'APPROVED';
+                  
+                  return (
+                    <tr 
+                      key={task.id} 
+                      className="group hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      {/* Timer Column */}
+                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                         <button className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm">
+                           <Play size={14} className="ml-0.5 fill-current" />
+                         </button>
+                      </td>
 
-                    {/* Status Column */}
-                    <td className="px-6 py-4">
-                      <Badge variant={
-                        task.status === 'CLOSED' ? 'success' :
-                        task.status === 'IN_PROGRESS' ? 'blue' :
-                        task.status === 'CORRECTION' ? 'warning' : 'neutral'
-                      }>
-                        {task.status.replace('_', ' ')}
-                      </Badge>
-                    </td>
-
-                    {/* Task Info Column */}
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors truncate max-w-xs">{task.title}</span>
-                        <span className="text-[10px] text-gray-500 uppercase tracking-wide flex items-center mt-1">
-                          {getProjectName(task.projectId)}
-                          {task.subtasks && task.subtasks.length > 0 && (
-                            <span className="ml-2 flex items-center bg-gray-100 px-1.5 rounded text-gray-600">
-                              <CheckCircle2 size={10} className="mr-1" />
-                              {task.subtasks.filter(t => t.isCompleted).length}/{task.subtasks.length}
-                            </span>
-                          )}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Priority Column */}
-                    <td className="px-6 py-4 text-center">
-                       <div className="flex justify-center" title={task.priority}>
-                         <PriorityIcon p={task.priority} />
-                       </div>
-                    </td>
-
-                    {/* Assignee Column */}
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 border border-white shadow-sm">
-                          {getResponsibleName(task.assigneeId || '').charAt(0)}
-                        </div>
-                        <span className="text-gray-600 text-xs">{getResponsibleName(task.assigneeId || '').split(' ')[0]}</span>
-                      </div>
-                    </td>
-
-                    {/* Deadline Column (The Red Alert Logic) */}
-                    <td className="px-6 py-4">
-                       <div className={`flex items-center ${
-                         overdue || today 
-                           ? 'text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg w-fit border border-red-100' 
-                           : 'text-gray-500'
-                       }`}>
-                         {overdue || today ? <AlertCircle size={14} className="mr-2" /> : <Clock size={14} className="mr-2 text-gray-400" />}
-                         <span className="text-xs">
-                            {today ? 'HOY' : task.dueDate}
-                         </span>
-                       </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Modals & Sheets */}
-      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Nueva Tarea">
-        <TaskCreationModal onSubmit={handleCreateTask} onCancel={() => setIsCreateModalOpen(false)} />
-      </Modal>
-
-      <TaskDetailSheet 
-        isOpen={!!selectedTask} 
-        onClose={() => setSelectedTask(null)} 
-        task={selectedTask}
-        onUpdate={handleUpdateTask}
-      />
-    </div>
-  );
-};
+                      {/* Status Column */</tr>

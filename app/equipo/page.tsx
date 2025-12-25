@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { MOCK_USERS } from '../../lib/mock-data';
-import { UserProfile } from '../../types';
+import { Modal } from '../../components/ui/Modal';
 import { 
   Users, 
   Clock, 
@@ -13,23 +12,34 @@ import {
   Shield, 
   CheckCircle2, 
   AlertCircle,
-  TrendingUp
+  TrendingUp,
+  Plus,
+  AlertTriangle
 } from 'lucide-react';
+
+// Tipo para Usuario (desde la BD)
+interface Usuario {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  position: string | null;
+  avatarUrl: string | null;
+  joinDate: string;
+}
 
 // --- MOCK DATA GENERATOR FOR TIME LOGS ---
 const generateTimeLogs = (userId: string) => {
   const logs = [];
   const today = new Date();
   
-  // Generate logs for the last 5 days
   for (let i = 0; i < 5; i++) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     const dateStr = date.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
     
-    // Randomize hours slightly
-    const entryHour = 9 + Math.floor(Math.random() * 2); // 9 or 10
-    const exitHour = 17 + Math.floor(Math.random() * 3); // 17, 18 or 19
+    const entryHour = 9 + Math.floor(Math.random() * 2);
+    const exitHour = 17 + Math.floor(Math.random() * 3);
     const totalHours = exitHour - entryHour;
     
     logs.push({
@@ -46,15 +56,97 @@ const generateTimeLogs = (userId: string) => {
 };
 
 export const TeamPage = () => {
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    role: 'DEV',
+    position: ''
+  });
+
+  // --- CARGAR USUARIOS DE LA API ---
+  useEffect(() => {
+    const fetchUsuarios = async () => {
+      try {
+        const response = await fetch('/api/usuarios');
+        
+        if (!response.ok) {
+          throw new Error(`Error en la API: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        setUsuarios(data);
+      } catch (err: any) {
+        setError(err.message || 'Error al cargar usuarios');
+        console.error("Error al obtener usuarios:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchUsuarios();
+  }, []);
+
+  // --- CREAR USUARIO ---
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const response = await fetch('/api/usuarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear usuario');
+      }
+
+      const nuevoUsuario = await response.json();
+      setUsuarios([nuevoUsuario, ...usuarios]);
+      setIsModalOpen(false);
+      setFormData({ name: '', email: '', role: 'DEV', position: '' });
+    } catch (err: any) {
+      console.error('Error al crear usuario:', err);
+      alert('Error al crear usuario: ' + err.message);
+    }
+  };
+
+  // --- LOADING STATE ---
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <p className="text-xl text-elio-yellow animate-pulse">Cargando equipo...</p>
+      </div>
+    );
+  }
+
+  // --- ERROR STATE ---
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-96 bg-red-50 p-6 rounded-lg border border-red-200">
+        <AlertTriangle size={24} className="text-red-500 mr-3" />
+        <p className="text-red-700 font-medium">Error: {error}</p>
+      </div>
+    );
+  }
 
   // --- VISTA: DETALLE DE EMPLEADO (FICHA) ---
   if (selectedUser) {
     const timeLogs = generateTimeLogs(selectedUser.id);
+    const joinDateFormatted = new Date(selectedUser.joinDate).toLocaleDateString('es-ES');
     
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-        {/* Navigation Header */}
         <div className="flex items-center space-x-4">
           <button 
             onClick={() => setSelectedUser(null)}
@@ -68,7 +160,6 @@ export const TeamPage = () => {
           </div>
         </div>
 
-        {/* Profile Header Card */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
            <div className="flex items-center space-x-6">
               <div className="w-20 h-20 rounded-full bg-elio-black text-white flex items-center justify-center text-3xl font-bold shadow-lg shadow-slate-200">
@@ -77,12 +168,12 @@ export const TeamPage = () => {
               <div>
                  <h2 className="text-2xl font-bold text-slate-900">{selectedUser.name}</h2>
                  <div className="flex flex-wrap gap-2 mt-2">
-                    <Badge variant="blue">{selectedUser.position}</Badge>
+                    <Badge variant="blue">{selectedUser.position || 'Sin cargo'}</Badge>
                     <Badge variant="neutral">{selectedUser.role}</Badge>
                  </div>
                  <div className="flex items-center gap-4 mt-3 text-sm text-slate-500">
                     <span className="flex items-center"><Mail size={14} className="mr-1"/> {selectedUser.email}</span>
-                    <span className="flex items-center"><Calendar size={14} className="mr-1"/> Alta: {selectedUser.joinDate}</span>
+                    <span className="flex items-center"><Calendar size={14} className="mr-1"/> Alta: {joinDateFormatted}</span>
                  </div>
               </div>
            </div>
@@ -99,10 +190,7 @@ export const TeamPage = () => {
            </div>
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           
-           {/* Left Column: Time Logs */}
            <div className="lg:col-span-2 space-y-6">
               <Card title="Registro Horario (Últimos 5 días)" className="overflow-hidden">
                  <div className="overflow-x-auto">
@@ -152,7 +240,6 @@ export const TeamPage = () => {
               </Card>
            </div>
 
-           {/* Right Column: KPIs & Actions */}
            <div className="space-y-6">
               <Card title="Estado Actual">
                  <div className="flex items-center space-x-3 mb-4 p-3 bg-green-50 border border-green-100 rounded-lg">
@@ -182,7 +269,6 @@ export const TeamPage = () => {
                  </div>
               </Card>
            </div>
-
         </div>
       </div>
     );
@@ -196,51 +282,137 @@ export const TeamPage = () => {
           <h1 className="text-2xl font-bold text-slate-900">Directorio de Equipo</h1>
           <p className="text-slate-500 text-sm">Gestión de personal y auditoría de tiempos.</p>
         </div>
-        <button className="bg-elio-black text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center space-x-2 text-sm font-bold shadow-sm">
-           <Users size={16} />
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-elio-black text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors flex items-center space-x-2 text-sm font-bold shadow-sm"
+        >
+           <Plus size={16} />
            <span>Añadir Miembro</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-         {MOCK_USERS.map(user => (
-           <div 
-             key={user.id} 
-             onClick={() => setSelectedUser(user)}
-             className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-elio-yellow/50 transition-all cursor-pointer group relative overflow-hidden"
-           >
-              <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                 <ArrowLeft size={16} className="rotate-180 text-elio-yellow" />
-              </div>
+      {usuarios.length === 0 ? (
+        <div className="text-center py-12 bg-slate-50 rounded-xl border border-slate-200">
+          <Users size={48} className="mx-auto text-slate-300 mb-4" />
+          <p className="text-slate-500">No hay miembros en el equipo. ¡Añade el primero!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+           {usuarios.map(user => (
+             <div 
+               key={user.id} 
+               onClick={() => setSelectedUser(user)}
+               className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg hover:border-elio-yellow/50 transition-all cursor-pointer group relative overflow-hidden"
+             >
+                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <ArrowLeft size={16} className="rotate-180 text-elio-yellow" />
+                </div>
 
-              <div className="flex items-center space-x-4 mb-4">
-                 <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-600 group-hover:bg-elio-black group-hover:text-white transition-colors">
-                    {user.name.charAt(0)}
-                 </div>
-                 <div>
-                    <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{user.name}</h3>
-                    <p className="text-xs text-slate-500 uppercase font-medium">{user.role}</p>
-                 </div>
-              </div>
+                <div className="flex items-center space-x-4 mb-4">
+                   <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center text-xl font-bold text-slate-600 group-hover:bg-elio-black group-hover:text-white transition-colors">
+                      {user.name.charAt(0)}
+                   </div>
+                   <div>
+                      <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{user.name}</h3>
+                      <p className="text-xs text-slate-500 uppercase font-medium">{user.role}</p>
+                   </div>
+                </div>
 
-              <div className="space-y-2 border-t border-slate-50 pt-4">
-                 <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Cargo</span>
-                    <span className="font-medium text-slate-900">{user.position}</span>
-                 </div>
-                 <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Email</span>
-                    <span className="font-medium text-slate-900 truncate max-w-[150px]">{user.email}</span>
-                 </div>
-              </div>
-              
-              <div className="mt-4 pt-3 flex items-center justify-between text-xs font-bold text-slate-400 bg-slate-50 rounded-lg px-3 py-2">
-                 <span className="flex items-center"><Clock size={12} className="mr-1"/> 8h Hoy</span>
-                 <span className="text-green-600">Activo</span>
-              </div>
-           </div>
-         ))}
-      </div>
+                <div className="space-y-2 border-t border-slate-50 pt-4">
+                   <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">Cargo</span>
+                      <span className="font-medium text-slate-900">{user.position || 'Sin asignar'}</span>
+                   </div>
+                   <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">Email</span>
+                      <span className="font-medium text-slate-900 truncate max-w-[150px]">{user.email}</span>
+                   </div>
+                </div>
+                
+                <div className="mt-4 pt-3 flex items-center justify-between text-xs font-bold text-slate-400 bg-slate-50 rounded-lg px-3 py-2">
+                   <span className="flex items-center"><Clock size={12} className="mr-1"/> 8h Hoy</span>
+                   <span className="text-green-600">Activo</span>
+                </div>
+             </div>
+           ))}
+        </div>
+      )}
+
+      {/* Modal para crear usuario */}
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title="Añadir Nuevo Miembro"
+      >
+        <form onSubmit={handleCreateUser} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({...formData, name: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-elio-yellow"
+              placeholder="Nombre completo"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-elio-yellow"
+              placeholder="email@empresa.com"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({...formData, role: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-elio-yellow"
+            >
+              <option value="ADMIN">Admin</option>
+              <option value="MANAGER">Manager</option>
+              <option value="DEV">Desarrollador</option>
+              <option value="DESIGNER">Diseñador</option>
+              <option value="SEO">SEO</option>
+              <option value="COPY">Copywriter</option>
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
+            <input
+              type="text"
+              value={formData.position}
+              onChange={(e) => setFormData({...formData, position: e.target.value})}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-elio-yellow"
+              placeholder="Ej: Senior Developer"
+            />
+          </div>
+          
+          <div className="flex justify-end space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-elio-yellow text-white rounded-lg hover:bg-elio-yellow-hover transition-colors font-medium"
+            >
+              Crear Miembro
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

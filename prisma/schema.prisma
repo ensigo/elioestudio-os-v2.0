@@ -13,12 +13,51 @@ model Cliente {
   name          String
   email         String?  @unique
   phone         String?
-  taxId         String?  // CIF/NIF
-  status        String   @default("ACTIVE") // ACTIVE, RISK, PAUSED, CHURNED
+  taxId         String?
+  status        String   @default("ACTIVE")
   responsibleId String?
   lastActivity  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  @@map("clientes") // Nombre de la tabla en la base de datos
+  // Relación con proyectos
+  proyectos Proyecto[]
+
+  @@map("clientes")
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String   @default("DEV")
+  position  String?
+  avatarUrl String?
+  joinDate  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  proyectosAsignados Proyecto[] @relation("ResponsableProyecto")
+
+  @@map("usuarios")
+}
+
+model Proyecto {
+  id            String    @id @default(cuid())
+  title         String
+  clienteId     String
+  responsibleId String?
+  status        String    @default("ACTIVE")
+  budget        Float?
+  deadline      DateTime?
+  isArchived    Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relaciones
+  cliente     Cliente  @relation(fields: [clienteId], references: [id])
+  responsable Usuario? @relation("ResponsableProyecto", fields: [responsibleId], references: [id])
+
+  @@map("proyectos")
 }

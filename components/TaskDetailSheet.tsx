@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sheet } from './ui/Sheet';
 import { Badge } from './ui/Badge';
-import { Clock, Calendar, Play, Trash2, Edit3, Save, X } from 'lucide-react';
+import { Clock, Calendar, Play, Square, Trash2, Edit3, Save, X } from 'lucide-react';
 
 interface Proyecto {
   id: string;
@@ -29,6 +29,12 @@ interface Tarea {
   assignee?: Usuario;
 }
 
+interface ActiveTimer {
+  id: string;
+  tareaId: string;
+  startTime: Date;
+}
+
 interface TaskDetailSheetProps {
   task: Tarea | null;
   isOpen: boolean;
@@ -37,6 +43,10 @@ interface TaskDetailSheetProps {
   onDelete: (taskId: string) => void;
   proyectos: Proyecto[];
   usuarios: Usuario[];
+  activeTimer?: ActiveTimer | null;
+  onStartTimer?: (tareaId: string) => void;
+  onStopTimer?: () => void;
+  elapsedTime?: number;
 }
 
 export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({ 
@@ -46,7 +56,11 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   onUpdate, 
   onDelete,
   proyectos,
-  usuarios 
+  usuarios,
+  activeTimer,
+  onStartTimer,
+  onStopTimer,
+  elapsedTime = 0
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -60,7 +74,14 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     dueDate: ''
   });
 
+  // Reset editing state when task changes
+  useEffect(() => {
+    setIsEditing(false);
+  }, [task?.id]);
+
   if (!task) return null;
+
+  const isTimerActive = activeTimer?.tareaId === task.id;
 
   const handleStartEdit = () => {
     setEditForm({
@@ -146,6 +167,13 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return 'Sin fecha';
     return new Date(dateStr).toLocaleDateString('es-ES');
+  };
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -300,11 +328,34 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
               </Badge>
             </div>
 
+            {/* Timer activo en panel */}
+            {isTimerActive && (
+              <div className="bg-elio-yellow text-white p-4 rounded-xl flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                  <span className="font-medium">Timer activo</span>
+                </div>
+                <span className="font-mono text-2xl font-bold">{formatTime(elapsedTime)}</span>
+              </div>
+            )}
+
             {/* Botones de acción rápida */}
             <div className="flex space-x-3">
-              <button className="flex-1 bg-elio-yellow hover:bg-elio-yellow-hover text-white py-2 rounded-lg font-medium flex items-center justify-center transition-colors shadow-sm">
-                <Play size={16} className="mr-2 fill-current" /> Iniciar Timer
-              </button>
+              {isTimerActive ? (
+                <button 
+                  onClick={onStopTimer}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-medium flex items-center justify-center transition-colors shadow-sm"
+                >
+                  <Square size={16} className="mr-2 fill-current" /> Detener Timer
+                </button>
+              ) : (
+                <button 
+                  onClick={() => onStartTimer?.(task.id)}
+                  className="flex-1 bg-elio-yellow hover:bg-elio-yellow-hover text-white py-2 rounded-lg font-medium flex items-center justify-center transition-colors shadow-sm"
+                >
+                  <Play size={16} className="mr-2 fill-current" /> Iniciar Timer
+                </button>
+              )}
               {task.status !== 'CLOSED' && (
                 <button 
                   onClick={() => handleChangeStatus('CLOSED')}

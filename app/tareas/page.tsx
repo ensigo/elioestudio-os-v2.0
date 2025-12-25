@@ -5,7 +5,7 @@ import { Modal } from '../../components/ui/Modal';
 import { TaskCreationModal } from '../../components/TaskCreationModal';
 import { TaskDetailSheet } from '../../components/TaskDetailSheet';
 import { 
-  Plus, Search, Filter, Play, Flag, AlertCircle, Clock, AlertTriangle 
+  Plus, Search, Filter, Play, Square, Flag, AlertCircle, Clock, AlertTriangle 
 } from 'lucide-react';
 
 interface Proyecto {
@@ -34,6 +34,12 @@ interface Tarea {
   assignee?: Usuario;
 }
 
+interface ActiveTimer {
+  id: string;
+  tareaId: string;
+  startTime: Date;
+}
+
 export const TasksPage = () => {
   const [tasks, setTasks] = useState<Tarea[]>([]);
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
@@ -42,7 +48,12 @@ export const TasksPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Tarea | null>(null);
+  
+  // Timer state
+  const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
+  // Cargar datos
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -75,6 +86,86 @@ export const TasksPage = () => {
     fetchData();
   }, []);
 
+  // Timer contador
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (activeTimer) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const diff = Math.floor((now.getTime() - activeTimer.startTime.getTime()) / 1000);
+        setElapsedTime(diff);
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [activeTimer]);
+
+  // Iniciar timer
+  const handleStartTimer = async (tareaId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Si ya hay un timer activo en otra tarea, pararlo primero
+    if (activeTimer && activeTimer.tareaId !== tareaId) {
+      await handleStopTimer(e);
+    }
+
+    try {
+      const response = await fetch('/api/time-entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: 'user-temp', // TODO: usar usuario real cuando haya auth
+          tareaId
+        })
+      });
+
+      if (!response.ok) throw new Error('Error al iniciar timer');
+
+      const entry = await response.json();
+      setActiveTimer({
+        id: entry.id,
+        tareaId,
+        startTime: new Date(entry.startTime)
+      });
+      setElapsedTime(0);
+    } catch (err) {
+      alert('Error al iniciar timer');
+    }
+  };
+
+  // Parar timer
+  const handleStopTimer = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!activeTimer) return;
+
+    try {
+      const response = await fetch('/api/time-entries', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: activeTimer.id
+        })
+      });
+
+      if (!response.ok) throw new Error('Error al detener timer');
+
+      setActiveTimer(null);
+      setElapsedTime(0);
+    } catch (err) {
+      alert('Error al detener timer');
+    }
+  };
+
+  // Formatear tiempo
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   const handleCreateTask = async (data: any) => {
     try {
       const response = await fetch('/api/tareas', {
@@ -91,9 +182,7 @@ export const TasksPage = () => {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Error al crear tarea');
-      }
+      if (!response.ok) throw new Error('Error al crear tarea');
 
       const nuevaTarea = await response.json();
       setTasks([nuevaTarea, ...tasks]);
@@ -162,6 +251,27 @@ export const TasksPage = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* Timer activo banner */}
+      {activeTimer && (
+        <div className="bg-elio-yellow text-white px-4 py-3 rounded-lg flex items-center justify-between shadow-lg">
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+            <span className="font-medium">
+              Timer activo: {tasks.find(t => t.id === activeTimer.tareaId)?.title}
+            </span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span className="font-mono text-xl font-bold">{formatTime(elapsedTime)}</span>
+            <button 
+              onClick={handleStopTimer}
+              className="bg-white text-elio-yellow px-3 py-1 rounded-lg font-medium flex items-center hover:bg-gray-100"
+            >
+              <Square size={14} className="mr-1 fill-current" /> Detener
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Tareas</h1>
@@ -209,17 +319,30 @@ export const TasksPage = () => {
                 sortedTasks.map(task => {
                   const overdue = isOverdue(task.dueDate) && task.status !== 'CLOSED';
                   const today = isToday(task.dueDate) && task.status !== 'CLOSED';
+                  const isTimerActive = activeTimer?.tareaId === task.id;
                   
                   return (
                     <tr 
                       key={task.id} 
                       onClick={() => setSelectedTask(task)}
-                      className="group hover:bg-gray-50 transition-colors cursor-pointer"
+                      className={`group hover:bg-gray-50 transition-colors cursor-pointer ${isTimerActive ? 'bg-yellow-50' : ''}`}
                     >
-                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                        <button className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm">
-                          <Play size={14} className="ml-0.5 fill-current" />
-                        </button>
+                      <td className="px-6 py-4 text-center">
+                        {isTimerActive ? (
+                          <button 
+                            onClick={(e) => handleStopTimer(e)}
+                            className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-sm"
+                          >
+                            <Square size={12} className="fill-current" />
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={(e) => handleStartTimer(task.id, e)}
+                            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm"
+                          >
+                            <Play size={14} className="ml-0.5 fill-current" />
+                          </button>
+                        )}
                       </td>
                       <td className="px-6 py-4">
                         <Badge variant={
@@ -232,7 +355,14 @@ export const TasksPage = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors truncate max-w-xs">{task.title}</span>
+                          <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors truncate max-w-xs">
+                            {task.title}
+                            {isTimerActive && (
+                              <span className="ml-2 text-xs font-mono text-elio-yellow">
+                                {formatTime(elapsedTime)}
+                              </span>
+                            )}
+                          </span>
                           <span className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">
                             {task.proyecto?.title || 'Sin proyecto'}
                           </span>
@@ -266,7 +396,6 @@ export const TasksPage = () => {
         </div>
       </Card>
 
-      {/* Modal de Creación */}
       <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Nueva Tarea">
         <TaskCreationModal 
           onSubmit={handleCreateTask} 
@@ -276,15 +405,18 @@ export const TasksPage = () => {
         />
       </Modal>
 
-      {/* Panel lateral de detalle */}
       <TaskDetailSheet
-        isOpen={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
-        task={selectedTask}
-        onUpdate={handleUpdateTask}
-        onDelete={handleDeleteTask}
-        proyectos={proyectos}
-        usuarios={usuarios}
+          isOpen={!!selectedTask}
+          onClose={() => setSelectedTask(null)}
+          task={selectedTask}
+          onUpdate={handleUpdateTask}
+          onDelete={handleDeleteTask}
+          proyectos={proyectos}
+          usuarios={usuarios}
+          activeTimer={activeTimer}
+          onStartTimer={(tareaId) => handleStartTimer(tareaId, { stopPropagation: () => {} } as React.MouseEvent)}
+          onStopTimer={() => handleStopTimer({ stopPropagation: () => {} } as React.MouseEvent)}
+          elapsedTime={elapsedTime}
       />
     </div>
   );

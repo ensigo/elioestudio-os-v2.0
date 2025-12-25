@@ -75,8 +75,23 @@ model Tarea {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  proyecto Proyecto @relation(fields: [proyectoId], references: [id])
-  assignee Usuario? @relation("AsignadoTarea", fields: [assigneeId], references: [id])
+  proyecto    Proyecto     @relation(fields: [proyectoId], references: [id])
+  assignee    Usuario?     @relation("AsignadoTarea", fields: [assigneeId], references: [id])
+  timeEntries TimeEntry[]
 
   @@map("tareas")
+}
+
+model TimeEntry {
+  id          String    @id @default(cuid())
+  userId      String
+  tareaId     String?
+  startTime   DateTime
+  endTime     DateTime?
+  description String?
+  createdAt   DateTime  @default(now())
+
+  tarea Tarea? @relation(fields: [tareaId], references: [id])
+
+  @@map("time_entries")
 }

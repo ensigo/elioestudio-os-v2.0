@@ -3,11 +3,6 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Send, Clock, Search, Filter, Inbox, AlertTriangle, Trash2 } from 'lucide-react';
 
-interface Cliente {
-  id: string;
-  name: string;
-}
-
 interface Usuario {
   id: string;
   name: string;
@@ -20,16 +15,15 @@ interface Ticket {
   description: string | null;
   status: string;
   priority: string;
-  clienteId: string | null;
-  assigneeId: string | null;
+  senderId: string;
+  recipientId: string | null;
   createdAt: string;
-  cliente?: Cliente;
-  assignee?: Usuario;
+  sender?: Usuario;
+  recipient?: Usuario;
 }
 
 export const TicketsPage = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,32 +32,34 @@ export const TicketsPage = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState('MEDIUM');
-  const [clienteId, setClienteId] = useState('');
-  const [assigneeId, setAssigneeId] = useState('');
+  const [senderId, setSenderId] = useState('');
+  const [recipientId, setRecipientId] = useState('');
 
   // Cargar datos
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [ticketsRes, clientesRes, usuariosRes] = await Promise.all([
+        const [ticketsRes, usuariosRes] = await Promise.all([
           fetch('/api/tickets'),
-          fetch('/api/clientes'),
           fetch('/api/usuarios')
         ]);
 
-        if (!ticketsRes.ok || !clientesRes.ok || !usuariosRes.ok) {
+        if (!ticketsRes.ok || !usuariosRes.ok) {
           throw new Error('Error al cargar datos');
         }
 
-        const [ticketsData, clientesData, usuariosData] = await Promise.all([
+        const [ticketsData, usuariosData] = await Promise.all([
           ticketsRes.json(),
-          clientesRes.json(),
           usuariosRes.json()
         ]);
 
         setTickets(ticketsData);
-        setClientes(clientesData);
         setUsuarios(usuariosData);
+        
+        // Seleccionar primer usuario como remitente por defecto
+        if (usuariosData.length > 0) {
+          setSenderId(usuariosData[0].id);
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -77,7 +73,7 @@ export const TicketsPage = () => {
   // Crear ticket
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title) return;
+    if (!title || !senderId) return;
 
     try {
       const response = await fetch('/api/tickets', {
@@ -87,8 +83,8 @@ export const TicketsPage = () => {
           title,
           description: description || null,
           priority,
-          clienteId: clienteId || null,
-          assigneeId: assigneeId || null
+          senderId,
+          recipientId: recipientId || null
         })
       });
 
@@ -97,12 +93,11 @@ export const TicketsPage = () => {
       const nuevoTicket = await response.json();
       setTickets([nuevoTicket, ...tickets]);
       
-      // Reset form
+      // Reset form (mantener senderId)
       setTitle('');
       setDescription('');
       setPriority('MEDIUM');
-      setClienteId('');
-      setAssigneeId('');
+      setRecipientId('');
     } catch (err: any) {
       alert('Error: ' + err.message);
     }
@@ -198,54 +193,55 @@ export const TicketsPage = () => {
     <div className="h-[calc(100vh-140px)] flex flex-col animate-in fade-in duration-300">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Centro de Tickets</h1>
-        <p className="text-gray-500 text-sm">Comunicaciones internas y soporte técnico.</p>
+        <p className="text-gray-500 text-sm">Comunicación interna del equipo.</p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 h-full min-h-0">
         
         {/* COLUMNA IZQUIERDA: FORMULARIO */}
         <div className="w-full lg:w-[35%] flex flex-col">
-          <Card title="Nuevo Ticket" className="flex-1 overflow-y-auto">
+          <Card title="Nuevo Mensaje" className="flex-1 overflow-y-auto">
             <form onSubmit={handleSend} className="space-y-4">
               
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">De (Remitente) *</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 bg-white"
+                  value={senderId}
+                  onChange={e => setSenderId(e.target.value)}
+                  required
+                >
+                  <option value="">Seleccionar...</option>
+                  {usuarios.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Para (Destinatario)</label>
+                <select 
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 bg-white"
+                  value={recipientId}
+                  onChange={e => setRecipientId(e.target.value)}
+                >
+                  <option value="">Todo el equipo</option>
+                  {usuarios.map(u => (
+                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
+                  ))}
+                </select>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asunto *</label>
                 <input 
                   type="text" 
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
-                  placeholder="Resumen breve del problema..."
+                  placeholder="Resumen breve..."
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cliente (opcional)</label>
-                <select 
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 bg-white"
-                  value={clienteId}
-                  onChange={e => setClienteId(e.target.value)}
-                >
-                  <option value="">Sin cliente asociado</option>
-                  {clientes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asignar a</label>
-                <select 
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 bg-white"
-                  value={assigneeId}
-                  onChange={e => setAssigneeId(e.target.value)}
-                >
-                  <option value="">Sin asignar</option>
-                  {usuarios.map(u => (
-                    <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
-                  ))}
-                </select>
               </div>
 
               <div>
@@ -269,10 +265,10 @@ export const TicketsPage = () => {
               </div>
 
               <div className="flex-1">
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mensaje</label>
                 <textarea 
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 min-h-[120px] resize-none"
-                  placeholder="Describe el problema o requerimiento..."
+                  placeholder="Detalla tu mensaje..."
                   value={description}
                   onChange={e => setDescription(e.target.value)}
                 />
@@ -282,7 +278,7 @@ export const TicketsPage = () => {
                 type="submit"
                 className="w-full py-3 bg-elio-yellow text-white font-bold rounded-lg hover:bg-elio-yellow-hover shadow-lg shadow-elio-yellow/20 flex items-center justify-center transition-all active:scale-95"
               >
-                <Send size={18} className="mr-2" /> Crear Ticket
+                <Send size={18} className="mr-2" /> Enviar
               </button>
             </form>
           </Card>
@@ -295,7 +291,7 @@ export const TicketsPage = () => {
             {/* Toolbar */}
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <h3 className="font-bold text-gray-700 flex items-center">
-                <Inbox size={18} className="mr-2" /> Tickets ({tickets.length})
+                <Inbox size={18} className="mr-2" /> Bandeja ({tickets.length})
               </h3>
               <div className="flex space-x-2">
                 <div className="relative">
@@ -312,25 +308,24 @@ export const TicketsPage = () => {
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
               {tickets.length === 0 ? (
                 <div className="text-center py-12 text-gray-500">
-                  No hay tickets. ¡Crea el primero!
+                  No hay mensajes. ¡Envía el primero!
                 </div>
               ) : (
                 tickets.map(ticket => (
                   <div key={ticket.id} className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-md transition-all group">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold border border-white shadow-sm">
-                          {ticket.cliente?.name?.charAt(0) || ticket.assignee?.name?.charAt(0) || 'T'}
+                        <div className="w-10 h-10 rounded-full bg-elio-yellow text-white flex items-center justify-center font-bold border border-white shadow-sm">
+                          {ticket.sender?.name?.charAt(0) || '?'}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors">{ticket.title}</p>
                           <div className="flex items-center text-xs text-gray-500 mt-0.5 space-x-2">
-                            {ticket.cliente && (
-                              <span className="font-medium text-gray-700">{ticket.cliente.name}</span>
-                            )}
-                            {ticket.assignee && (
-                              <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">→ {ticket.assignee.name}</span>
-                            )}
+                            <span className="font-medium text-gray-700">{ticket.sender?.name}</span>
+                            <span className="text-gray-300">→</span>
+                            <span className="bg-gray-100 px-1.5 py-0.5 rounded text-[10px]">
+                              {ticket.recipient?.name || 'Todo el equipo'}
+                            </span>
                           </div>
                         </div>
                       </div>

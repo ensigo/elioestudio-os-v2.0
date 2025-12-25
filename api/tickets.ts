@@ -8,8 +8,8 @@ export default async function handler(req: any, res: any) {
     if (req.method === 'GET') {
       const tickets = await prisma.ticket.findMany({
         include: {
-          cliente: true,
-          assignee: true
+          sender: true,
+          recipient: true
         },
         orderBy: { createdAt: 'desc' }
       });
@@ -18,24 +18,23 @@ export default async function handler(req: any, res: any) {
 
     // POST - Crear un nuevo ticket
     if (req.method === 'POST') {
-      const { title, description, status, priority, clienteId, assigneeId } = req.body;
+      const { title, description, priority, senderId, recipientId } = req.body;
 
-      if (!title) {
-        return res.status(400).json({ error: 'El título es obligatorio' });
+      if (!title || !senderId) {
+        return res.status(400).json({ error: 'Título y remitente son obligatorios' });
       }
 
       const nuevoTicket = await prisma.ticket.create({
         data: {
           title,
           description: description || null,
-          status: status || 'OPEN',
           priority: priority || 'MEDIUM',
-          clienteId: clienteId || null,
-          assigneeId: assigneeId || null
+          senderId,
+          recipientId: recipientId || null
         },
         include: {
-          cliente: true,
-          assignee: true
+          sender: true,
+          recipient: true
         }
       });
 
@@ -44,7 +43,7 @@ export default async function handler(req: any, res: any) {
 
     // PUT - Actualizar ticket
     if (req.method === 'PUT') {
-      const { id, title, description, status, priority, clienteId, assigneeId } = req.body;
+      const { id, title, description, status, priority, recipientId } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'ID es obligatorio' });
@@ -57,12 +56,11 @@ export default async function handler(req: any, res: any) {
           description,
           status,
           priority,
-          clienteId,
-          assigneeId
+          recipientId
         },
         include: {
-          cliente: true,
-          assignee: true
+          sender: true,
+          recipient: true
         }
       });
 

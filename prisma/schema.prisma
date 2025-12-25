@@ -19,7 +19,6 @@ model Cliente {
   lastActivity  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  tickets Ticket[]
 
   proyectos Proyecto[]
 
@@ -36,7 +35,8 @@ model Usuario {
   joinDate  DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  ticketsAsignados Ticket[] @relation("AsignadoTicket")
+  ticketsSent     Ticket[] @relation("TicketsSent")
+  ticketsReceived Ticket[] @relation("TicketsReceived")
 
   proyectosAsignados Proyecto[] @relation("ResponsableProyecto")
   tareasAsignadas    Tarea[]    @relation("AsignadoTarea")
@@ -99,18 +99,18 @@ model TimeEntry {
 }
 
 model Ticket {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  status      String    @default("OPEN")
-  priority    String    @default("MEDIUM")
-  clienteId   String?
-  assigneeId  String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  title        String
+  description  String?
+  status       String    @default("OPEN")
+  priority     String    @default("MEDIUM")
+  senderId     String
+  recipientId  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  cliente  Cliente? @relation(fields: [clienteId], references: [id])
-  assignee Usuario? @relation("AsignadoTicket", fields: [assigneeId], references: [id])
+  sender    Usuario  @relation("TicketsSent", fields: [senderId], references: [id])
+  recipient Usuario? @relation("TicketsReceived", fields: [recipientId], references: [id])
 
   @@map("tickets")
 }

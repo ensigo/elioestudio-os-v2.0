@@ -4,13 +4,12 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { TaskCreationModal } from '../../components/TaskCreationModal';
 import { 
-  Plus, Search, Filter, Play, Flag, CheckCircle2, AlertCircle, Clock, AlertTriangle 
+  Plus, Search, Filter, Play, Flag, AlertCircle, Clock, AlertTriangle 
 } from 'lucide-react';
 
 interface Proyecto {
   id: string;
   title: string;
-  cliente?: { name: string };
 }
 
 interface Usuario {
@@ -22,13 +21,10 @@ interface Usuario {
 interface Tarea {
   id: string;
   title: string;
-  description: string | null;
   status: string;
   priority: string;
-  type: string;
   proyectoId: string;
   assigneeId: string | null;
-  estimatedHours: number | null;
   dueDate: string | null;
   proyecto?: Proyecto;
   assignee?: Usuario;
@@ -42,7 +38,6 @@ export const TasksPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  // --- CARGAR DATOS ---
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -67,7 +62,6 @@ export const TasksPage = () => {
         setUsuarios(usuariosData);
       } catch (err: any) {
         setError(err.message);
-        console.error('Error:', err);
       } finally {
         setIsLoading(false);
       }
@@ -76,7 +70,6 @@ export const TasksPage = () => {
     fetchData();
   }, []);
 
-  // --- CREAR TAREA ---
   const handleCreateTask = async (data: any) => {
     try {
       const response = await fetch('/api/tareas', {
@@ -94,8 +87,7 @@ export const TasksPage = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Error al crear tarea');
+        throw new Error('Error al crear tarea');
       }
 
       const nuevaTarea = await response.json();
@@ -106,7 +98,6 @@ export const TasksPage = () => {
     }
   };
 
-  // --- LOADING ---
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -115,7 +106,6 @@ export const TasksPage = () => {
     );
   }
 
-  // --- ERROR ---
   if (error) {
     return (
       <div className="flex justify-center items-center h-96 bg-red-50 p-6 rounded-lg border border-red-200">
@@ -125,26 +115,25 @@ export const TasksPage = () => {
     );
   }
 
-  // Sorting: Put urgent/overdue first
   const sortedTasks = [...tasks].sort((a, b) => {
     if (a.priority === 'URGENT' && b.priority !== 'URGENT') return -1;
     if (b.priority === 'URGENT' && a.priority !== 'URGENT') return 1;
-    return new Date(a.dueDate || '').getTime() - new Date(b.dueDate || '').getTime();
+    return 0;
   });
 
-  const isOverdue = (dateStr?: string | null) => {
+  const isOverdue = (dateStr: string | null) => {
     if (!dateStr) return false;
-    const date = new Date(dateStr);
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    return date < today;
+    return new Date(dateStr) < new Date();
   };
-  
-  const isToday = (dateStr?: string | null) => {
+
+  const isToday = (dateStr: string | null) => {
     if (!dateStr) return false;
-    const date = new Date(dateStr).toISOString().split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
-    return date === today;
+    return new Date(dateStr).toDateString() === new Date().toDateString();
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return 'Sin fecha';
+    return new Date(dateStr).toLocaleDateString('es-ES');
   };
 
   const PriorityIcon = ({ p }: { p: string }) => {
@@ -156,39 +145,31 @@ export const TasksPage = () => {
     }
   };
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return 'Sin fecha';
-    return new Date(dateStr).toLocaleDateString('es-ES');
-  };
-
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Gestión de Tareas</h1>
           <p className="text-gray-500 text-sm">Listado operativo centralizado.</p>
         </div>
         <div className="flex space-x-3 w-full sm:w-auto">
-           <div className="relative flex-1 sm:flex-none">
-             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-             <input type="text" placeholder="Filtrar..." className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full outline-none focus:border-elio-yellow" />
-           </div>
-           <button className="bg-white border border-gray-200 p-2 rounded-lg text-gray-600 hover:bg-gray-50">
-              <Filter size={18} />
-           </button>
-           <button 
-             onClick={() => setIsCreateModalOpen(true)}
-             className="bg-elio-yellow text-white px-4 py-2 rounded-lg hover:bg-elio-yellow-hover transition-colors flex items-center space-x-2 font-medium whitespace-nowrap shadow-sm"
-           >
-             <Plus size={18} />
-             <span>Nueva Tarea</span>
-           </button>
+          <div className="relative flex-1 sm:flex-none">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input type="text" placeholder="Filtrar..." className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full outline-none focus:border-elio-yellow" />
+          </div>
+          <button className="bg-white border border-gray-200 p-2 rounded-lg text-gray-600 hover:bg-gray-50">
+            <Filter size={18} />
+          </button>
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-elio-yellow text-white px-4 py-2 rounded-lg hover:bg-elio-yellow-hover transition-colors flex items-center space-x-2 font-medium whitespace-nowrap shadow-sm"
+          >
+            <Plus size={18} />
+            <span>Nueva Tarea</span>
+          </button>
         </div>
       </div>
 
-      {/* Data Table */}
       <Card noPadding className="overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -211,19 +192,69 @@ export const TasksPage = () => {
                 </tr>
               ) : (
                 sortedTasks.map(task => {
-                  const overdue = isOverdue(task.dueDate) && task.status !== 'CLOSED' && task.status !== 'APPROVED';
-                  const today = isToday(task.dueDate) && task.status !== 'CLOSED' && task.status !== 'APPROVED';
+                  const overdue = isOverdue(task.dueDate) && task.status !== 'CLOSED';
+                  const today = isToday(task.dueDate) && task.status !== 'CLOSED';
                   
                   return (
-                    <tr 
-                      key={task.id} 
-                      className="group hover:bg-gray-50 transition-colors cursor-pointer"
-                    >
-                      {/* Timer Column */}
-                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
-                         <button className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm">
-                           <Play size={14} className="ml-0.5 fill-current" />
-                         </button>
+                    <tr key={task.id} className="group hover:bg-gray-50 transition-colors cursor-pointer">
+                      <td className="px-6 py-4 text-center">
+                        <button className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm">
+                          <Play size={14} className="ml-0.5 fill-current" />
+                        </button>
                       </td>
+                      <td className="px-6 py-4">
+                        <Badge variant={
+                          task.status === 'CLOSED' ? 'success' :
+                          task.status === 'IN_PROGRESS' ? 'blue' :
+                          task.status === 'CORRECTION' ? 'warning' : 'neutral'
+                        }>
+                          {task.status.replace('_', ' ')}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors truncate max-w-xs">{task.title}</span>
+                          <span className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">
+                            {task.proyecto?.title || 'Sin proyecto'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center">
+                          <PriorityIcon p={task.priority} />
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600">
+                            {task.assignee?.name?.charAt(0) || '?'}
+                          </div>
+                          <span className="text-gray-600 text-xs">{task.assignee?.name?.split(' ')[0] || 'Sin asignar'}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className={`flex items-center ${overdue || today ? 'text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg w-fit' : 'text-gray-500'}`}>
+                          {overdue || today ? <AlertCircle size={14} className="mr-2" /> : <Clock size={14} className="mr-2 text-gray-400" />}
+                          <span className="text-xs">{today ? 'HOY' : formatDate(task.dueDate)}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-                      {/* Status Column */</tr>
+      <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Nueva Tarea">
+        <TaskCreationModal 
+          onSubmit={handleCreateTask} 
+          onCancel={() => setIsCreateModalOpen(false)}
+          proyectos={proyectos}
+          usuarios={usuarios}
+        />
+      </Modal>
+    </div>
+  );
+};

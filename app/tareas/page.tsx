@@ -283,6 +283,8 @@ export const TasksPage = () => {
         task={selectedTask}
         onUpdate={handleUpdateTask}
         onDelete={handleDeleteTask}
+        proyectos={proyectos}
+        usuarios={usuarios}
       />
     </div>
   );

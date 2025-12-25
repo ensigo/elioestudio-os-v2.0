@@ -12,48 +12,89 @@ export const ClientsPage = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // <-- CORREGIDO Y COMPLETO
-  // View State for "Routing"
+  const [error, setError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  // --- NUEVA LÓGICA: CARGAR DATOS DE LA API REAL ---
+
+  // --- CARGAR DATOS DE LA API ---
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        // Llama a la API serverless que creamos en api/clientes.ts
         const response = await fetch('/api/clientes'); 
         
         if (!response.ok) {
           throw new Error(`Error en la API: ${response.statusText}`);
         }
         
-        const data: Client[] = await response.json();
-        setClients(data);
+        const data = await response.json();
+        
+        // Transformar los datos de la API al formato esperado por el frontend
+        const clientesFormateados: Client[] = data.map((cliente: any) => ({
+          id: cliente.id,
+          name: cliente.name,
+          fiscalData: { taxId: cliente.taxId || '' },
+          status: cliente.status || 'ACTIVE',
+          responsibleId: cliente.responsibleId || '',
+          lastActivity: cliente.lastActivity || 'Sin actividad',
+          email: cliente.email,
+          phone: cliente.phone,
+          credentials: []
+        }));
+        
+        setClients(clientesFormateados);
       } catch (err: any) {
         setError(err.message || 'Error desconocido al cargar clientes.');
         console.error("Fallo al obtener clientes reales:", err);
       } finally {
-        setIsLoading(false); // La carga terminó (falle o tenga éxito)
+        setIsLoading(false);
       }
     };
     
     fetchClients();
   }, []); 
-  // --- FIN LÓGICA DE CARGA ---
 
-  const handleCreateClient = (data: any) => {
-    const newClient: Client = {
-      id: `c${Date.now()}`,
-      name: data.name,
-      fiscalData: { taxId: data.taxId },
-      status: data.status,
-      responsibleId: data.responsibleId,
-      lastActivity: 'Ahora mismo',
-      // Default empty arrays for new client
-      contract: undefined,
-      credentials: []
-    };
-    setClients([...clients, newClient]);
-    setIsModalOpen(false);
+  // --- CREAR CLIENTE (ENVÍA A LA API) ---
+  const handleCreateClient = async (data: any) => {
+    try {
+      const response = await fetch('/api/clientes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email || null,
+          phone: data.phone || null,
+          taxId: data.taxId || null,
+          status: data.status || 'ACTIVE',
+          responsibleId: data.responsibleId || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al crear cliente');
+      }
+
+      const nuevoCliente = await response.json();
+      
+      const clienteFormateado: Client = {
+        id: nuevoCliente.id,
+        name: nuevoCliente.name,
+        fiscalData: { taxId: nuevoCliente.taxId },
+        status: nuevoCliente.status,
+        responsibleId: nuevoCliente.responsibleId || '',
+        lastActivity: nuevoCliente.lastActivity || 'Ahora mismo',
+        email: nuevoCliente.email,
+        phone: nuevoCliente.phone,
+        credentials: []
+      };
+      
+      setClients([clienteFormateado, ...clients]);
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error('Error al crear cliente:', err);
+      alert('Error al crear cliente: ' + err.message);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -78,15 +119,17 @@ export const ClientsPage = () => {
       />
     );
   }
-// --- AÑADIR CONDICIONES DE CARGA Y ERROR AQUÍ ---
+
+  // --- LOADING STATE ---
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-elio-yellow animate-pulse">Cargando clientes reales de Neon...</p>
+        <p className="text-xl text-elio-yellow animate-pulse">Cargando clientes...</p>
       </div>
     );
   }
 
+  // --- ERROR STATE ---
   if (error) {
     return (
       <div className="flex justify-center items-center h-96 bg-red-50 p-6 rounded-lg border border-red-200">
@@ -95,7 +138,7 @@ export const ClientsPage = () => {
       </div>
     );
   }
-  // --- FIN DE CONDICIONES DE CARGA Y ERROR ---
+
   // --- RENDER LIST VIEW ---
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -137,7 +180,6 @@ export const ClientsPage = () => {
              </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {/* Si no hay clientes reales, muestra un mensaje */}
             {clients.length === 0 && !isLoading ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
@@ -145,7 +187,6 @@ export const ClientsPage = () => {
                 </td>
               </tr>
             ) : (
-              // Mapea los clientes reales si los hay
               clients.map(client => (
                 <tr 
                   key={client.id} 

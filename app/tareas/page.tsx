@@ -3,6 +3,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { TaskCreationModal } from '../../components/TaskCreationModal';
+import { TaskDetailSheet } from '../../components/TaskDetailSheet';
 import { 
   Plus, Search, Filter, Play, Flag, AlertCircle, Clock, AlertTriangle 
 } from 'lucide-react';
@@ -21,10 +22,13 @@ interface Usuario {
 interface Tarea {
   id: string;
   title: string;
+  description?: string | null;
   status: string;
   priority: string;
+  type: string;
   proyectoId: string;
   assigneeId: string | null;
+  estimatedHours: number | null;
   dueDate: string | null;
   proyecto?: Proyecto;
   assignee?: Usuario;
@@ -37,6 +41,7 @@ export const TasksPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Tarea | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,6 +101,16 @@ export const TasksPage = () => {
     } catch (err: any) {
       alert('Error: ' + err.message);
     }
+  };
+
+  const handleUpdateTask = (updatedTask: Tarea) => {
+    setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+    setSelectedTask(updatedTask);
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    setTasks(tasks.filter(t => t.id !== taskId));
+    setSelectedTask(null);
   };
 
   if (isLoading) {
@@ -196,8 +211,12 @@ export const TasksPage = () => {
                   const today = isToday(task.dueDate) && task.status !== 'CLOSED';
                   
                   return (
-                    <tr key={task.id} className="group hover:bg-gray-50 transition-colors cursor-pointer">
-                      <td className="px-6 py-4 text-center">
+                    <tr 
+                      key={task.id} 
+                      onClick={() => setSelectedTask(task)}
+                      className="group hover:bg-gray-50 transition-colors cursor-pointer"
+                    >
+                      <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                         <button className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm">
                           <Play size={14} className="ml-0.5 fill-current" />
                         </button>
@@ -247,6 +266,7 @@ export const TasksPage = () => {
         </div>
       </Card>
 
+      {/* Modal de Creación */}
       <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Nueva Tarea">
         <TaskCreationModal 
           onSubmit={handleCreateTask} 
@@ -255,6 +275,15 @@ export const TasksPage = () => {
           usuarios={usuarios}
         />
       </Modal>
+
+      {/* Panel lateral de detalle */}
+      <TaskDetailSheet
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        task={selectedTask}
+        onUpdate={handleUpdateTask}
+        onDelete={handleDeleteTask}
+      />
     </div>
   );
 };

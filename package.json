@@ -4,10 +4,12 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "build": "prisma generate && vite build",
-  "postinstall": "prisma generate"
-}
+    "dev": "vite",
+    "build": "prisma generate && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "postinstall": "prisma generate"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@vercel/node": "^3.0.0",

@@ -1,4 +1,4 @@
-import { prisma } from '../../lib/prisma';
+import { prisma } from '../lib/prisma';
 
 /**
  * Handler para la API de clientes.

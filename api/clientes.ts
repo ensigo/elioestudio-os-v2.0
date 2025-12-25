@@ -21,8 +21,12 @@ export default async function handler(req: any, res: any) {
     // 2. Devolvemos la lista de clientes al frontend
     return res.status(200).json(clientes);
   } catch (error: any) {
-    // Log detallado del error para ver en Vercel
-    console.error("Error detallado en la base de datos:", error.message);
+    // Esto nos mostrará el error real en la franja roja de la web
+    return res.status(500).json({ 
+      error: "Error real detectado", 
+      details: error.message 
+    });
+  }
     
     return res.status(500).json({ 
       error: "Error al conectar con la base de datos",

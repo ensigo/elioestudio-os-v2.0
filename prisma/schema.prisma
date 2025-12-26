@@ -42,6 +42,8 @@ model Usuario {
 
   proyectosAsignados Proyecto[] @relation("ResponsableProyecto")
   tareasAsignadas    Tarea[]    @relation("AsignadoTarea")
+  permisosSolicitados Permiso[] @relation("PermisosSolicitados")
+  permisosAprobados   Permiso[] @relation("PermisosAprobados")
 
   @@map("usuarios")
 }
@@ -135,4 +137,27 @@ model Evento {
   createdBy Usuario? @relation("EventosCreados", fields: [createdById], references: [id])
 
   @@map("eventos")
+}
+
+model Permiso {
+  id              String    @id @default(cuid())
+  tipo            String    // VACACIONES, PERMISO, BAJA_MEDICA, ASUNTOS_PROPIOS
+  motivo          String?
+  fechaInicio     DateTime
+  fechaFin        DateTime
+  estado          String    @default("PENDIENTE") // PENDIENTE, APROBADO, RECHAZADO
+  fechaSolicitud  DateTime  @default(now())
+  fechaResolucion DateTime?
+  comentarioAdmin String?
+  
+  solicitanteId   String
+  solicitante     Usuario   @relation("PermisosSolicitados", fields: [solicitanteId], references: [id])
+  
+  aprobadorId     String?
+  aprobador       Usuario?  @relation("PermisosAprobados", fields: [aprobadorId], references: [id])
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("permisos")
 }

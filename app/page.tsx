@@ -3,7 +3,7 @@ import { Card } from '../components/ui/Card';
 import { 
   Play, Calendar, CheckSquare, ChevronLeft, ChevronRight, 
   Clock, Briefcase, MapPin, X, CheckCircle2, Flag, Users, 
-  FolderOpen, Ticket, AlertTriangle, TrendingUp
+  FolderOpen, Ticket, AlertTriangle, TrendingUp, Coffee, Square
 } from 'lucide-react';
 import { useTimeTracking } from '../context/TimeTrackingContext';
 import { useAuth } from '../context/AuthContext';
@@ -49,7 +49,18 @@ interface DashboardPageProps {
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const { usuario } = useAuth();
-  const { isClockedIn, toggleClockIn, formatTime, elapsedSeconds } = useTimeTracking();
+  const { 
+    isClockedIn, 
+    isPaused,
+    formatTime, 
+    elapsedSeconds,
+    jornadaActual,
+    iniciarJornada,
+    pausarJornada,
+    reanudarJornada,
+    finalizarJornada,
+    cargarJornadaHoy
+  } = useTimeTracking();
   
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [eventos, setEventos] = useState<Evento[]>([]);
@@ -69,6 +80,9 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   useEffect(() => {
     const fetchDashboard = async () => {
       if (!usuario?.id) return;
+      
+      // Cargar jornada de hoy
+      cargarJornadaHoy(usuario.id);
       
       try {
         const [dashRes, eventosRes] = await Promise.all([
@@ -264,20 +278,71 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           <Card className="h-full">
             <div className="text-center py-4">
               <p className="text-xs font-bold text-gray-500 uppercase mb-2">Control de Jornada</p>
-              <div className={`text-5xl font-mono font-bold mb-4 ${isClockedIn ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`text-5xl font-mono font-bold mb-4 ${
+                isClockedIn 
+                  ? isPaused 
+                    ? 'text-orange-500' 
+                    : 'text-green-600' 
+                  : jornadaActual?.estado === 'FINALIZADA'
+                    ? 'text-blue-600'
+                    : 'text-gray-400'
+              }`}>
                 {formatTime(elapsedSeconds)}
               </div>
-              <button
-                onClick={toggleClockIn}
-                className={`px-6 py-3 rounded-xl font-bold text-white transition-all shadow-lg ${
-                  isClockedIn 
-                    ? 'bg-red-500 hover:bg-red-600 shadow-red-200' 
-                    : 'bg-green-500 hover:bg-green-600 shadow-green-200'
-                }`}
-              >
-                <Play size={18} className={`inline mr-2 ${isClockedIn ? 'rotate-90' : ''}`} />
-                {isClockedIn ? 'Finalizar' : 'Iniciar Jornada'}
-              </button>
+              
+              {/* Estado actual */}
+              {jornadaActual && (
+                <p className="text-xs text-gray-500 mb-3">
+                  {jornadaActual.estado === 'EN_CURSO' && '🟢 Jornada en curso'}
+                  {jornadaActual.estado === 'PAUSADA' && '🟠 En pausa (almuerzo)'}
+                  {jornadaActual.estado === 'FINALIZADA' && '✅ Jornada finalizada'}
+                </p>
+              )}
+              
+              {/* Botones según estado */}
+              <div className="flex flex-col gap-2">
+                {!jornadaActual || jornadaActual.estado === 'FINALIZADA' ? (
+                  <button
+                    onClick={() => usuario?.id && iniciarJornada(usuario.id)}
+                    disabled={jornadaActual?.estado === 'FINALIZADA'}
+                    className={`px-6 py-3 rounded-xl font-bold text-white transition-all shadow-lg ${
+                      jornadaActual?.estado === 'FINALIZADA'
+                        ? 'bg-gray-400 cursor-not-allowed'
+                        : 'bg-green-500 hover:bg-green-600 shadow-green-200'
+                    }`}
+                  >
+                    <Play size={18} className="inline mr-2" />
+                    {jornadaActual?.estado === 'FINALIZADA' ? 'Jornada completada' : 'Iniciar Jornada'}
+                  </button>
+                ) : jornadaActual.estado === 'EN_CURSO' ? (
+                  <div className="flex gap-2 justify-center">
+                    {!jornadaActual.horaPausaAlmuerzo && (
+                      <button
+                        onClick={() => usuario?.id && pausarJornada(usuario.id)}
+                        className="px-4 py-3 rounded-xl font-bold text-white bg-orange-500 hover:bg-orange-600 transition-all shadow-lg shadow-orange-200"
+                      >
+                        <Coffee size={18} className="inline mr-2" />
+                        Pausa
+                      </button>
+                    )}
+                    <button
+                      onClick={() => usuario?.id && finalizarJornada(usuario.id)}
+                      className="px-4 py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 transition-all shadow-lg shadow-red-200"
+                    >
+                      <Square size={18} className="inline mr-2" />
+                      Finalizar
+                    </button>
+                  </div>
+                ) : jornadaActual.estado === 'PAUSADA' ? (
+                  <button
+                    onClick={() => usuario?.id && reanudarJornada(usuario.id)}
+                    className="px-6 py-3 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 transition-all shadow-lg shadow-green-200"
+                  >
+                    <Play size={18} className="inline mr-2" />
+                    Reanudar Jornada
+                  </button>
+                ) : null}
+              </div>
             </div>
           </Card>
         </div>

@@ -45,6 +45,7 @@ model Usuario {
   permisosSolicitados Permiso[] @relation("PermisosSolicitados")
   permisosAprobados   Permiso[] @relation("PermisosAprobados")
   jornadas Jornada[]
+  tipoContrato String @default("COMPLETA") // COMPLETA o MEDIA
 
   @@map("usuarios")
 }

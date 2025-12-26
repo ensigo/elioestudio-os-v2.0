@@ -10,6 +10,7 @@ interface Ticket {
   priority: string;
   status: string;
   createdAt: string;
+  readBy?: string[];
   sender: { id: string; name: string };
   recipient: { id: string; name: string } | null;
 }
@@ -41,16 +42,18 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigate }
           let ticketsFiltrados = data;
           if (!isAdmin) {
             ticketsFiltrados = data.filter((t: Ticket) => 
-              t.sender.id === usuario.id ||
               t.recipient?.id === usuario.id ||
-              t.recipient === null
+              t.recipient === null // Para todo el equipo
             );
           }
           
-          // Solo mostrar tickets abiertos o en progreso
-          const ticketsPendientes = ticketsFiltrados.filter((t: Ticket) => 
-            t.status === 'OPEN' || t.status === 'IN_PROGRESS'
-          );
+          // Solo mostrar tickets abiertos o en progreso que NO han sido leídos por el usuario
+          const ticketsPendientes = ticketsFiltrados.filter((t: Ticket) => {
+            const isOpenOrInProgress = t.status === 'OPEN' || t.status === 'IN_PROGRESS';
+            const notReadByUser = !t.readBy?.includes(usuario?.id || '');
+            const notSentByUser = t.sender.id !== usuario?.id;
+            return isOpenOrInProgress && notReadByUser && notSentByUser;
+          });
           
           setTickets(ticketsPendientes);
         }

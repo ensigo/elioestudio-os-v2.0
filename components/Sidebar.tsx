@@ -8,7 +8,6 @@ import {
   BarChart3, 
   Settings, 
   LifeBuoy,
-  LogOut,
   X,
   Building2,
   MessageSquare,
@@ -16,17 +15,18 @@ import {
   Mail
 } from 'lucide-react';
 import { NavItem, UserRole } from '../types';
-import { CURRENT_USER_ROLE } from '../constants';
 
 interface SidebarProps {
   activeTab: string;
   onNavigate: (tab: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  userRole?: string;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen, onClose }) => {
-  const userRole = CURRENT_USER_ROLE.role as UserRole;
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen, onClose, userRole = 'DEV' }) => {
+  const currentRole = userRole as UserRole;
+  const isAdminOrSuper = currentRole === 'ADMIN' || currentRole === 'SUPERADMIN';
 
   // Definición de ítems de navegación
   const navItems: NavItem[] = [
@@ -36,18 +36,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
     { id: 'tareas', label: 'Tareas', icon: CheckSquare },
     { id: 'calendario', label: 'Calendario', icon: Calendar },
     { id: 'equipo', label: 'Mi Equipo', icon: Users },
-    { id: 'reportes', label: 'Reportes', icon: BarChart3 },
+    { id: 'reportes', label: 'Reportes', icon: BarChart3, roles: ['ADMIN', 'SUPERADMIN'] },
     { id: 'tickets', label: 'Tickets', icon: MessageSquare },
     { id: 'sem', label: 'SEM Ads', icon: Megaphone },
     { id: 'mailing', label: 'E-mail Marketing', icon: Mail },
     
     // Items inferiores
-    { id: 'configuracion', label: 'Configuración', icon: Settings, roles: ['ADMIN'], isBottom: true },
+    { id: 'configuracion', label: 'Configuración', icon: Settings, roles: ['ADMIN', 'SUPERADMIN'], isBottom: true },
     { id: 'soporte', label: 'Soporte', icon: LifeBuoy, isBottom: true },
   ];
 
   const filteredItems = navItems.filter(item => 
-    !item.roles || item.roles.includes(userRole)
+    !item.roles || item.roles.includes(currentRole)
   );
 
   const mainItems = filteredItems.filter(i => !i.isBottom);
@@ -93,36 +93,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
       `}>
         {/* Brand Header */}
         <div className="h-20 flex items-center justify-between px-4 border-b border-gray-100">
-          
-          {/* LOGO ELIOESTUDIO - VISTA CORREGIDA Y AMPLIADA */}
-          <svg 
-            width="190" 
-            height="45" 
-            viewBox="0 0 650 100" 
-            fill="none" 
-            xmlns="http://www.w3.org/2000/svg"
-            className="mt-2"
-          >
-            {/* GRUPO GRIS (Izquierda) */}
-            <rect x="0" y="10" width="100" height="28" fill="#9CA3AF" />   {/* Barra Superior Gris */}
-            <rect x="50" y="44" width="50" height="20" fill="#9CA3AF" />   {/* Barra Media Gris */}
-            <rect x="0" y="70" width="100" height="28" fill="#9CA3AF" />   {/* Barra Inferior Gris */}
-            
-            {/* GRUPO NEGRO (Derecha - Formando la E) */}
-            <rect x="115" y="10" width="100" height="28" fill="#1F2937" /> {/* Barra Superior Negra */}
-            <rect x="115" y="44" width="60" height="20" fill="#1F2937" />  {/* Barra Media Negra */}
-            <rect x="115" y="70" width="100" height="28" fill="#1F2937" /> {/* Barra Inferior Negra */}
-
-            {/* TEXTO COMPLETO */}
-            <text 
-              x="240" 
-              y="78" 
-              fill="#1F2937" 
-              style={{ font: 'normal 400 65px Montserrat, sans-serif', letterSpacing: '4px' }}
-            >
-              ELIO<tspan style={{ fontWeight: 300 }}>ESTUDIO</tspan>
-            </text>
-          </svg>
+          <img 
+            src="/images/logo_elio_horizontal.png" 
+            alt="ElioEstudio" 
+            className="h-10"
+          />
 
           {/* Botón Cerrar (Solo Móvil) */}
           <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-elio-black">
@@ -141,26 +116,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
 
         {/* Footer / Bottom Items */}
         <div className="p-4 border-t border-gray-100 bg-gray-50/50">
-          <div className="space-y-1 mb-4">
+          <div className="space-y-1">
             {bottomItems.map(item => (
               <NavButton key={item.id} item={item} />
             ))}
-          </div>
-          
-          <div className="pt-4 border-t border-gray-200">
-            <div className="flex items-center space-x-3 px-2 mb-3">
-              <div className="w-8 h-8 rounded-full bg-elio-yellow/10 flex items-center justify-center text-elio-yellow font-bold text-xs">
-                {CURRENT_USER_ROLE.name.charAt(0)}
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-bold text-elio-black truncate">{CURRENT_USER_ROLE.name}</p>
-                <p className="text-xs text-gray-500 truncate capitalize">{CURRENT_USER_ROLE.role}</p>
-              </div>
-            </div>
-            <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors">
-              <LogOut size={14} />
-              <span>Cerrar Sesión</span>
-            </button>
           </div>
         </div>
       </aside>

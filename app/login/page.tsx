@@ -37,12 +37,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 mb-2">
-            <div className="w-10 h-10 bg-elio-yellow rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">E</span>
-            </div>
-            <span className="text-2xl font-bold text-white">ElioEstudio</span>
-          </div>
+          <img 
+            src="/images/logo_vertical.png" 
+            alt="ElioEstudio" 
+            className="h-32 mx-auto mb-4 invert"
+          />
           <p className="text-slate-400 text-sm">Área Privada</p>
         </div>
 

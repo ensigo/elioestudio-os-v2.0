@@ -14,7 +14,11 @@ interface Ticket {
   recipient: { id: string; name: string } | null;
 }
 
-export const NotificationBell: React.FC = () => {
+interface NotificationBellProps {
+  onNavigate?: (page: string) => void;
+}
+
+export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigate }) => {
   const { usuario } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -37,13 +41,13 @@ export const NotificationBell: React.FC = () => {
           let ticketsFiltrados = data;
           if (!isAdmin) {
             ticketsFiltrados = data.filter((t: Ticket) => 
-              t.sender.id === usuario.id || // Enviados por mí
-              t.recipient?.id === usuario.id || // Recibidos directamente
-              t.recipient === null // Para todo el equipo
+              t.sender.id === usuario.id ||
+              t.recipient?.id === usuario.id ||
+              t.recipient === null
             );
           }
           
-          // Solo mostrar tickets abiertos o en progreso como notificaciones
+          // Solo mostrar tickets abiertos o en progreso
           const ticketsPendientes = ticketsFiltrados.filter((t: Ticket) => 
             t.status === 'OPEN' || t.status === 'IN_PROGRESS'
           );
@@ -59,7 +63,6 @@ export const NotificationBell: React.FC = () => {
 
     fetchTickets();
     
-    // Refrescar cada 30 segundos
     const interval = setInterval(fetchTickets, 30000);
     return () => clearInterval(interval);
   }, [usuario, isAdmin]);
@@ -98,6 +101,11 @@ export const NotificationBell: React.FC = () => {
       case 'HIGH': return <AlertTriangle size={16} className="text-orange-500" />;
       default: return <MessageSquare size={16} className="text-blue-500" />;
     }
+  };
+
+  const handleTicketClick = () => {
+    setIsOpen(false);
+    onNavigate?.('tickets');
   };
 
   return (
@@ -140,6 +148,7 @@ export const NotificationBell: React.FC = () => {
                 {tickets.map(ticket => (
                   <div 
                     key={ticket.id} 
+                    onClick={handleTicketClick}
                     className="p-3 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <div className="flex items-start gap-3">
@@ -171,7 +180,10 @@ export const NotificationBell: React.FC = () => {
           
           {tickets.length > 0 && (
             <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
-              <button className="text-xs text-blue-600 font-medium hover:underline w-full text-center">
+              <button 
+                onClick={handleTicketClick}
+                className="text-xs text-blue-600 font-medium hover:underline w-full text-center"
+              >
                 Ver todos los tickets
               </button>
             </div>

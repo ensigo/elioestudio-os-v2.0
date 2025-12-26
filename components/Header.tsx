@@ -17,9 +17,10 @@ interface Usuario {
 interface HeaderProps {
   usuario?: Usuario | null;
   onLogout?: () => void;
+  onNavigate?: (page: string) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ usuario, onLogout }) => {
+export const Header: React.FC<HeaderProps> = ({ usuario, onLogout, onNavigate }) => {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -137,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({ usuario, onLogout }) => {
           <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
 
           {/* Campana */}
-          <NotificationBell />
+          <NotificationBell onNavigate={onNavigate} />
           
           {/* Perfil de Usuario */}
           <div className="relative">

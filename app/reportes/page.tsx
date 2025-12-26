@@ -1,240 +1,525 @@
 'use client';
-import React, { useState } from 'react';
-import { Clock, CheckCircle, AlertTriangle, X, TrendingUp, User, Briefcase, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Clock, CheckCircle, AlertTriangle, X, TrendingUp, User, Briefcase, 
+  Calendar, Download, ChevronDown, Activity, UserX, AlertCircle as AlertIcon,
+  ArrowUpRight, ArrowDownRight
+} from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
+import { Card } from '../../components/ui/Card';
 
-// --- MOCK DATA ESTRUCTURADA ---
-const SUMMARY_DATA = {
-  Semana: {
-    kpis: { hours: 142, tasks: 48, risk: 1 },
-    chart: [
-      { name: 'Alejandro Magno', hours: 38, percentage: 95 },
-      { name: 'Elena Nito', hours: 42, percentage: 100 },
-      { name: 'Aitor Tilla', hours: 15, percentage: 35 },
-    ]
-  },
-  Mes: {
-    kpis: { hours: 580, tasks: 195, risk: 2 },
-    chart: [
-      { name: 'Alejandro Magno', hours: 160, percentage: 100 },
-      { name: 'Elena Nito', hours: 165, percentage: 100 },
-      { name: 'Aitor Tilla', hours: 140, percentage: 85 },
-    ]
-  }
-};
+interface UsuarioReporte {
+  usuario: {
+    id: string;
+    name: string;
+    role: string;
+    position: string | null;
+  };
+  metricas: {
+    horasTrabajadas: number;
+    horasEsperadas: number;
+    porcentajeCumplimiento: number;
+    tareasAsignadas: number;
+    tareasCompletadas: number;
+    tareasPendientes: number;
+    tareasVencidas: number;
+    tasaCompletado: number;
+  };
+  alertas: {
+    bajaCarga: boolean;
+    tareasRetrasadas: boolean;
+    sinActividad: boolean;
+  };
+  ultimaActividad: string | null;
+}
 
-const DRILL_DOWN_DATA = {
-  hours: [
-    { id: 1, member: 'Alejandro Magno', logged: 38, compliance: 95, mainProject: 'E-commerce Nike' },
-    { id: 2, member: 'Elena Nito', logged: 42, compliance: 105, mainProject: 'Gestión Interna' },
-    { id: 3, member: 'Aitor Tilla', logged: 15, compliance: 35, mainProject: 'API Integración' },
-    { id: 4, member: 'Ana Tomía', logged: 40, compliance: 100, mainProject: 'Rebranding Web' },
-  ],
-  tasks: [
-    { id: 1, title: 'Wireframes Home v2', assignee: 'Ana Tomía', status: 'ON_TIME', endDate: '12/12/2023' },
-    { id: 2, title: 'Fix Bug Pasarela Pago', assignee: 'Aitor Tilla', status: 'LATE', endDate: '10/12/2023' },
-    { id: 3, title: 'Reunión Kickoff', assignee: 'Elena Nito', status: 'ON_TIME', endDate: '13/12/2023' },
-    { id: 4, title: 'Despliegue Producción', assignee: 'Alejandro Magno', status: 'ON_TIME', endDate: '14/12/2023' },
-  ],
-  risk: [
-    { id: 1, project: 'Restaurante La Abuela', issue: 'Presupuesto excedido (110%)', severity: 'HIGH' },
-    { id: 2, project: 'Startup Unicornio', issue: 'Deadline en riesgo por falta de assets', severity: 'MEDIUM' },
-  ]
-};
+interface ResumenGeneral {
+  totalHorasTrabajadas: number;
+  totalTareasCompletadas: number;
+  totalTareasPendientes: number;
+  totalTareasVencidas: number;
+  usuariosConAlertas: number;
+  promedioRendimiento: number;
+}
+
+interface ActividadReciente {
+  id: string;
+  userId: string;
+  tarea: string;
+  proyecto: string;
+  inicio: string;
+  fin: string | null;
+  duracion: number | null;
+}
+
+interface ReporteData {
+  periodo: { desde: string; hasta: string };
+  resumenGeneral: ResumenGeneral;
+  reportePorUsuario: UsuarioReporte[];
+  actividadReciente: ActividadReciente[];
+}
 
 export default function ReportesPage() {
-  const [periodo, setPeriodo] = useState<'Semana' | 'Mes'>('Semana');
+  const [data, setData] = useState<ReporteData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [periodo, setPeriodo] = useState<'semana' | 'mes'>('semana');
   const [selectedKpi, setSelectedKpi] = useState<'hours' | 'tasks' | 'risk' | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UsuarioReporte | null>(null);
 
-  const currentSummary = SUMMARY_DATA[periodo];
+  // Cargar datos
+  useEffect(() => {
+    const fetchReportes = async () => {
+      setIsLoading(true);
+      try {
+        const hasta = new Date();
+        const desde = new Date();
+        if (periodo === 'semana') {
+          desde.setDate(hasta.getDate() - 7);
+        } else {
+          desde.setDate(hasta.getDate() - 30);
+        }
 
-  // Renderizado condicional del contenido del modal
-  const renderModalContent = () => {
-    switch(selectedKpi) {
-      case 'hours':
-        return (
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 font-medium">
-              <tr>
-                <th className="px-4 py-3">Miembro</th>
-                <th className="px-4 py-3 text-center">Horas</th>
-                <th className="px-4 py-3 text-center">% Cumplimiento</th>
-                <th className="px-4 py-3">Proyecto Principal</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {DRILL_DOWN_DATA.hours.map(row => (
-                <tr key={row.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900">{row.member}</td>
-                  <td className="px-4 py-3 text-center font-mono">{row.logged}h</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`px-2 py-1 rounded text-xs font-bold ${row.compliance < 80 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                      {row.compliance}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600 truncate">{row.mainProject}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        );
-      case 'tasks':
-        return (
-          <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-500 font-medium">
-              <tr>
-                <th className="px-4 py-3">Tarea</th>
-                <th className="px-4 py-3">Responsable</th>
-                <th className="px-4 py-3 text-center">Estado</th>
-                <th className="px-4 py-3 text-right">Fecha Fin</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {DRILL_DOWN_DATA.tasks.map(row => (
-                <tr key={row.id}>
-                  <td className="px-4 py-3 font-medium text-slate-900 truncate max-w-[150px]">{row.title}</td>
-                  <td className="px-4 py-3 text-slate-600 flex items-center gap-2">
-                    <User size={14} className="text-slate-400"/> {row.assignee}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                     {row.status === 'LATE' ? (
-                       <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">Retrasada</span>
-                     ) : (
-                       <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100">A tiempo</span>
-                     )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-xs text-slate-500">{row.endDate}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        );
-      case 'risk':
-        return (
-          <div className="space-y-4 p-2">
-            {DRILL_DOWN_DATA.risk.map(row => (
-              <div key={row.id} className="bg-red-50 border border-red-100 p-4 rounded-lg flex items-start gap-3">
-                <AlertTriangle className="text-red-500 mt-1 flex-shrink-0" size={20} />
-                <div>
-                  <h4 className="font-bold text-red-800">{row.project}</h4>
-                  <p className="text-sm text-red-600 mt-1">{row.issue}</p>
-                  <div className="mt-2">
-                    <Badge variant="danger">{row.severity}</Badge>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-      default: return null;
-    }
+        const response = await fetch(`/api/reportes?desde=${desde.toISOString()}&hasta=${hasta.toISOString()}`);
+        if (!response.ok) throw new Error('Error al cargar reportes');
+        
+        const reporteData = await response.json();
+        setData(reporteData);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchReportes();
+  }, [periodo]);
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  const getModalTitle = () => {
-    switch(selectedKpi) {
-      case 'hours': return 'Desglose de Horas por Equipo';
-      case 'tasks': return 'Detalle de Tareas Entregadas';
-      case 'risk': return 'Alertas de Riesgo Activas';
-      default: return '';
-    }
+  const getStatusColor = (porcentaje: number) => {
+    if (porcentaje >= 90) return 'bg-green-500';
+    if (porcentaje >= 70) return 'bg-yellow-500';
+    if (porcentaje >= 50) return 'bg-orange-500';
+    return 'bg-red-500';
   };
+
+  const getAlertCount = (usuario: UsuarioReporte) => {
+    let count = 0;
+    if (usuario.alertas.bajaCarga) count++;
+    if (usuario.alertas.tareasRetrasadas) count++;
+    if (usuario.alertas.sinActividad) count++;
+    return count;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-96">
+        <p className="text-xl text-elio-yellow animate-pulse">Cargando reportes...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-96 bg-red-50 p-6 rounded-lg border border-red-200">
+        <AlertTriangle size={24} className="text-red-500 mr-3" />
+        <p className="text-red-700 font-medium">Error: {error}</p>
+      </div>
+    );
+  }
+
+  const usuariosConProblemas = data?.reportePorUsuario.filter(u => 
+    u.alertas.bajaCarga || u.alertas.tareasRetrasadas || u.alertas.sinActividad
+  ) || [];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto relative">
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-         <h1 className="text-2xl font-bold text-slate-900">Auditoría de Rendimiento</h1>
-         <div className="flex bg-slate-100 rounded-lg p-1">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Control de Rendimiento</h1>
+          <p className="text-gray-500 text-sm">Supervisión de jornadas y productividad del equipo remoto</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex bg-slate-100 rounded-lg p-1">
             <button 
-              onClick={() => setPeriodo('Semana')}
-              className={`px-3 py-1 text-sm font-medium rounded transition-all ${periodo === 'Semana' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              onClick={() => setPeriodo('semana')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                periodo === 'semana' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'
+              }`}
             >
-              Semana
+              Última Semana
             </button>
             <button 
-              onClick={() => setPeriodo('Mes')}
-              className={`px-3 py-1 text-sm font-medium rounded transition-all ${periodo === 'Mes' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+              onClick={() => setPeriodo('mes')}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-all ${
+                periodo === 'mes' ? 'bg-white shadow text-slate-900' : 'text-slate-500 hover:text-slate-700'
+              }`}
             >
-              Mes
+              Último Mes
             </button>
-         </div>
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800">
+            <Download size={16} /> Exportar
+          </button>
+        </div>
       </div>
 
-      {/* KPIs Interactivos (Drill-down) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-         <div 
-            onClick={() => setSelectedKpi('hours')}
-            className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-400 hover:shadow-md transition-all group relative overflow-hidden"
-         >
-            <div className="flex items-center gap-3 mb-2 text-slate-500 group-hover:text-blue-600"><Clock size={18} /> Horas Totales</div>
-            <p className="text-3xl font-bold text-slate-900">{currentSummary.kpis.hours}h <span className="text-sm font-normal text-green-500">+12%</span></p>
-            <div className="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><Briefcase size={40} /></div>
-            <p className="text-xs text-slate-400 mt-2 flex items-center gap-1 group-hover:text-blue-500">Ver detalle <TrendingUp size={12}/></p>
-         </div>
-         
-         <div 
-            onClick={() => setSelectedKpi('tasks')}
-            className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-yellow-400 hover:shadow-md transition-all group relative overflow-hidden"
-         >
-            <div className="flex items-center gap-3 mb-2 text-slate-500 group-hover:text-yellow-600"><CheckCircle size={18} /> Tareas Completadas</div>
-            <p className="text-3xl font-bold text-slate-900">{currentSummary.kpis.tasks} <span className="text-sm font-normal text-slate-400">/ asignadas</span></p>
-            <div className="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><CheckCircle size={40} /></div>
-            <p className="text-xs text-slate-400 mt-2 flex items-center gap-1 group-hover:text-yellow-600">Ver listado <TrendingUp size={12}/></p>
-         </div>
-         
-         <div 
-            onClick={() => setSelectedKpi('risk')}
-            className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-red-400 hover:shadow-md transition-all group relative overflow-hidden"
-         >
-            <div className="flex items-center gap-3 mb-2 text-slate-500 group-hover:text-red-500"><AlertTriangle size={18} /> Riesgo Productividad</div>
-            <p className={`text-3xl font-bold ${currentSummary.kpis.risk > 0 ? 'text-red-500' : 'text-green-500'}`}>
-               {currentSummary.kpis.risk} <span className="text-sm font-normal text-slate-500">Alertas</span>
-            </p>
-            <div className="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><AlertTriangle size={40} /></div>
-            <p className="text-xs text-slate-400 mt-2 flex items-center gap-1 group-hover:text-red-500">Analizar causas <TrendingUp size={12}/></p>
-         </div>
+      {/* KPIs Principales */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card 
+          className="cursor-pointer hover:border-blue-400 hover:shadow-md transition-all"
+          onClick={() => setSelectedKpi('hours')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                <Clock size={14} /> Horas Totales
+              </p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">
+                {Math.round(data?.resumenGeneral.totalHorasTrabajadas || 0)}h
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Promedio: {data?.resumenGeneral.promedioRendimiento || 0}% cumplimiento
+              </p>
+            </div>
+            <div className={`p-3 rounded-xl ${(data?.resumenGeneral.promedioRendimiento || 0) >= 80 ? 'bg-green-100' : 'bg-red-100'}`}>
+              {(data?.resumenGeneral.promedioRendimiento || 0) >= 80 
+                ? <ArrowUpRight size={24} className="text-green-600" />
+                : <ArrowDownRight size={24} className="text-red-600" />
+              }
+            </div>
+          </div>
+        </Card>
+
+        <Card 
+          className="cursor-pointer hover:border-green-400 hover:shadow-md transition-all"
+          onClick={() => setSelectedKpi('tasks')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                <CheckCircle size={14} /> Tareas Completadas
+              </p>
+              <p className="text-3xl font-bold text-slate-900 mt-1">
+                {data?.resumenGeneral.totalTareasCompletadas || 0}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                {data?.resumenGeneral.totalTareasPendientes || 0} pendientes
+              </p>
+            </div>
+            <div className="p-3 bg-green-100 rounded-xl">
+              <CheckCircle size={24} className="text-green-600" />
+            </div>
+          </div>
+        </Card>
+
+        <Card 
+          className="cursor-pointer hover:border-orange-400 hover:shadow-md transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                <AlertIcon size={14} /> Tareas Vencidas
+              </p>
+              <p className={`text-3xl font-bold mt-1 ${(data?.resumenGeneral.totalTareasVencidas || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {data?.resumenGeneral.totalTareasVencidas || 0}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Requieren atención
+              </p>
+            </div>
+            <div className={`p-3 rounded-xl ${(data?.resumenGeneral.totalTareasVencidas || 0) > 0 ? 'bg-red-100' : 'bg-green-100'}`}>
+              <AlertTriangle size={24} className={(data?.resumenGeneral.totalTareasVencidas || 0) > 0 ? 'text-red-600' : 'text-green-600'} />
+            </div>
+          </div>
+        </Card>
+
+        <Card 
+          className="cursor-pointer hover:border-red-400 hover:shadow-md transition-all"
+          onClick={() => setSelectedKpi('risk')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                <UserX size={14} /> Alertas Equipo
+              </p>
+              <p className={`text-3xl font-bold mt-1 ${(data?.resumenGeneral.usuariosConAlertas || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {data?.resumenGeneral.usuariosConAlertas || 0}
+              </p>
+              <p className="text-xs text-slate-400 mt-1">
+                Usuarios con incidencias
+              </p>
+            </div>
+            <div className={`p-3 rounded-xl ${(data?.resumenGeneral.usuariosConAlertas || 0) > 0 ? 'bg-red-100' : 'bg-green-100'}`}>
+              <UserX size={24} className={(data?.resumenGeneral.usuariosConAlertas || 0) > 0 ? 'text-red-600' : 'text-green-600'} />
+            </div>
+          </div>
+        </Card>
       </div>
 
-      {/* Gráficas Dinámicas */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-         <h3 className="font-bold mb-6 flex items-center gap-2">
-            <TrendingUp size={18} className="text-slate-400" />
-            Rendimiento Visual ({periodo})
-         </h3>
-         <div className="space-y-6">
-            {currentSummary.chart.map((item, idx) => (
-              <div key={idx}>
-                 <div className="flex justify-between text-sm mb-1 font-medium text-slate-700">
-                    <span>{item.name}</span> 
-                    <span>{item.hours}h</span>
-                 </div>
-                 <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full transition-all duration-1000 ease-out ${
-                        item.percentage < 50 ? 'bg-red-400' : 
-                        item.percentage > 100 ? 'bg-yellow-400' : 'bg-slate-900'
-                      }`} 
-                      style={{width: `${Math.min(item.percentage, 100)}%`}}
-                    ></div>
-                 </div>
-              </div>
-            ))}
-         </div>
+      {/* Tabla de Rendimiento por Usuario */}
+      <Card title="Rendimiento Individual del Equipo" className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200">
+              <tr>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">Miembro</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">Horas</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">Cumplimiento</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">Tareas</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">Vencidas</th>
+                <th className="px-4 py-3 text-center font-bold text-slate-600">Alertas</th>
+                <th className="px-4 py-3 text-left font-bold text-slate-600">Última Actividad</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {data?.reportePorUsuario.map(reporte => {
+                const alertCount = getAlertCount(reporte);
+                return (
+                  <tr 
+                    key={reporte.usuario.id} 
+                    className={`hover:bg-slate-50 cursor-pointer transition-colors ${alertCount > 0 ? 'bg-red-50/30' : ''}`}
+                    onClick={() => setSelectedUser(reporte)}
+                  >
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600">
+                          {reporte.usuario.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900">{reporte.usuario.name}</p>
+                          <p className="text-xs text-slate-500">{reporte.usuario.position || reporte.usuario.role}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className="font-mono font-bold">{reporte.metricas.horasTrabajadas}h</span>
+                      <span className="text-xs text-slate-400 block">/ {reporte.metricas.horasEsperadas}h</span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-20 bg-slate-200 rounded-full h-2 overflow-hidden">
+                          <div 
+                            className={`h-full ${getStatusColor(reporte.metricas.porcentajeCumplimiento)}`}
+                            style={{ width: `${Math.min(reporte.metricas.porcentajeCumplimiento, 100)}%` }}
+                          />
+                        </div>
+                        <span className={`text-sm font-bold ${
+                          reporte.metricas.porcentajeCumplimiento >= 80 ? 'text-green-600' : 
+                          reporte.metricas.porcentajeCumplimiento >= 50 ? 'text-orange-600' : 'text-red-600'
+                        }`}>
+                          {reporte.metricas.porcentajeCumplimiento}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className="text-green-600 font-bold">{reporte.metricas.tareasCompletadas}</span>
+                      <span className="text-slate-400"> / {reporte.metricas.tareasAsignadas}</span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      {reporte.metricas.tareasVencidas > 0 ? (
+                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold">
+                          {reporte.metricas.tareasVencidas}
+                        </span>
+                      ) : (
+                        <span className="text-green-600">0</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      {alertCount > 0 ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold flex items-center gap-1">
+                            <AlertTriangle size={12} /> {alertCount}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-green-600 text-xs">✓ OK</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-sm text-slate-500">
+                      {reporte.ultimaActividad 
+                        ? formatDate(reporte.ultimaActividad)
+                        : <span className="text-red-500 font-medium">Sin actividad</span>
+                      }
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      {/* Actividad Reciente */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Timeline */}
+        <Card title="Actividad Reciente" className="max-h-[400px] overflow-y-auto">
+          {data?.actividadReciente.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              <Activity size={32} className="mx-auto mb-2 opacity-30" />
+              <p>No hay actividad registrada</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {data?.actividadReciente.map(act => (
+                <div key={act.id} className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Clock size={14} className="text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-slate-900 text-sm">{act.tarea}</p>
+                    <p className="text-xs text-slate-500">{act.proyecto}</p>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                      <span>{formatDate(act.inicio)}</span>
+                      {act.duracion && (
+                        <span className="bg-slate-200 px-2 py-0.5 rounded">{act.duracion} min</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        {/* Usuarios con Alertas */}
+        <Card title="⚠️ Usuarios que Requieren Atención" className="max-h-[400px] overflow-y-auto">
+          {usuariosConProblemas.length === 0 ? (
+            <div className="text-center py-8 text-green-600">
+              <CheckCircle size={32} className="mx-auto mb-2" />
+              <p className="font-medium">Todo el equipo está en orden</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {usuariosConProblemas.map(u => (
+                <div 
+                  key={u.usuario.id} 
+                  className="p-4 bg-red-50 border border-red-100 rounded-lg cursor-pointer hover:bg-red-100 transition-colors"
+                  onClick={() => setSelectedUser(u)}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-red-200 flex items-center justify-center font-bold text-red-700 text-sm">
+                        {u.usuario.name.charAt(0)}
+                      </div>
+                      <span className="font-bold text-red-900">{u.usuario.name}</span>
+                    </div>
+                    <Badge variant="danger">{getAlertCount(u)} alertas</Badge>
+                  </div>
+                  <div className="space-y-1 text-xs text-red-700">
+                    {u.alertas.bajaCarga && (
+                      <p className="flex items-center gap-1">
+                        <AlertTriangle size={12} /> Baja carga de trabajo ({u.metricas.porcentajeCumplimiento}% cumplimiento)
+                      </p>
+                    )}
+                    {u.alertas.tareasRetrasadas && (
+                      <p className="flex items-center gap-1">
+                        <AlertTriangle size={12} /> {u.metricas.tareasVencidas} tareas vencidas
+                      </p>
+                    )}
+                    {u.alertas.sinActividad && (
+                      <p className="flex items-center gap-1">
+                        <AlertTriangle size={12} /> Sin actividad registrada
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
 
-      {/* Modal Genérico para KPIs */}
-      {selectedKpi && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setSelectedKpi(null)}>
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+      {/* Modal Detalle Usuario */}
+      {selectedUser && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={() => setSelectedUser(null)}>
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h3 className="font-bold text-lg text-slate-800">{getModalTitle()}</h3>
-              <button onClick={() => setSelectedKpi(null)} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600 text-xl">
+                  {selectedUser.usuario.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900">{selectedUser.usuario.name}</h3>
+                  <p className="text-sm text-slate-500">{selectedUser.usuario.position || selectedUser.usuario.role}</p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedUser(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={20}/>
+              </button>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto">
-               {renderModalContent()}
+            
+            <div className="p-6 space-y-4">
+              {/* Métricas */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <p className="text-xs text-slate-500 uppercase font-bold">Horas Trabajadas</p>
+                  <p className="text-2xl font-bold text-slate-900">{selectedUser.metricas.horasTrabajadas}h</p>
+                  <p className="text-xs text-slate-400">de {selectedUser.metricas.horasEsperadas}h esperadas</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <p className="text-xs text-slate-500 uppercase font-bold">Cumplimiento</p>
+                  <p className={`text-2xl font-bold ${
+                    selectedUser.metricas.porcentajeCumplimiento >= 80 ? 'text-green-600' : 
+                    selectedUser.metricas.porcentajeCumplimiento >= 50 ? 'text-orange-600' : 'text-red-600'
+                  }`}>{selectedUser.metricas.porcentajeCumplimiento}%</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <p className="text-xs text-slate-500 uppercase font-bold">Tareas Completadas</p>
+                  <p className="text-2xl font-bold text-green-600">{selectedUser.metricas.tareasCompletadas}</p>
+                  <p className="text-xs text-slate-400">de {selectedUser.metricas.tareasAsignadas} asignadas</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-lg">
+                  <p className="text-xs text-slate-500 uppercase font-bold">Tareas Vencidas</p>
+                  <p className={`text-2xl font-bold ${selectedUser.metricas.tareasVencidas > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {selectedUser.metricas.tareasVencidas}
+                  </p>
+                </div>
+              </div>
+
+              {/* Alertas */}
+              {getAlertCount(selectedUser) > 0 && (
+                <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                  <p className="font-bold text-red-800 mb-2 flex items-center gap-2">
+                    <AlertTriangle size={16} /> Alertas Activas
+                  </p>
+                  <ul className="space-y-1 text-sm text-red-700">
+                    {selectedUser.alertas.bajaCarga && (
+                      <li>• Carga de trabajo inferior al 50% esperado</li>
+                    )}
+                    {selectedUser.alertas.tareasRetrasadas && (
+                      <li>• Tiene {selectedUser.metricas.tareasVencidas} tareas vencidas sin completar</li>
+                    )}
+                    {selectedUser.alertas.sinActividad && (
+                      <li>• No ha registrado actividad en el periodo</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+
+              {/* Última actividad */}
+              <div className="text-sm text-slate-500">
+                <span className="font-medium">Última actividad: </span>
+                {selectedUser.ultimaActividad 
+                  ? formatDate(selectedUser.ultimaActividad)
+                  : <span className="text-red-500">Sin registros</span>
+                }
+              </div>
             </div>
+            
             <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end">
-               <button onClick={() => setSelectedKpi(null)} className="px-4 py-2 bg-slate-900 text-white rounded text-sm font-medium hover:bg-slate-800">Cerrar</button>
+              <button onClick={() => setSelectedUser(null)} className="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800">
+                Cerrar
+              </button>
             </div>
           </div>
         </div>

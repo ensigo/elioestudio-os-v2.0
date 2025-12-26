@@ -207,10 +207,10 @@ export const ProjectsPage = () => {
       </div>
 
       <div className="flex space-x-6 pb-4">
-        <StatusColumn title="En Curso" status="ACTIVE" icon={Briefcase} colorClass="border-emerald-500 text-emerald-600" items={groupedProjects.ACTIVE} />
         <StatusColumn title="Pendiente Inicio" status="PENDING" icon={Clock} colorClass="border-blue-400 text-blue-500" items={groupedProjects.PENDING} />
-        <StatusColumn title="Bloqueados" status="BLOCKED" icon={Lock} colorClass="border-red-400 text-red-500" items={groupedProjects.BLOCKED} />
+        <StatusColumn title="En Curso" status="ACTIVE" icon={Briefcase} colorClass="border-emerald-500 text-emerald-600" items={groupedProjects.ACTIVE} />
         <StatusColumn title="Completados" status="COMPLETED" icon={CheckCircle} colorClass="border-gray-400 text-gray-500" items={groupedProjects.COMPLETED} />
+        <StatusColumn title="Bloqueados" status="BLOCKED" icon={Lock} colorClass="border-red-400 text-red-500" items={groupedProjects.BLOCKED} />
       </div>
 
       {/* Modal de Creación */}

@@ -68,9 +68,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   // Cargar datos del dashboard
   useEffect(() => {
     const fetchDashboard = async () => {
+      if (!usuario?.id) return;
+      
       try {
         const [dashRes, eventosRes] = await Promise.all([
-          fetch('/api/dashboard'),
+          fetch(`/api/dashboard?userId=${usuario.id}&userRole=${usuario.role}`),
           fetch('/api/eventos')
         ]);
 
@@ -92,7 +94,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     };
 
     fetchDashboard();
-  }, []);
+  }, [usuario]);
 
   const TODAY = new Date();
 

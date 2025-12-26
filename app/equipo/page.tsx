@@ -88,7 +88,20 @@ export const TeamPage = () => {
     name: '',
     email: '',
     role: 'DEV',
-    position: ''
+    position: '',
+    tipoContrato: 'COMPLETA',
+    dni: '',
+    fechaNacimiento: '',
+    direccion: '',
+    ciudad: '',
+    codigoPostal: '',
+    telefono: '',
+    telefonoEmergencia: '',
+    iban: '',
+    titularCuenta: '',
+    numSeguridadSocial: '',
+    tipoContratacion: '',
+    fechaAltaSS: ''
   });
   
   const [permisoForm, setPermisoForm] = useState({
@@ -301,7 +314,20 @@ export const TeamPage = () => {
       name: user.name,
       email: user.email,
       role: user.role,
-      position: user.position || ''
+      position: user.position || '',
+      tipoContrato: user.tipoContrato || 'COMPLETA',
+      dni: user.dni || '',
+      fechaNacimiento: user.fechaNacimiento ? user.fechaNacimiento.split('T')[0] : '',
+      direccion: user.direccion || '',
+      ciudad: user.ciudad || '',
+      codigoPostal: user.codigoPostal || '',
+      telefono: user.telefono || '',
+      telefonoEmergencia: user.telefonoEmergencia || '',
+      iban: user.iban || '',
+      titularCuenta: user.titularCuenta || '',
+      numSeguridadSocial: user.numSeguridadSocial || '',
+      tipoContratacion: user.tipoContratacion || '',
+      fechaAltaSS: user.fechaAltaSS ? user.fechaAltaSS.split('T')[0] : ''
     });
     setIsEditModalOpen(true);
   };
@@ -867,44 +893,169 @@ export const TeamPage = () => {
 
 // --- COMPONENTES MODALES ---
 
-const UserModal = ({ title, onClose, onSubmit, form, setForm }: any) => (
-  <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-      <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gray-50">
-        <h3 className="font-bold text-lg text-gray-900">{title}</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+const UserModal = ({ title, onClose, onSubmit, form, setForm }: any) => {
+  const [editTab, setEditTab] = useState<'basico' | 'personal' | 'bancario' | 'seguridad'>('basico');
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gray-50">
+          <h3 className="font-bold text-lg text-gray-900">{title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={20}/></button>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 bg-gray-50">
+          {[
+            { key: 'basico', label: 'Básico' },
+            { key: 'personal', label: 'Personal' },
+            { key: 'bancario', label: 'Bancario' },
+            { key: 'seguridad', label: 'Seguridad Social' }
+          ].map(tab => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setEditTab(tab.key as any)}
+              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                editTab === tab.key 
+                  ? 'bg-white border-b-2 border-elio-yellow text-elio-yellow' 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={onSubmit} className="p-6 overflow-y-auto flex-1">
+          {editTab === 'basico' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nombre *</label>
+                  <input type="text" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email *</label>
+                  <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50" required />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Rol *</label>
+                  <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none">
+                    <option value="DEV">Desarrollador</option>
+                    <option value="COPY">Copywriter</option>
+                    <option value="DESIGNER">Diseñador</option>
+                    <option value="PM">Project Manager</option>
+                    <option value="ADMIN">Administrador</option>
+                    <option value="SUPERADMIN">Super Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Cargo</label>
+                  <input type="text" value={form.position} onChange={(e) => setForm({...form, position: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="Ej: Community Manager" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {editTab === 'personal' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">DNI/NIE</label>
+                  <input type="text" value={form.dni} onChange={(e) => setForm({...form, dni: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="12345678A" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Fecha Nacimiento</label>
+                  <input type="date" value={form.fechaNacimiento} onChange={(e) => setForm({...form, fechaNacimiento: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Teléfono</label>
+                  <input type="tel" value={form.telefono} onChange={(e) => setForm({...form, telefono: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="612345678" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Teléfono Emergencia</label>
+                  <input type="tel" value={form.telefonoEmergencia} onChange={(e) => setForm({...form, telefonoEmergencia: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="612345678" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Dirección</label>
+                <input type="text" value={form.direccion} onChange={(e) => setForm({...form, direccion: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="Calle, número, piso..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Ciudad</label>
+                  <input type="text" value={form.ciudad} onChange={(e) => setForm({...form, ciudad: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="Madrid" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Código Postal</label>
+                  <input type="text" value={form.codigoPostal} onChange={(e) => setForm({...form, codigoPostal: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="28001" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {editTab === 'bancario' && (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">IBAN</label>
+                <input type="text" value={form.iban} onChange={(e) => setForm({...form, iban: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none font-mono" placeholder="ES00 0000 0000 0000 0000 0000" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Titular de la Cuenta</label>
+                <input type="text" value={form.titularCuenta} onChange={(e) => setForm({...form, titularCuenta: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="Nombre completo del titular" />
+              </div>
+            </div>
+          )}
+
+          {editTab === 'seguridad' && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nº Seguridad Social</label>
+                  <input type="text" value={form.numSeguridadSocial} onChange={(e) => setForm({...form, numSeguridadSocial: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none font-mono" placeholder="00/00000000/00" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Fecha Alta SS</label>
+                  <input type="date" value={form.fechaAltaSS} onChange={(e) => setForm({...form, fechaAltaSS: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tipo de Contrato</label>
+                  <select value={form.tipoContrato} onChange={(e) => setForm({...form, tipoContrato: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none">
+                    <option value="COMPLETA">Jornada Completa (37.5h)</option>
+                    <option value="MEDIA">Media Jornada (20h)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Tipo Contratación</label>
+                  <select value={form.tipoContratacion} onChange={(e) => setForm({...form, tipoContratacion: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none">
+                    <option value="">Seleccionar...</option>
+                    <option value="INDEFINIDO">Indefinido</option>
+                    <option value="TEMPORAL">Temporal</option>
+                    <option value="PRACTICAS">Prácticas</option>
+                    <option value="FORMACION">Formación</option>
+                    <option value="AUTONOMO">Autónomo</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="pt-6 flex justify-end gap-2 border-t border-gray-100 mt-6">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">Cancelar</button>
+            <button type="submit" className="px-4 py-2 bg-elio-yellow text-white rounded-lg text-sm font-bold hover:bg-elio-yellow-hover">Guardar Cambios</button>
+          </div>
+        </form>
       </div>
-      <form onSubmit={onSubmit} className="p-6 space-y-4">
-        <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Nombre *</label>
-          <input type="text" value={form.name} onChange={(e) => setForm({...form, name: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50" required />
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email *</label>
-          <input type="email" value={form.email} onChange={(e) => setForm({...form, email: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50" required />
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Rol *</label>
-          <select value={form.role} onChange={(e) => setForm({...form, role: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none">
-            <option value="DEV">Desarrollador</option>
-            <option value="DESIGNER">Diseñador</option>
-            <option value="PM">Project Manager</option>
-            <option value="ADMIN">Administrador</option>
-            <option value="SUPERADMIN">Super Admin</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Cargo</label>
-          <input type="text" value={form.position} onChange={(e) => setForm({...form, position: e.target.value})} className="w-full px-4 py-3 border border-gray-200 rounded-lg outline-none" placeholder="Ej: Frontend Developer" />
-        </div>
-        <div className="pt-4 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">Cancelar</button>
-          <button type="submit" className="px-4 py-2 bg-elio-yellow text-white rounded-lg text-sm font-bold hover:bg-elio-yellow-hover">Guardar</button>
-        </div>
-      </form>
     </div>
-  </div>
-);
+  );
+};
 
 const PasswordModal = ({ user, onClose, onSubmit, password, setPassword, showPassword, setShowPassword, message, isLoading }: any) => (
   <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">

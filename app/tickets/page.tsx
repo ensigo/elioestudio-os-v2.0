@@ -17,6 +17,7 @@ interface Ticket {
   priority: string;
   status: string;
   createdAt: string;
+  readBy?: string[];
   sender: Usuario;
   recipient: Usuario | null;
 }
@@ -37,10 +38,20 @@ export const TicketsPage = () => {
 
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN';
 
-  // Cargar datos
+  // Cargar datos y marcar como leídos
   useEffect(() => {
-    fetchData();
-  }, []);
+    const loadAndMarkAsRead = async () => {
+      await fetchData();
+      
+      if (currentUser?.id) {
+        markTicketsAsRead();
+      }
+    };
+    
+    if (currentUser) {
+      loadAndMarkAsRead();
+    }
+  }, [currentUser]);
 
   const fetchData = async () => {
     try {
@@ -62,6 +73,40 @@ export const TicketsPage = () => {
       console.error('Error cargando datos:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Marcar tickets como leídos
+  const markTicketsAsRead = async () => {
+    if (!currentUser?.id) return;
+    
+    try {
+      const response = await fetch('/api/tickets');
+      if (response.ok) {
+        const allTickets = await response.json();
+        
+        // Filtrar tickets que este usuario debería ver y no ha leído
+        const ticketsToMark = allTickets.filter((t: Ticket) => {
+          const isForMe = t.recipient?.id === currentUser.id || t.recipient === null;
+          const notSentByMe = t.sender.id !== currentUser.id;
+          const notReadByMe = !t.readBy?.includes(currentUser.id);
+          return isForMe && notSentByMe && notReadByMe;
+        });
+        
+        // Marcar cada ticket como leído
+        for (const ticket of ticketsToMark) {
+          await fetch('/api/tickets', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: ticket.id,
+              markReadBy: currentUser.id
+            })
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Error marcando tickets como leídos:', err);
     }
   };
 
@@ -106,7 +151,7 @@ export const TicketsPage = () => {
           message,
           priority,
           senderId: currentUser.id,
-          recipientId: recipientId || null // null = todo el equipo
+          recipientId: recipientId || null
         })
       });
 
@@ -114,7 +159,6 @@ export const TicketsPage = () => {
         const nuevoTicket = await response.json();
         setTickets([nuevoTicket, ...tickets]);
         
-        // Reset form
         setRecipientId('');
         setTitle('');
         setPriority('MEDIUM');

@@ -6,6 +6,7 @@ import {
   FolderOpen, Ticket, AlertTriangle, TrendingUp
 } from 'lucide-react';
 import { useTimeTracking } from '../context/TimeTrackingContext';
+import { useAuth } from '../context/AuthContext';
 
 interface DashboardStats {
   clientes: { total: number; activos: number };
@@ -42,7 +43,12 @@ interface DetailItem {
   subMeta?: string;
 }
 
-export const DashboardPage = () => {
+interface DashboardPageProps {
+  onNavigate?: (page: string) => void;
+}
+
+export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
+  const { usuario } = useAuth();
   const { isClockedIn, toggleClockIn, formatTime, elapsedSeconds } = useTimeTracking();
   
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -175,57 +181,77 @@ export const DashboardPage = () => {
       
       {/* FILA 1: Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-blue-600 uppercase">Clientes</p>
-              <p className="text-3xl font-bold text-gray-900">{stats?.clientes.activos || 0}</p>
-              <p className="text-xs text-gray-500">de {stats?.clientes.total || 0} totales</p>
+        <div 
+          className="cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => onNavigate?.('clientes')}
+        >
+          <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-blue-600 uppercase">Clientes</p>
+                <p className="text-3xl font-bold text-gray-900">{stats?.clientes.activos || 0}</p>
+                <p className="text-xs text-gray-500">de {stats?.clientes.total || 0} totales</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-xl">
+                <Users size={24} className="text-blue-600" />
+              </div>
             </div>
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <Users size={24} className="text-blue-600" />
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        <Card className="bg-gradient-to-br from-green-50 to-white border-green-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-green-600 uppercase">Proyectos</p>
-              <p className="text-3xl font-bold text-gray-900">{stats?.proyectos.activos || 0}</p>
-              <p className="text-xs text-gray-500">activos</p>
+        <div 
+          className="cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => onNavigate?.('proyectos')}
+        >
+          <Card className="bg-gradient-to-br from-green-50 to-white border-green-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-green-600 uppercase">Proyectos</p>
+                <p className="text-3xl font-bold text-gray-900">{stats?.proyectos.activos || 0}</p>
+                <p className="text-xs text-gray-500">activos</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-xl">
+                <FolderOpen size={24} className="text-green-600" />
+              </div>
             </div>
-            <div className="p-3 bg-green-100 rounded-xl">
-              <FolderOpen size={24} className="text-green-600" />
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-orange-600 uppercase">Tareas</p>
-              <p className="text-3xl font-bold text-gray-900">{stats?.tareas.pendientes || 0}</p>
-              <p className="text-xs text-gray-500">{stats?.tareas.urgentes || 0} urgentes</p>
+        <div 
+          className="cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => onNavigate?.('tareas')}
+        >
+          <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-orange-600 uppercase">Tareas</p>
+                <p className="text-3xl font-bold text-gray-900">{stats?.tareas.pendientes || 0}</p>
+                <p className="text-xs text-gray-500">{stats?.tareas.urgentes || 0} urgentes</p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-xl">
+                <CheckSquare size={24} className="text-orange-600" />
+              </div>
             </div>
-            <div className="p-3 bg-orange-100 rounded-xl">
-              <CheckSquare size={24} className="text-orange-600" />
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-purple-600 uppercase">Tickets</p>
-              <p className="text-3xl font-bold text-gray-900">{stats?.tickets.abiertos || 0}</p>
-              <p className="text-xs text-gray-500">abiertos</p>
+        <div 
+          className="cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => onNavigate?.('tickets')}
+        >
+          <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-purple-600 uppercase">Tickets</p>
+                <p className="text-3xl font-bold text-gray-900">{stats?.tickets.abiertos || 0}</p>
+                <p className="text-xs text-gray-500">abiertos</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-xl">
+                <Ticket size={24} className="text-purple-600" />
+              </div>
             </div>
-            <div className="p-3 bg-purple-100 rounded-xl">
-              <Ticket size={24} className="text-purple-600" />
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       </div>
 
       {/* FILA 2: Timer + Semana */}
@@ -318,7 +344,7 @@ export const DashboardPage = () => {
         <div className="col-span-1 md:col-span-8">
           <Card 
             title="Tareas Prioritarias" 
-            action={<a href="#" className="text-xs font-bold text-elio-yellow hover:underline">Ver todas</a>}
+            action={<button onClick={() => onNavigate?.('tareas')} className="text-xs font-bold text-elio-yellow hover:underline">Ver todas</button>}
             className="h-full"
           >
             {tareas.length === 0 ? (

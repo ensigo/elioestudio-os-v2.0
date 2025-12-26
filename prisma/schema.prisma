@@ -110,6 +110,7 @@ model Ticket {
   priority     String    @default("MEDIUM")
   senderId     String
   recipientId  String?
+  readBy       String[]  @default([])
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 

@@ -80,7 +80,6 @@ export const TeamPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPermisoModalOpen, setIsPermisoModalOpen] = useState(false);
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'personal' | 'bancario' | 'seguridad'>('personal');
   const [selectedPermiso, setSelectedPermiso] = useState<Permiso | null>(null);
   
   // Form states
@@ -485,7 +484,6 @@ export const TeamPage = () => {
         </div>
 
         {/* Profile Card */}
-        {/* Profile Card */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex items-center space-x-6">
             <div className="w-20 h-20 rounded-full bg-elio-yellow text-white flex items-center justify-center text-3xl font-bold shadow-lg">
@@ -496,129 +494,11 @@ export const TeamPage = () => {
               <div className="flex flex-wrap gap-2 mt-2">
                 <Badge variant="blue">{selectedUser.position || 'Sin cargo'}</Badge>
                 <Badge variant="neutral">{selectedUser.role}</Badge>
-                <Badge variant={selectedUser.tipoContrato === 'MEDIA' ? 'warning' : 'success'}>
-                  {selectedUser.tipoContrato === 'MEDIA' ? '20h/semana' : '37.5h/semana'}
-                </Badge>
               </div>
               <p className="text-sm text-slate-500 mt-2 flex items-center">
                 <Mail size={14} className="mr-1"/> {selectedUser.email}
               </p>
             </div>
-          </div>
-        </div>
-
-        {/* Pestañas de Datos */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex border-b border-slate-200">
-            <button
-              onClick={() => setActiveTab('personal')}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === 'personal' 
-                  ? 'bg-elio-yellow text-white' 
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Datos Personales
-            </button>
-            <button
-              onClick={() => setActiveTab('bancario')}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === 'bancario' 
-                  ? 'bg-elio-yellow text-white' 
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Datos Bancarios
-            </button>
-            <button
-              onClick={() => setActiveTab('seguridad')}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === 'seguridad' 
-                  ? 'bg-elio-yellow text-white' 
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Seguridad Social
-            </button>
-          </div>
-
-          <div className="p-6">
-            {activeTab === 'personal' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">DNI/NIE</label>
-                  <p className="text-slate-900">{selectedUser.dni || '-'}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Fecha Nacimiento</label>
-                  <p className="text-slate-900">
-                    {selectedUser.fechaNacimiento 
-                      ? new Date(selectedUser.fechaNacimiento).toLocaleDateString('es-ES') 
-                      : '-'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Teléfono</label>
-                  <p className="text-slate-900">{selectedUser.telefono || '-'}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Teléfono Emergencia</label>
-                  <p className="text-slate-900">{selectedUser.telefonoEmergencia || '-'}</p>
-                </div>
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Dirección</label>
-                  <p className="text-slate-900">{selectedUser.direccion || '-'}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Ciudad</label>
-                  <p className="text-slate-900">{selectedUser.ciudad || '-'}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Código Postal</label>
-                  <p className="text-slate-900">{selectedUser.codigoPostal || '-'}</p>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'bancario' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">IBAN</label>
-                  <p className="text-slate-900 font-mono">{selectedUser.iban || '-'}</p>
-                </div>
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Titular de la Cuenta</label>
-                  <p className="text-slate-900">{selectedUser.titularCuenta || '-'}</p>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'seguridad' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Nº Seguridad Social</label>
-                  <p className="text-slate-900 font-mono">{selectedUser.numSeguridadSocial || '-'}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Tipo de Contrato</label>
-                  <p className="text-slate-900">
-                    {selectedUser.tipoContrato === 'MEDIA' ? 'Media Jornada (20h)' : 'Jornada Completa (37.5h)'}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Tipo Contratación</label>
-                  <p className="text-slate-900">{selectedUser.tipoContratacion || '-'}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-500 uppercase">Fecha Alta SS</label>
-                  <p className="text-slate-900">
-                    {selectedUser.fechaAltaSS 
-                      ? new Date(selectedUser.fechaAltaSS).toLocaleDateString('es-ES') 
-                      : '-'}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

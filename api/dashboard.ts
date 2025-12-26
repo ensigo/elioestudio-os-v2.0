@@ -1,19 +1,35 @@
 import { PrismaClient } from '@prisma/client';
-
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {
   try {
     if (req.method === 'GET') {
-      // Obtener fecha actual y rango de la semana
-      const today = new Date();
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Lunes
-      startOfWeek.setHours(0, 0, 0, 0);
+      const { userId, userRole } = req.query;
       
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6); // Domingo
-      endOfWeek.setHours(23, 59, 59, 999);
+      const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+      
+      // Obtener fecha actual
+      const today = new Date();
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + 7);
+
+      // Filtros base según rol
+      const proyectoFilter = isAdmin ? {} : { responsibleId: userId };
+      const tareaFilter = isAdmin ? {} : { assigneeId: userId };
+      
+      // Filtro de tickets: no leídos por el usuario
+      const ticketFilter = isAdmin 
+        ? { status: { in: ['OPEN', 'IN_PROGRESS'] } }
+        : {
+            status: { in: ['OPEN', 'IN_PROGRESS'] },
+            OR: [
+              { recipientId: userId },
+              { recipientId: null } // Para todo el equipo
+            ],
+            NOT: {
+              readBy: { has: userId }
+            }
+          };
 
       // Consultas en paralelo
       const [
@@ -24,25 +40,25 @@ export default async function handler(req: any, res: any) {
         totalTareas,
         tareasPendientes,
         tareasUrgentes,
-        ticketsAbiertos,
+        ticketsNoLeidos,
         eventosProximos,
         tareasRecientes
       ] = await Promise.all([
-        // Clientes
+        // Clientes (todos ven todos los clientes)
         prisma.cliente.count(),
         prisma.cliente.count({ where: { status: 'ACTIVE' } }),
         
-        // Proyectos
-        prisma.proyecto.count(),
-        prisma.proyecto.count({ where: { status: 'ACTIVE' } }),
+        // Proyectos (filtrado por responsable si no es admin)
+        prisma.proyecto.count({ where: proyectoFilter }),
+        prisma.proyecto.count({ where: { ...proyectoFilter, status: 'ACTIVE' } }),
         
-        // Tareas
-        prisma.tarea.count(),
-        prisma.tarea.count({ where: { status: { not: 'CLOSED' } } }),
-        prisma.tarea.count({ where: { priority: 'URGENT', status: { not: 'CLOSED' } } }),
+        // Tareas (filtrado por asignado si no es admin)
+        prisma.tarea.count({ where: tareaFilter }),
+        prisma.tarea.count({ where: { ...tareaFilter, status: { not: 'CLOSED' } } }),
+        prisma.tarea.count({ where: { ...tareaFilter, priority: 'URGENT', status: { not: 'CLOSED' } } }),
         
-        // Tickets abiertos
-        prisma.ticket.count({ where: { status: 'OPEN' } }),
+        // Tickets no leídos
+        prisma.ticket.count({ where: ticketFilter }),
         
         // Eventos próximos (próximos 7 días)
         prisma.evento.findMany({
@@ -56,9 +72,10 @@ export default async function handler(req: any, res: any) {
           take: 5
         }),
         
-        // Tareas prioritarias (urgentes + alta prioridad)
+        // Tareas prioritarias (filtradas por usuario si no es admin)
         prisma.tarea.findMany({
           where: {
+            ...tareaFilter,
             status: { not: 'CLOSED' },
             priority: { in: ['URGENT', 'HIGH'] }
           },
@@ -79,7 +96,7 @@ export default async function handler(req: any, res: any) {
           clientes: { total: totalClientes, activos: clientesActivos },
           proyectos: { total: totalProyectos, activos: proyectosActivos },
           tareas: { total: totalTareas, pendientes: tareasPendientes, urgentes: tareasUrgentes },
-          tickets: { abiertos: ticketsAbiertos }
+          tickets: { abiertos: ticketsNoLeidos }
         },
         eventosProximos,
         tareasRecientes

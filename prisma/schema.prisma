@@ -37,6 +37,7 @@ model Usuario {
   updatedAt DateTime @updatedAt
   ticketsSent     Ticket[] @relation("TicketsSent")
   ticketsReceived Ticket[] @relation("TicketsReceived")
+  eventosCreados Evento[] @relation("EventosCreados")
 
   proyectosAsignados Proyecto[] @relation("ResponsableProyecto")
   tareasAsignadas    Tarea[]    @relation("AsignadoTarea")
@@ -113,4 +114,24 @@ model Ticket {
   recipient Usuario? @relation("TicketsReceived", fields: [recipientId], references: [id])
 
   @@map("tickets")
+}
+
+model Evento {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  type        String    @default("MEETING")
+  startDate   DateTime
+  endDate     DateTime?
+  startTime   String?
+  endTime     String?
+  allDay      Boolean   @default(false)
+  color       String?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdBy Usuario? @relation("EventosCreados", fields: [createdById], references: [id])
+
+  @@map("eventos")
 }

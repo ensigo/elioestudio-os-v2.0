@@ -183,3 +183,49 @@ model Jornada {
   @@unique([usuarioId, fecha])
   @@map("jornadas")
 }
+
+// ============================================
+// CATÁLOGO DE SERVICIOS
+// ============================================
+
+model CategoriaServicio {
+  id          String   @id @default(cuid())
+  codigo      String   @unique
+  nombre      String
+  descripcion String?
+  color       String   @default("#6B7280")
+  icono       String?
+  orden       Int      @default(0)
+  activo      Boolean  @default(true)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  plantillas  PlantillaTarea[]
+
+  @@map("categorias_servicio")
+}
+
+model PlantillaTarea {
+  id              String   @id @default(cuid())
+  codigo          String   @unique
+  nombre          String
+  descripcion     String?
+  
+  categoriaId     String
+  categoria       CategoriaServicio @relation(fields: [categoriaId], references: [id])
+  
+  rolSugeridoTipo String?
+  tiempoEstimado  Float    @default(1)
+  
+  esRecurrente    Boolean  @default(false)
+  frecuencia      String?
+  
+  activo          Boolean  @default(true)
+  orden           Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("plantillas_tarea")
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { RendimientoEmpleado } from '../../components/RendimientoEmpleado';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Users, 
@@ -975,24 +976,11 @@ export const TeamPage = () => {
           </Card>
 
           {canAccessReports && (
-            <Card title="Informe de Rendimiento">
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm text-slate-600">Horas este mes</span>
-                  <span className="font-bold text-slate-900">-- h</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm text-slate-600">Tareas completadas</span>
-                  <span className="font-bold text-slate-900">--</span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-slate-50 rounded-lg">
-                  <span className="text-sm text-slate-600">Cumplimiento</span>
-                  <span className="font-bold text-green-600">-- %</span>
-                </div>
-                <button className="w-full text-left px-4 py-3 bg-slate-50 hover:bg-white border border-slate-100 hover:border-slate-300 rounded-lg text-sm font-medium transition-all text-slate-700 flex items-center">
-                  <TrendingUp size={16} className="mr-3 text-slate-400"/> Ver Informe Completo
-                </button>
-              </div>
+            <Card title="">
+              <RendimientoEmpleado 
+                usuarioId={selectedUser.id} 
+                tipoContrato={selectedUser.tipoContrato || "COMPLETA"}
+              />
             </Card>
           )}
         </div>

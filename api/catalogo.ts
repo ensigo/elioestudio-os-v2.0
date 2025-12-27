@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {
-  const { tipo, id } = req.query; // tipo = 'categorias' o 'plantillas'
+  const { tipo, id, categoriaId } = req.query;
 
   try {
     // ============================================
@@ -11,7 +11,6 @@ export default async function handler(req: any, res: any) {
     // ============================================
     if (tipo === 'categorias') {
       
-      // GET - Obtener categorías
       if (req.method === 'GET') {
         if (id) {
           const categoria = await prisma.categoriaServicio.findUnique({
@@ -27,14 +26,13 @@ export default async function handler(req: any, res: any) {
           include: {
             plantillas: {
               where: { activo: true },
-              orderBy: { orden: 'asc' }
+              orderBy: { codigo: 'asc' }
             }
           }
         });
         return res.status(200).json(categorias);
       }
 
-      // POST - Crear categoría
       if (req.method === 'POST') {
         const { codigo, nombre, descripcion, color, icono, orden } = req.body;
         const categoria = await prisma.categoriaServicio.create({
@@ -43,7 +41,6 @@ export default async function handler(req: any, res: any) {
         return res.status(201).json(categoria);
       }
 
-      // PATCH - Actualizar categoría
       if (req.method === 'PATCH') {
         if (!id) return res.status(400).json({ error: 'ID requerido' });
         const { nombre, descripcion, color, icono, orden, activo } = req.body;
@@ -54,7 +51,6 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json(categoria);
       }
 
-      // DELETE - Desactivar categoría
       if (req.method === 'DELETE') {
         if (!id) return res.status(400).json({ error: 'ID requerido' });
         const categoria = await prisma.categoriaServicio.update({
@@ -70,7 +66,6 @@ export default async function handler(req: any, res: any) {
     // ============================================
     if (tipo === 'plantillas') {
       
-      // GET - Obtener plantillas
       if (req.method === 'GET') {
         if (id) {
           const plantilla = await prisma.plantillaTarea.findUnique({
@@ -80,7 +75,6 @@ export default async function handler(req: any, res: any) {
           return res.status(200).json(plantilla);
         }
         
-        const { categoriaId } = req.query;
         const where: any = { activo: true };
         if (categoriaId) where.categoriaId = categoriaId;
         
@@ -92,7 +86,6 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json(plantillas);
       }
 
-      // POST - Crear plantilla
       if (req.method === 'POST') {
         const { codigo, nombre, descripcion, categoriaId, rolSugeridoTipo, tiempoEstimado, esRecurrente, frecuencia } = req.body;
         const plantilla = await prisma.plantillaTarea.create({
@@ -111,7 +104,6 @@ export default async function handler(req: any, res: any) {
         return res.status(201).json(plantilla);
       }
 
-      // PATCH - Actualizar plantilla
       if (req.method === 'PATCH') {
         if (!id) return res.status(400).json({ error: 'ID requerido' });
         const { nombre, descripcion, categoriaId, rolSugeridoTipo, tiempoEstimado, esRecurrente, frecuencia, activo, orden } = req.body;
@@ -123,7 +115,6 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json(plantilla);
       }
 
-      // DELETE - Desactivar plantilla
       if (req.method === 'DELETE') {
         if (!id) return res.status(400).json({ error: 'ID requerido' });
         const plantilla = await prisma.plantillaTarea.update({
@@ -134,7 +125,6 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    // Si no se especifica tipo válido
     return res.status(400).json({ error: 'Parámetro tipo requerido: categorias o plantillas' });
 
   } catch (error) {

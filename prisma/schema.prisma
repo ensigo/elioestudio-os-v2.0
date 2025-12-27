@@ -36,16 +36,35 @@ model Usuario {
   joinDate  DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  tipoContrato String @default("COMPLETA")
+  
+  // Datos Personales
+  dni             String?
+  fechaNacimiento DateTime?
+  telefono        String?
+  telefonoEmergencia String?
+  direccion       String?
+  ciudad          String?
+  codigoPostal    String?
+  
+  // Datos Bancarios
+  iban            String?
+  titularCuenta   String?
+  
+  // Seguridad Social
+  numSeguridadSocial String?
+  tipoContratacion   String?
+  fechaAltaSS        DateTime?
+  
+  // Relaciones
   ticketsSent     Ticket[] @relation("TicketsSent")
   ticketsReceived Ticket[] @relation("TicketsReceived")
-  eventosCreados Evento[] @relation("EventosCreados")
-
+  eventosCreados  Evento[] @relation("EventosCreados")
   proyectosAsignados Proyecto[] @relation("ResponsableProyecto")
   tareasAsignadas    Tarea[]    @relation("AsignadoTarea")
   permisosSolicitados Permiso[] @relation("PermisosSolicitados")
   permisosAprobados   Permiso[] @relation("PermisosAprobados")
   jornadas Jornada[]
-  tipoContrato String @default("COMPLETA") // COMPLETA o MEDIA
 
   @@map("usuarios")
 }

@@ -44,15 +44,18 @@ export default async function handler(req: any, res: any) {
         position, 
         avatarUrl,
         tipoContrato,
+        // Datos personales
         dni,
         fechaNacimiento,
+        telefono,
+        telefonoEmergencia,
         direccion,
         ciudad,
         codigoPostal,
-        telefono,
-        telefonoEmergencia,
+        // Datos bancarios
         iban,
         titularCuenta,
+        // Seguridad social
         numSeguridadSocial,
         tipoContratacion,
         fechaAltaSS
@@ -64,23 +67,30 @@ export default async function handler(req: any, res: any) {
 
       const dataToUpdate: any = {};
       
+      // Datos básicos
       if (name !== undefined) dataToUpdate.name = name;
       if (email !== undefined) dataToUpdate.email = email;
       if (role !== undefined) dataToUpdate.role = role;
       if (position !== undefined) dataToUpdate.position = position;
       if (avatarUrl !== undefined) dataToUpdate.avatarUrl = avatarUrl;
       if (tipoContrato !== undefined) dataToUpdate.tipoContrato = tipoContrato;
-      if (dni !== undefined) dataToUpdate.dni = dni;
+      
+      // Datos personales
+      if (dni !== undefined) dataToUpdate.dni = dni || null;
       if (fechaNacimiento !== undefined) dataToUpdate.fechaNacimiento = fechaNacimiento ? new Date(fechaNacimiento) : null;
-      if (direccion !== undefined) dataToUpdate.direccion = direccion;
-      if (ciudad !== undefined) dataToUpdate.ciudad = ciudad;
-      if (codigoPostal !== undefined) dataToUpdate.codigoPostal = codigoPostal;
-      if (telefono !== undefined) dataToUpdate.telefono = telefono;
-      if (telefonoEmergencia !== undefined) dataToUpdate.telefonoEmergencia = telefonoEmergencia;
-      if (iban !== undefined) dataToUpdate.iban = iban;
-      if (titularCuenta !== undefined) dataToUpdate.titularCuenta = titularCuenta;
-      if (numSeguridadSocial !== undefined) dataToUpdate.numSeguridadSocial = numSeguridadSocial;
-      if (tipoContratacion !== undefined) dataToUpdate.tipoContratacion = tipoContratacion;
+      if (telefono !== undefined) dataToUpdate.telefono = telefono || null;
+      if (telefonoEmergencia !== undefined) dataToUpdate.telefonoEmergencia = telefonoEmergencia || null;
+      if (direccion !== undefined) dataToUpdate.direccion = direccion || null;
+      if (ciudad !== undefined) dataToUpdate.ciudad = ciudad || null;
+      if (codigoPostal !== undefined) dataToUpdate.codigoPostal = codigoPostal || null;
+      
+      // Datos bancarios
+      if (iban !== undefined) dataToUpdate.iban = iban || null;
+      if (titularCuenta !== undefined) dataToUpdate.titularCuenta = titularCuenta || null;
+      
+      // Seguridad social
+      if (numSeguridadSocial !== undefined) dataToUpdate.numSeguridadSocial = numSeguridadSocial || null;
+      if (tipoContratacion !== undefined) dataToUpdate.tipoContratacion = tipoContratacion || null;
       if (fechaAltaSS !== undefined) dataToUpdate.fechaAltaSS = fechaAltaSS ? new Date(fechaAltaSS) : null;
 
       const usuarioActualizado = await prisma.usuario.update({

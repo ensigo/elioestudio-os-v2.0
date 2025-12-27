@@ -18,9 +18,10 @@ interface HeaderProps {
   usuario?: Usuario | null;
   onLogout?: () => void;
   onNavigate?: (page: string) => void;
+  onMenuClick?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ usuario, onLogout, onNavigate }) => {
+export const Header: React.FC<HeaderProps> = ({ usuario, onLogout, onNavigate, onMenuClick }) => {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -104,9 +105,9 @@ export const Header: React.FC<HeaderProps> = ({ usuario, onLogout, onNavigate })
         
         {/* Left: Brand / Mobile Toggle */}
         <div className="flex items-center gap-4">
-          <div className="md:hidden">
+          <button className="md:hidden p-2" onClick={onMenuClick}>
             <Menu size={24} className="text-gray-500" />
-          </div>
+          </button>
           <h1 className="text-xl font-bold text-gray-900 hidden md:block">
             Dashboard
           </h1>

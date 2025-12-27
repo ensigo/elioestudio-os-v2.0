@@ -82,6 +82,11 @@ export const TeamPage = () => {
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'personal' | 'bancario' | 'seguridad'>('personal');
   const [selectedPermiso, setSelectedPermiso] = useState<Permiso | null>(null);
+  // Estados para vista de empleado (no-admin)
+  const [miTab, setMiTab] = useState<'perfil' | 'horario' | 'permisos'>('perfil');
+  const [misJornadas, setMisJornadas] = useState<any[]>([]);
+  const [loadingJornadas, setLoadingJornadas] = useState(false);
+  const [semanaOffset, setSemanaOffset] = useState(0);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -126,6 +131,37 @@ export const TeamPage = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Calcular fechas de la semana
+    const getWeekDates = (offset: number) => {
+      const hoy = new Date();
+      const lunes = new Date(hoy);
+      lunes.setDate(hoy.getDate() - hoy.getDay() + 1 + (offset * 7));
+      const domingo = new Date(lunes);
+      domingo.setDate(lunes.getDate() + 6);
+      return {
+        inicio: lunes.toISOString().split('T')[0],
+        fin: domingo.toISOString().split('T')[0],
+        lunesDate: lunes,
+        domingoDate: domingo
+      };
+    };
+
+    const semana = getWeekDates(semanaOffset);
+
+  // Cargar jornadas cuando cambia la pestaña o la semana
+    useEffect(() => {
+      if (miTab === 'horario' && currentUser?.id) {
+        setLoadingJornadas(true);
+        fetch(`/api/jornadas?usuarioId=${currentUser.id}&fechaInicio=${semana.inicio}&fechaFin=${semana.fin}`)
+          .then(res => res.json())
+          .then(data => {
+            setMisJornadas(Array.isArray(data) ? data : []);
+            setLoadingJornadas(false);
+          })
+          .catch(() => setLoadingJornadas(false));
+      }
+    }, [miTab, semanaOffset, currentUser?.id]);
 
   const fetchData = async () => {
     try {
@@ -386,41 +422,6 @@ export const TeamPage = () => {
   if (!isAdmin) {
     const miUsuario = usuarios.find(u => u.id === currentUser?.id);
     const misPermisos = getPermisosUsuario(currentUser?.id || '');
-    const [miTab, setMiTab] = useState<'perfil' | 'horario' | 'permisos'>('perfil');
-    const [misJornadas, setMisJornadas] = useState<any[]>([]);
-    const [loadingJornadas, setLoadingJornadas] = useState(false);
-    const [semanaOffset, setSemanaOffset] = useState(0);
-
-    // Calcular fechas de la semana
-    const getWeekDates = (offset: number) => {
-      const hoy = new Date();
-      const lunes = new Date(hoy);
-      lunes.setDate(hoy.getDate() - hoy.getDay() + 1 + (offset * 7));
-      const domingo = new Date(lunes);
-      domingo.setDate(lunes.getDate() + 6);
-      return {
-        inicio: lunes.toISOString().split('T')[0],
-        fin: domingo.toISOString().split('T')[0],
-        lunesDate: lunes,
-        domingoDate: domingo
-      };
-    };
-
-    const semana = getWeekDates(semanaOffset);
-
-    // Cargar jornadas cuando cambia la pestaña o la semana
-    useEffect(() => {
-      if (miTab === 'horario' && currentUser?.id) {
-        setLoadingJornadas(true);
-        fetch(`/api/jornadas?usuarioId=${currentUser.id}&fechaInicio=${semana.inicio}&fechaFin=${semana.fin}`)
-          .then(res => res.json())
-          .then(data => {
-            setMisJornadas(Array.isArray(data) ? data : []);
-            setLoadingJornadas(false);
-          })
-          .catch(() => setLoadingJornadas(false));
-      }
-    }, [miTab, semanaOffset, currentUser?.id]);
 
     const formatHoraJornada = (dateStr: string | null) => {
       if (!dateStr) return '--:--';

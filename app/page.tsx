@@ -67,6 +67,15 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const [tareas, setTareas] = useState<Tarea[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDetail, setSelectedDetail] = useState<DetailItem | null>(null);
+  // Estado para crear evento rápido
+  const [isQuickEventModalOpen, setIsQuickEventModalOpen] = useState(false);
+  const [quickEventDate, setQuickEventDate] = useState<Date | null>(null);
+  const [quickEventForm, setQuickEventForm] = useState({
+    title: '',
+    type: 'MEETING',
+    startTime: '09:00',
+    description: ''
+  });
   
   // Calendario State
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -149,6 +158,46 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       meta: `Hora: ${evt.startTime || 'Todo el día'}`,
       subMeta: new Date(evt.startDate).toLocaleDateString('es-ES')
     });
+  };
+
+  // Abrir modal para crear evento rápido
+  const openQuickEventModal = (date: Date) => {
+    setQuickEventDate(date);
+    setQuickEventForm({
+      title: '',
+      type: 'MEETING',
+      startTime: '09:00',
+      description: ''
+    });
+    setIsQuickEventModalOpen(true);
+  };
+
+  // Crear evento rápido
+  const handleCreateQuickEvent = async () => {
+    if (!quickEventForm.title.trim() || !quickEventDate || !usuario) return;
+    
+    try {
+      const response = await fetch('/api/eventos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: quickEventForm.title,
+          type: quickEventForm.type,
+          startDate: quickEventDate.toISOString().split('T')[0],
+          startTime: quickEventForm.startTime,
+          description: quickEventForm.description || null,
+          createdById: usuario.id
+        })
+      });
+
+      if (response.ok) {
+        const nuevoEvento = await response.json();
+        setEventos([...eventos, nuevoEvento]);
+        setIsQuickEventModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error creando evento:', error);
+    }
   };
 
   const getEventColor = (type: string) => {
@@ -388,9 +437,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                           <span className="font-semibold leading-tight line-clamp-2">{evt.title}</span>
                         </div>
                       )) : (
-                        <div className="h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                          <span className="text-xs text-slate-300 select-none">+</span>
-                        </div>
+                        <button 
+                          onClick={() => openQuickEventModal(day)}
+                          className="h-full w-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                        >
+                          <span className="text-xl text-slate-400 hover:text-elio-yellow select-none">+</span>
+                        </button>
                       )}
                       {dayEvents.length > 2 && (
                         <span className="text-[10px] text-gray-400">+{dayEvents.length - 2} más</span>
@@ -544,7 +596,93 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </div>
         </div>
       )}
+{/* Modal Crear Evento Rápido */}
+      {isQuickEventModalOpen && quickEventDate && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in-95">
+            <div className="p-6 border-b border-slate-100">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg text-slate-800">Nuevo Evento</h3>
+                <button 
+                  onClick={() => setIsQuickEventModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-slate-500 mt-1">
+                {quickEventDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </p>
+            </div>
 
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Título *</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Reunión con cliente"
+                  value={quickEventForm.title}
+                  onChange={(e) => setQuickEventForm({...quickEventForm, title: e.target.value})}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none focus:border-elio-yellow"
+                  autoFocus
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Tipo</label>
+                  <select
+                    value={quickEventForm.type}
+                    onChange={(e) => setQuickEventForm({...quickEventForm, type: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none bg-white"
+                  >
+                    <option value="MEETING">Reunión</option>
+                    <option value="DEADLINE">Deadline</option>
+                    <option value="REMINDER">Recordatorio</option>
+                    <option value="OTHER">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Hora</label>
+                  <input
+                    type="time"
+                    value={quickEventForm.startTime}
+                    onChange={(e) => setQuickEventForm({...quickEventForm, startTime: e.target.value})}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Descripción</label>
+                <textarea
+                  placeholder="Notas adicionales..."
+                  value={quickEventForm.description}
+                  onChange={(e) => setQuickEventForm({...quickEventForm, description: e.target.value})}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg outline-none resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-100 flex gap-3">
+              <button
+                onClick={() => setIsQuickEventModalOpen(false)}
+                className="flex-1 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateQuickEvent}
+                disabled={!quickEventForm.title.trim()}
+                className="flex-1 py-2 bg-elio-yellow text-white font-medium rounded-lg hover:bg-elio-yellow-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Crear Evento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

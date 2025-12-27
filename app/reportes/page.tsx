@@ -1,13 +1,13 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { 
-  Clock, CheckCircle, AlertTriangle, X, TrendingUp, User, Briefcase, 
-  Calendar, Download, Activity, UserX, AlertCircle as AlertIcon,
-  ArrowUpRight, ArrowDownRight, ChevronLeft, ChevronRight
+  Clock, TrendingUp, Calendar, ChevronLeft, ChevronRight,
+  ArrowUpRight, ArrowDownRight, FileDown, FileSpreadsheet
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { useAuth } from '../../context/AuthContext';
+import { exportToPDF, exportToExcel } from '../../utils/exportUtils';
 
 const HORAS_COMPLETA = 37.5;
 const HORAS_MEDIA = 20;
@@ -24,6 +24,7 @@ interface Jornada {
   usuario: {
     id: string;
     name: string;
+    email?: string;
     position: string | null;
     tipoContrato?: string;
   };
@@ -44,6 +45,7 @@ export default function ReportesPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [mesActual, setMesActual] = useState(new Date());
   const [resumenSemanal, setResumenSemanal] = useState<ResumenSemanal | null>(null);
+  const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null);
 
   const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const horasEsperadas = usuario?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
@@ -149,11 +151,134 @@ export default function ReportesPage() {
     }
   };
 
-  // Obtener horas esperadas según usuario seleccionado
-  const getHorasEsperadasUsuario = (usuarioId: string) => {
-    if (selectedUserId === 'todos') return horasEsperadas;
-    const user = usuarios.find(u => u.id === usuarioId);
-    return user?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
+  // ============================================
+  // FUNCIONES DE EXPORTACIÓN
+  // ============================================
+  const getUsuarioParaExportar = () => {
+    if (isAdmin && selectedUserId !== 'todos') {
+      const user = usuarios.find(u => u.id === selectedUserId);
+      return user || usuario;
+    }
+    return usuario;
+  };
+
+  const handleExportPDF = async () => {
+    if (jornadas.length === 0) return;
+    setExportando('pdf');
+    
+    try {
+      const userExport = getUsuarioParaExportar();
+      const jornadasFinalizadas = jornadas.filter(j => j.estado === 'FINALIZADA');
+      const totalMinutos = jornadasFinalizadas.reduce((acc, j) => acc + (j.totalMinutos || 0), 0);
+      const diasTrabajados = jornadasFinalizadas.length;
+      
+      const primerDiaMes = new Date(mesActual.getFullYear(), mesActual.getMonth(), 1);
+      const ultimoDiaMes = new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 0);
+      
+      // Calcular días laborables del mes
+      let diasLaborables = 0;
+      for (let d = new Date(primerDiaMes); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
+        const dia = d.getDay();
+        if (dia !== 0 && dia !== 6) diasLaborables++;
+      }
+      
+      const horasUsuario = userExport?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
+      const horasObjetivo = (horasUsuario / 5) * diasLaborables;
+
+      await exportToPDF({
+        jornadas: jornadas.map(j => ({
+          id: j.id,
+          fecha: j.fecha,
+          horaInicio: j.horaInicio,
+          horaPausaAlmuerzo: j.horaPausaAlmuerzo || undefined,
+          horaReinicioAlmuerzo: j.horaReinicioAlmuerzo || undefined,
+          horaFin: j.horaFin || undefined,
+          totalMinutos: j.totalMinutos || undefined,
+          estado: j.estado
+        })),
+        usuario: {
+          id: userExport?.id || '',
+          name: userExport?.name || 'Usuario',
+          email: userExport?.email || '',
+          position: userExport?.position || undefined,
+          tipoContrato: userExport?.tipoContrato || 'COMPLETA'
+        },
+        periodo: {
+          inicio: primerDiaMes.toLocaleDateString('es-ES'),
+          fin: ultimoDiaMes.toLocaleDateString('es-ES')
+        },
+        resumen: {
+          totalHoras: totalMinutos / 60,
+          horasObjetivo,
+          diasTrabajados,
+          promedioDiario: diasTrabajados > 0 ? (totalMinutos / diasTrabajados) / 60 : 0
+        }
+      });
+    } catch (error) {
+      console.error('Error exportando PDF:', error);
+      alert('Error al exportar PDF. Por favor, inténtalo de nuevo.');
+    } finally {
+      setExportando(null);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (jornadas.length === 0) return;
+    setExportando('excel');
+    
+    try {
+      const userExport = getUsuarioParaExportar();
+      const jornadasFinalizadas = jornadas.filter(j => j.estado === 'FINALIZADA');
+      const totalMinutos = jornadasFinalizadas.reduce((acc, j) => acc + (j.totalMinutos || 0), 0);
+      const diasTrabajados = jornadasFinalizadas.length;
+      
+      const primerDiaMes = new Date(mesActual.getFullYear(), mesActual.getMonth(), 1);
+      const ultimoDiaMes = new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 0);
+      
+      let diasLaborables = 0;
+      for (let d = new Date(primerDiaMes); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
+        const dia = d.getDay();
+        if (dia !== 0 && dia !== 6) diasLaborables++;
+      }
+      
+      const horasUsuario = userExport?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
+      const horasObjetivo = (horasUsuario / 5) * diasLaborables;
+
+      await exportToExcel({
+        jornadas: jornadas.map(j => ({
+          id: j.id,
+          fecha: j.fecha,
+          horaInicio: j.horaInicio,
+          horaPausaAlmuerzo: j.horaPausaAlmuerzo || undefined,
+          horaReinicioAlmuerzo: j.horaReinicioAlmuerzo || undefined,
+          horaFin: j.horaFin || undefined,
+          totalMinutos: j.totalMinutos || undefined,
+          estado: j.estado
+        })),
+        usuario: {
+          id: userExport?.id || '',
+          name: userExport?.name || 'Usuario',
+          email: userExport?.email || '',
+          position: userExport?.position || undefined,
+          tipoContrato: userExport?.tipoContrato || 'COMPLETA'
+        },
+        periodo: {
+          inicio: primerDiaMes.toLocaleDateString('es-ES'),
+          fin: ultimoDiaMes.toLocaleDateString('es-ES')
+        },
+        resumen: {
+          totalHoras: totalMinutos / 60,
+          horasObjetivo,
+          diasTrabajados,
+          promedioDiario: diasTrabajados > 0 ? (totalMinutos / diasTrabajados) / 60 : 0
+        }
+      });
+    } catch (error) {
+      console.error('Error exportando Excel:', error);
+      alert('Error al exportar Excel. Por favor, inténtalo de nuevo.');
+    } finally {
+      setExportando(null);
+    }
   };
 
   if (isLoading) {
@@ -175,7 +300,25 @@ export default function ReportesPage() {
             {usuario?.tipoContrato === 'MEDIA' && <span className="text-orange-500 ml-1">(Media jornada)</span>}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Botones de Exportación */}
+          <button
+            onClick={handleExportPDF}
+            disabled={exportando !== null || jornadas.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <FileDown size={18} />
+            {exportando === 'pdf' ? 'Exportando...' : 'PDF'}
+          </button>
+          <button
+            onClick={handleExportExcel}
+            disabled={exportando !== null || jornadas.length === 0}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <FileSpreadsheet size={18} />
+            {exportando === 'excel' ? 'Exportando...' : 'Excel'}
+          </button>
+
           {/* Filtro por usuario (solo admin) */}
           {isAdmin && (
             <select

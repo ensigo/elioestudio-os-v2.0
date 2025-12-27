@@ -386,25 +386,76 @@ export const TeamPage = () => {
   if (!isAdmin) {
     const miUsuario = usuarios.find(u => u.id === currentUser?.id);
     const misPermisos = getPermisosUsuario(currentUser?.id || '');
+    const [miTab, setMiTab] = useState<'perfil' | 'horario' | 'permisos'>('perfil');
+    const [misJornadas, setMisJornadas] = useState<any[]>([]);
+    const [loadingJornadas, setLoadingJornadas] = useState(false);
+    const [semanaOffset, setSemanaOffset] = useState(0);
+
+    // Calcular fechas de la semana
+    const getWeekDates = (offset: number) => {
+      const hoy = new Date();
+      const lunes = new Date(hoy);
+      lunes.setDate(hoy.getDate() - hoy.getDay() + 1 + (offset * 7));
+      const domingo = new Date(lunes);
+      domingo.setDate(lunes.getDate() + 6);
+      return {
+        inicio: lunes.toISOString().split('T')[0],
+        fin: domingo.toISOString().split('T')[0],
+        lunesDate: lunes,
+        domingoDate: domingo
+      };
+    };
+
+    const semana = getWeekDates(semanaOffset);
+
+    // Cargar jornadas cuando cambia la pestaña o la semana
+    useEffect(() => {
+      if (miTab === 'horario' && currentUser?.id) {
+        setLoadingJornadas(true);
+        fetch(`/api/jornadas?usuarioId=${currentUser.id}&fechaInicio=${semana.inicio}&fechaFin=${semana.fin}`)
+          .then(res => res.json())
+          .then(data => {
+            setMisJornadas(Array.isArray(data) ? data : []);
+            setLoadingJornadas(false);
+          })
+          .catch(() => setLoadingJornadas(false));
+      }
+    }, [miTab, semanaOffset, currentUser?.id]);
+
+    const formatHoraJornada = (dateStr: string | null) => {
+      if (!dateStr) return '--:--';
+      return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    const formatMinutosJornada = (minutos: number | null) => {
+      if (!minutos) return '--';
+      const h = Math.floor(minutos / 60);
+      const m = minutos % 60;
+      return `${h}h ${m}m`;
+    };
+
+    // Calcular stats de la semana
+    const jornadasFinalizadas = misJornadas.filter(j => j.estado === 'FINALIZADA');
+    const totalMinutosSemana = jornadasFinalizadas.reduce((acc, j) => acc + (j.totalMinutos || 0), 0);
+    const horasObjetivoSemana = miUsuario?.tipoContrato === 'MEDIA' ? 20 : 37.5;
+    const balanceSemana = (totalMinutosSemana / 60) - horasObjetivoSemana;
 
     return (
       <div className="space-y-6 animate-in fade-in duration-300">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Mi Ficha</h1>
-          <p className="text-slate-500 text-sm">Tu información y solicitudes.</p>
-        </div>
-
-        {/* Mi información */}
+        {/* Header con info básica */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
           <div className="flex items-center space-x-6">
             <div className="w-20 h-20 rounded-full bg-elio-yellow text-white flex items-center justify-center text-3xl font-bold shadow-lg">
               {miUsuario?.name.charAt(0) || 'U'}
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="text-2xl font-bold text-slate-900">{miUsuario?.name}</h2>
               <div className="flex flex-wrap gap-2 mt-2">
                 <Badge variant="blue">{miUsuario?.position || 'Sin cargo'}</Badge>
                 <Badge variant="neutral">{miUsuario?.role}</Badge>
+                <Badge variant={miUsuario?.tipoContrato === 'MEDIA' ? 'warning' : 'success'}>
+                  {miUsuario?.tipoContrato === 'MEDIA' ? '20h/semana' : '37.5h/semana'}
+                </Badge>
               </div>
               <p className="text-sm text-slate-500 mt-2 flex items-center">
                 <Mail size={14} className="mr-1"/> {miUsuario?.email}
@@ -413,53 +464,306 @@ export const TeamPage = () => {
           </div>
         </div>
 
-        {/* Solicitar permiso */}
-        <Card title="Solicitar Permiso / Vacaciones">
+        {/* Pestañas */}
+        <div className="flex gap-2 border-b border-slate-200">
           <button
-            onClick={() => {
-              setSelectedUser(miUsuario || null);
-              setIsPermisoModalOpen(true);
-            }}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-elio-yellow text-white rounded-lg font-bold hover:bg-elio-yellow-hover transition-colors"
+            onClick={() => setMiTab('perfil')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              miTab === 'perfil' 
+                ? 'border-elio-yellow text-slate-900' 
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
           >
-            <Plus size={18} /> Nueva Solicitud
+            <FileText size={16} className="inline mr-2" />
+            Mi Perfil
           </button>
-        </Card>
+          <button
+            onClick={() => setMiTab('horario')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              miTab === 'horario' 
+                ? 'border-elio-yellow text-slate-900' 
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Clock size={16} className="inline mr-2" />
+            Mi Horario
+          </button>
+          <button
+            onClick={() => setMiTab('permisos')}
+            className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+              miTab === 'permisos' 
+                ? 'border-elio-yellow text-slate-900' 
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            <Calendar size={16} className="inline mr-2" />
+            Mis Permisos
+          </button>
+        </div>
 
-        {/* Histórico de solicitudes */}
-        <Card title="Mis Solicitudes">
-          {misPermisos.length === 0 ? (
-            <p className="text-center text-slate-400 py-8">No tienes solicitudes registradas</p>
-          ) : (
-            <div className="space-y-3">
-              {misPermisos.map(permiso => (
-                <div key={permiso.id} className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <span className="font-bold text-slate-900">{getTipoLabel(permiso.tipo)}</span>
-                      {permiso.motivo && <p className="text-sm text-slate-500 mt-1">{permiso.motivo}</p>}
-                    </div>
-                    {getEstadoBadge(permiso.estado)}
+        {/* Contenido de pestañas */}
+        {miTab === 'perfil' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Datos de Contacto */}
+            <Card title="Datos de Contacto">
+              <div className="space-y-4">
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold">Email</span>
+                  <p className="text-slate-900">{miUsuario?.email}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold">Teléfono</span>
+                  <p className="text-slate-900">{miUsuario?.telefono || 'No registrado'}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold">Teléfono de Emergencia</span>
+                  <p className="text-slate-900">{miUsuario?.telefonoEmergencia || 'No registrado'}</p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Datos Personales */}
+            <Card title="Información Personal">
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-xs text-slate-500 uppercase font-bold">DNI</span>
+                    <p className="text-slate-900">{miUsuario?.dni || 'No registrado'}</p>
                   </div>
-                  <div className="flex flex-wrap gap-4 text-xs text-slate-500 mt-3">
-                    <span className="flex items-center gap-1">
-                      <CalendarDays size={12} /> {formatDate(permiso.fechaInicio)} - {formatDate(permiso.fechaFin)}
-                    </span>
-                    <span>Solicitado: {formatDate(permiso.fechaSolicitud)}</span>
-                    {permiso.fechaResolucion && (
-                      <span>Resuelto: {formatDate(permiso.fechaResolucion)}</span>
-                    )}
-                  </div>
-                  {permiso.comentarioAdmin && (
-                    <p className="text-xs text-slate-600 mt-2 bg-white p-2 rounded border">
-                      <strong>Comentario:</strong> {permiso.comentarioAdmin}
+                  <div>
+                    <span className="text-xs text-slate-500 uppercase font-bold">Fecha de Nacimiento</span>
+                    <p className="text-slate-900">
+                      {miUsuario?.fechaNacimiento 
+                        ? new Date(miUsuario.fechaNacimiento).toLocaleDateString('es-ES') 
+                        : 'No registrada'}
                     </p>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold">Dirección</span>
+                  <p className="text-slate-900">
+                    {miUsuario?.direccion 
+                      ? `${miUsuario.direccion}, ${miUsuario.codigoPostal || ''} ${miUsuario.ciudad || ''}` 
+                      : 'No registrada'}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Información Laboral */}
+            <Card title="Información Laboral" className="md:col-span-2">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold">Puesto</span>
+                  <p className="text-slate-900">{miUsuario?.position || 'No especificado'}</p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold">Tipo de Contrato</span>
+                  <p className="text-slate-900">
+                    {miUsuario?.tipoContrato === 'MEDIA' ? 'Media Jornada (20h/sem)' : 'Jornada Completa (37.5h/sem)'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold">Fecha de Inicio</span>
+                  <p className="text-slate-900">
+                    {miUsuario?.joinDate ? new Date(miUsuario.joinDate).toLocaleDateString('es-ES') : 'No registrada'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-slate-500 uppercase font-bold">Rol</span>
+                  <p className="text-slate-900">{miUsuario?.role}</p>
+                </div>
+              </div>
+            </Card>
+
+            <div className="md:col-span-2 text-center text-sm text-slate-400">
+              <Shield size={16} className="inline mr-1" />
+              Si necesitas actualizar algún dato, contacta con Recursos Humanos
+            </div>
+          </div>
+        )}
+
+        {miTab === 'horario' && (
+          <div className="space-y-6">
+            {/* Selector de semana y resumen */}
+            <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setSemanaOffset(prev => prev - 1)}
+                    className="p-2 hover:bg-slate-100 rounded-lg"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <span className="text-sm font-medium min-w-[200px] text-center">
+                    {semana.lunesDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                    {' - '}
+                    {semana.domingoDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </span>
+                  <button 
+                    onClick={() => setSemanaOffset(prev => prev + 1)}
+                    className="p-2 hover:bg-slate-100 rounded-lg rotate-180"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  {semanaOffset !== 0 && (
+                    <button 
+                      onClick={() => setSemanaOffset(0)}
+                      className="px-3 py-1 text-xs bg-slate-100 rounded-lg hover:bg-slate-200"
+                    >
+                      Hoy
+                    </button>
                   )}
                 </div>
-              ))}
+                
+                <div className="flex gap-6 text-sm">
+                  <div>
+                    <span className="text-slate-500">Trabajado:</span>
+                    <span className="font-bold ml-1">{(totalMinutosSemana / 60).toFixed(1)}h</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Objetivo:</span>
+                    <span className="font-bold ml-1">{horasObjetivoSemana}h</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Balance:</span>
+                    <span className={`font-bold ml-1 ${balanceSemana >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {balanceSemana >= 0 ? '+' : ''}{balanceSemana.toFixed(1)}h
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </Card>
+
+            {/* Tabla de jornadas */}
+            <Card title="Registro de Jornadas">
+              {loadingJornadas ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="animate-spin text-elio-yellow" size={32} />
+                </div>
+              ) : misJornadas.length === 0 ? (
+                <p className="text-center text-slate-400 py-8">No hay jornadas registradas esta semana</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-bold text-slate-600">Fecha</th>
+                        <th className="px-4 py-3 text-center font-bold text-slate-600">Entrada</th>
+                        <th className="px-4 py-3 text-center font-bold text-slate-600">Pausa</th>
+                        <th className="px-4 py-3 text-center font-bold text-slate-600">Regreso</th>
+                        <th className="px-4 py-3 text-center font-bold text-slate-600">Salida</th>
+                        <th className="px-4 py-3 text-center font-bold text-slate-600">Total</th>
+                        <th className="px-4 py-3 text-center font-bold text-slate-600">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {misJornadas.map((jornada: any) => (
+                        <tr key={jornada.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3">
+                            <span className="font-medium capitalize">
+                              {new Date(jornada.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-mono">
+                            <span className="bg-green-50 text-green-700 px-2 py-1 rounded">
+                              {formatHoraJornada(jornada.horaInicio)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-mono">
+                            {jornada.horaPausaAlmuerzo ? (
+                              <span className="bg-orange-50 text-orange-700 px-2 py-1 rounded">
+                                {formatHoraJornada(jornada.horaPausaAlmuerzo)}
+                              </span>
+                            ) : <span className="text-slate-300">--:--</span>}
+                          </td>
+                          <td className="px-4 py-3 text-center font-mono">
+                            {jornada.horaReinicioAlmuerzo ? (
+                              <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                                {formatHoraJornada(jornada.horaReinicioAlmuerzo)}
+                              </span>
+                            ) : <span className="text-slate-300">--:--</span>}
+                          </td>
+                          <td className="px-4 py-3 text-center font-mono">
+                            {jornada.horaFin ? (
+                              <span className="bg-red-50 text-red-700 px-2 py-1 rounded">
+                                {formatHoraJornada(jornada.horaFin)}
+                              </span>
+                            ) : <span className="text-slate-300">--:--</span>}
+                          </td>
+                          <td className="px-4 py-3 text-center font-bold">
+                            {formatMinutosJornada(jornada.totalMinutos)}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <Badge variant={
+                              jornada.estado === 'FINALIZADA' ? 'success' :
+                              jornada.estado === 'PAUSADA' ? 'warning' : 'blue'
+                            }>
+                              {jornada.estado === 'FINALIZADA' ? 'Finalizada' :
+                               jornada.estado === 'PAUSADA' ? 'Pausada' : 'En curso'}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {miTab === 'permisos' && (
+          <div className="space-y-6">
+            {/* Botón solicitar */}
+            <Card title="Solicitar Permiso / Vacaciones">
+              <button
+                onClick={() => {
+                  setSelectedUser(miUsuario || null);
+                  setIsPermisoModalOpen(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-elio-yellow text-white rounded-lg font-bold hover:bg-elio-yellow-hover transition-colors"
+              >
+                <Plus size={18} /> Nueva Solicitud
+              </button>
+            </Card>
+
+            {/* Histórico */}
+            <Card title="Mis Solicitudes">
+              {misPermisos.length === 0 ? (
+                <p className="text-center text-slate-400 py-8">No tienes solicitudes registradas</p>
+              ) : (
+                <div className="space-y-3">
+                  {misPermisos.map(permiso => (
+                    <div key={permiso.id} className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <span className="font-bold text-slate-900">{getTipoLabel(permiso.tipo)}</span>
+                          {permiso.motivo && <p className="text-sm text-slate-500 mt-1">{permiso.motivo}</p>}
+                        </div>
+                        {getEstadoBadge(permiso.estado)}
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-xs text-slate-500 mt-3">
+                        <span className="flex items-center gap-1">
+                          <CalendarDays size={12} /> {formatDate(permiso.fechaInicio)} - {formatDate(permiso.fechaFin)}
+                        </span>
+                        <span>Solicitado: {formatDate(permiso.fechaSolicitud)}</span>
+                        {permiso.fechaResolucion && (
+                          <span>Resuelto: {formatDate(permiso.fechaResolucion)}</span>
+                        )}
+                      </div>
+                      {permiso.comentarioAdmin && (
+                        <p className="text-xs text-slate-600 mt-2 bg-white p-2 rounded border">
+                          <strong>Comentario:</strong> {permiso.comentarioAdmin}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
 
         {/* Modal Solicitar Permiso */}
         {isPermisoModalOpen && (

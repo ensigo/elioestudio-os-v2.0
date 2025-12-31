@@ -13,7 +13,7 @@ interface Usuario {
 interface Ticket {
   id: string;
   title: string;
-  message: string;
+  description: string;
   priority: string;
   status: string;
   createdAt: string;
@@ -127,7 +127,7 @@ export const TicketsPage = () => {
     if (searchTerm) {
       filtered = filtered.filter(t => 
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.sender.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -148,7 +148,7 @@ export const TicketsPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
-          message,
+          description: message,
           priority,
           senderId: currentUser.id,
           recipientId: recipientId || null
@@ -413,7 +413,7 @@ export const TicketsPage = () => {
                     </div>
                     
                     <div className="ml-13 bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed mb-3">
-                      {ticket.message}
+                      {ticket.description}
                     </div>
 
                     {/* Acciones */}

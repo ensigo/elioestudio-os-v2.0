@@ -196,8 +196,16 @@ async function handleMetricool(req: any, res: any) {
 
     // OBTENER POSTS PROGRAMADOS: /api/clientes?resource=metricool&action=scheduled&brandId=xxx
     if (action === 'scheduled' && brandId) {
+      // Calcular rango de fechas: hoy hasta 3 meses en el futuro
+      const now = new Date();
+      const futureDate = new Date(now);
+      futureDate.setMonth(futureDate.getMonth() + 3);
+      
+      const startDate = now.toISOString().split('.')[0]; // formato: yyyy-MM-ddTHH:mm:ss
+      const endDate = futureDate.toISOString().split('.')[0];
+      
       const response = await fetch(
-        `${METRICOOL_BASE_URL}/scheduler/list?userId=${METRICOOL_USER_ID}&blogId=${brandId}`,
+        `${METRICOOL_BASE_URL}/v2/scheduler/posts?userId=${METRICOOL_USER_ID}&blogId=${brandId}&start=${startDate}&end=${endDate}`,
         { headers }
       );
 

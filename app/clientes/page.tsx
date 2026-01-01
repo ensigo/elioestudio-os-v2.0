@@ -275,7 +275,7 @@ export const ClientsPage = () => {
       </div>
 
       {/* Clients Table */}
-      <Card noPadding className="overflow-hidden">
+      <Card noPadding className="overflow-visible">
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
              <tr>

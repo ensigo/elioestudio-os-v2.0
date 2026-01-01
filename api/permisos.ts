@@ -20,7 +20,7 @@ export default async function handler(req: any, res: any) {
         where.estado = estado;
       }
 
-      const permisos = await prisma.permiso.findMany({
+      const permisos = await prisma.permisos.findMany({
         where,
         include: {
           solicitante: {
@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Datos incompletos' });
       }
 
-      const nuevoPermiso = await prisma.permiso.create({
+      const nuevoPermiso = await prisma.permisos.create({
         data: {
           tipo,
           motivo: motivo || null,
@@ -86,7 +86,7 @@ export default async function handler(req: any, res: any) {
         dataToUpdate.aprobadorId = aprobadorId;
       }
 
-      const permisoActualizado = await prisma.permiso.update({
+      const permisoActualizado = await prisma.permisos.update({
         where: { id },
         data: dataToUpdate,
         include: {
@@ -110,7 +110,7 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'ID es obligatorio' });
       }
 
-      const permiso = await prisma.permiso.findUnique({ where: { id } });
+      const permiso = await prisma.permisos.findUnique({ where: { id } });
 
       if (!permiso) {
         return res.status(404).json({ error: 'Permiso no encontrado' });
@@ -120,7 +120,7 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Solo se pueden eliminar solicitudes pendientes' });
       }
 
-      await prisma.permiso.delete({ where: { id } });
+      await prisma.permisos.delete({ where: { id } });
 
       return res.status(200).json({ message: 'Solicitud eliminada' });
     }

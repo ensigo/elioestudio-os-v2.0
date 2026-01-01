@@ -107,7 +107,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const loadCredentials = async () => {
     setIsLoadingCredentials(true);
     try {
-      const res = await fetch("/api/credentials?clienteId=" + client.id);
+      const res = await fetch(\`/api/credentials?clienteId=\${client.id}\`);
       if (res.ok) setCredentials(await res.json());
     } catch (err) { console.error(err); }
     finally { setIsLoadingCredentials(false); }
@@ -116,7 +116,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const loadTeamMembers = async () => {
     setIsLoadingTeam(true);
     try {
-      const res = await fetch("/api/cliente-usuarios?clienteId=" + client.id);
+      const res = await fetch(\`/api/cliente-usuarios?clienteId=\${client.id}\`);
       if (res.ok) setTeamMembers(await res.json());
     } catch (err) { console.error(err); }
     finally { setIsLoadingTeam(false); }
@@ -125,7 +125,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const loadProjectsAndTasks = async () => {
     setIsLoadingProjects(true);
     try {
-      const res = await fetch("/api/clientes?id=" + client.id);
+      const res = await fetch(\`/api/clientes?id=\${client.id}\`);
       if (res.ok) {
         const data = await res.json();
         setProyectos(data.proyectos || []);
@@ -243,6 +243,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
     return acc;
   }, {} as Record<string, Credential[]>);
 
+  // TAB: VISIÓN GENERAL
   const OverviewTab = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <Card title="Datos de Contacto" action={currentUser.role === 'ADMIN' && !isEditingClient && (
@@ -286,6 +287,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
     </div>
   );
 
+  // TAB: PROYECTOS
   const ProjectsTab = () => (
     <div className="space-y-6">
       {isLoadingProjects ? <p className="text-center py-8 text-gray-400">Cargando...</p> : (
@@ -313,6 +315,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
     </div>
   );
 
+  // TAB: CREDENCIALES
   const CredentialsTab = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -334,7 +337,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
               <div key={cat.id} className="bg-white border rounded-xl overflow-hidden">
                 <button onClick={() => setExpandedCategories({...expandedCategories, [cat.id]: !expandedCategories[cat.id]})} className="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100">
                   <div className="flex items-center gap-3">
-                    <div className={"w-8 h-8 rounded-lg flex items-center justify-center " + cat.color}><Icon size={16} /></div>
+                    <div className={\`w-8 h-8 rounded-lg flex items-center justify-center \${cat.color}\`}><Icon size={16} /></div>
                     <span className="font-bold">{cat.label}</span>
                     <span className="text-xs bg-gray-200 px-2 rounded-full">{items.length}</span>
                   </div>
@@ -348,7 +351,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <h4 className="font-bold">{cred.platform}</h4>
-                              {cred.url && <a href={cred.url.startsWith('http') ? cred.url : 'https://' + cred.url} target="_blank" className="text-blue-500"><ExternalLink size={14} /></a>}
+                              {cred.url && <a href={cred.url.startsWith('http') ? cred.url : \`https://\${cred.url}\`} target="_blank" className="text-blue-500"><ExternalLink size={14} /></a>}
                             </div>
                             <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
                               <div><span className="text-xs text-gray-500">Usuario</span><p className="font-mono">{cred.username}</p></div>
@@ -367,7 +370,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
                             </div>
                           </div>
                           <div className="flex gap-1 ml-4">
-                            {cred.url && <a href={cred.url.startsWith('http') ? cred.url : 'https://' + cred.url} target="_blank" className="p-2 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600"><ExternalLink size={16} /></a>}
+                            {cred.url && <a href={cred.url.startsWith('http') ? cred.url : \`https://\${cred.url}\`} target="_blank" className="p-2 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600"><ExternalLink size={16} /></a>}
                             <button onClick={() => setEditingCredential(cred)} className="p-2 hover:bg-blue-50 rounded text-gray-400 hover:text-blue-600"><Edit size={16} /></button>
                             <button onClick={() => handleDeleteCredential(cred.id)} className="p-2 hover:bg-red-50 rounded text-gray-400 hover:text-red-600"><Trash2 size={16} /></button>
                           </div>
@@ -382,6 +385,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
         </div>
       )}
 
+      {/* Modal Añadir */}
       <Modal isOpen={showAddCredential} onClose={() => setShowAddCredential(false)} title="Nueva Credencial">
         <div className="space-y-4">
           <select value={newCredential.category} onChange={e => setNewCredential({...newCredential, category: e.target.value, platform: ''})} className="w-full px-3 py-2 border rounded-lg text-sm">
@@ -407,6 +411,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
         </div>
       </Modal>
 
+      {/* Modal Editar */}
       <Modal isOpen={!!editingCredential} onClose={() => setEditingCredential(null)} title="Editar Credencial">
         {editingCredential && (
           <div className="space-y-4">
@@ -435,6 +440,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
     </div>
   );
 
+  // TAB: EQUIPO
   const TeamTab = () => (
     <div className="space-y-4">
       <div className="flex justify-between items-center">

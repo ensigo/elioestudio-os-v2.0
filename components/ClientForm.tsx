@@ -1,28 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ClientStatus } from '../types';
-import { MOCK_USERS } from '../lib/mock-data';
 import { AlertCircle } from 'lucide-react';
 
 interface ClientFormProps {
   onSubmit: (data: any) => void;
   onCancel: () => void;
+  usuarios?: any[];
+  initialData?: {
+    name: string;
+    email: string;
+    phone: string;
+    taxId: string;
+    address: string;
+    contactPerson: string;
+    status: string;
+    responsibleId: string;
+  };
 }
 
-export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel }) => {
+export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usuarios = [], initialData }) => {
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
+    phone: '',
     taxId: '',
+    address: '',
+    contactPerson: '',
     responsibleId: '',
     status: 'ACTIVE' as ClientStatus
   });
   
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const isEditing = !!initialData;
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        email: initialData.email || '',
+        phone: initialData.phone || '',
+        taxId: initialData.taxId || '',
+        address: initialData.address || '',
+        contactPerson: initialData.contactPerson || '',
+        responsibleId: initialData.responsibleId || '',
+        status: (initialData.status as ClientStatus) || 'ACTIVE'
+      });
+    }
+  }, [initialData]);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = 'El Nombre Fiscal es obligatorio.';
-    if (!formData.taxId.trim()) newErrors.taxId = 'El CIF/NIF es obligatorio.';
-    if (!formData.responsibleId) newErrors.responsibleId = 'Debes asignar un responsable interno.';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -57,43 +85,93 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel }) =>
       {/* Tax ID */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          CIF / NIF <span className="text-red-500">*</span>
+          CIF / NIF
         </label>
         <input
           type="text"
           value={formData.taxId}
           onChange={(e) => setFormData({...formData, taxId: e.target.value})}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none transition-all ${
-            errors.taxId ? 'border-red-300 bg-red-50' : 'border-gray-200'
-          }`}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none transition-all"
           placeholder="B-12345678"
         />
-        {errors.taxId && <p className="text-xs text-red-500 mt-1">{errors.taxId}</p>}
+      </div>
+
+      {/* Email & Phone in 2 columns */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email
+          </label>
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({...formData, email: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none"
+            placeholder="contacto@empresa.com"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Teléfono
+          </label>
+          <input
+            type="tel"
+            value={formData.phone}
+            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none"
+            placeholder="+34 900 000 000"
+          />
+        </div>
+      </div>
+
+      {/* Address */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Dirección Fiscal
+        </label>
+        <input
+          type="text"
+          value={formData.address}
+          onChange={(e) => setFormData({...formData, address: e.target.value})}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none"
+          placeholder="Calle Principal 123, 28001 Madrid"
+        />
+      </div>
+
+      {/* Contact Person */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Persona de Contacto
+        </label>
+        <input
+          type="text"
+          value={formData.contactPerson}
+          onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none"
+          placeholder="Juan García"
+        />
       </div>
 
       {/* Responsible Select */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Responsable Interno <span className="text-red-500">*</span>
+          Responsable Interno
         </label>
         <select
           value={formData.responsibleId}
           onChange={(e) => setFormData({...formData, responsibleId: e.target.value})}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none transition-all ${
-            errors.responsibleId ? 'border-red-300 bg-red-50' : 'border-gray-200'
-          }`}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none"
         >
           <option value="">Seleccionar empleado...</option>
-          {MOCK_USERS.map(user => (
+          {usuarios.map(user => (
             <option key={user.id} value={user.id}>{user.name} ({user.role})</option>
           ))}
         </select>
-        {errors.responsibleId && <p className="text-xs text-red-500 mt-1">{errors.responsibleId}</p>}
       </div>
 
       {/* Status Select */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Estado Inicial</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
         <select
           value={formData.status}
           onChange={(e) => setFormData({...formData, status: e.target.value as ClientStatus})}
@@ -102,6 +180,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel }) =>
           <option value="ACTIVE">Activo (Normal)</option>
           <option value="RISK">En Riesgo (Atención Prioritaria)</option>
           <option value="PAUSED">En Pausa</option>
+          <option value="CHURNED">Baja</option>
         </select>
       </div>
 
@@ -117,7 +196,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel }) =>
           type="submit"
           className="px-4 py-2 text-sm font-medium text-white bg-elio-black hover:bg-gray-900 rounded-lg transition-colors shadow-sm"
         >
-          Crear Cliente
+          {isEditing ? 'Guardar Cambios' : 'Crear Cliente'}
         </button>
       </div>
     </form>

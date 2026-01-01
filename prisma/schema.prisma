@@ -13,98 +13,133 @@ model Cliente {
   name          String
   email         String?  @unique
   phone         String?
-  taxId         String?
-  status        String   @default("ACTIVE")
+  taxId         String?  // CIF/NIF
+  address       String?
+  contactPerson String?
+  status        String   @default("ACTIVE") // ACTIVE, RISK, PAUSED, CHURNED
   responsibleId String?
   lastActivity  String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  proyectos Proyecto[]
+  // Relaciones
+  credentials   Credential[]
+  proyectos     Proyecto[]
+  usuariosAsignados ClienteUsuario[]
 
   @@map("clientes")
+}
+
+model Credential {
+  id                String   @id @default(cuid())
+  clienteId         String
+  
+  // Categorización
+  category          String   // SOCIAL, WEB_CMS, EMAIL, HOSTING, ANALYTICS, ADS, OTHER
+  platform          String   // Facebook, Instagram, WordPress, Gmail, GoDaddy, etc.
+  
+  // Datos de acceso
+  url               String?  // URL de acceso directo
+  username          String
+  passwordEncrypted String
+  email             String?  // Email asociado (para recuperación)
+  
+  // Para cuentas de email - permite agrupar múltiples cuentas
+  isEmailAccount    Boolean  @default(false)
+  emailProvider     String?  // Gmail, Outlook, cPanel, etc.
+  parentId          String?  // Para agrupar emails bajo un dominio
+  
+  // Información adicional
+  notes             String?
+  isActive          Boolean  @default(true)
+  
+  // Auditoría completa
+  createdById       String?
+  createdByName     String?
+  createdAt         DateTime @default(now())
+  
+  // Historial de modificaciones
+  lastModifiedById  String?
+  lastModifiedByName String?
+  updatedAt         DateTime @updatedAt
+  
+  // Relaciones
+  cliente           Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  @@map("credentials")
 }
 
 model Usuario {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
-  password  String?
-  role      String   @default("DEV")
+  role      String   @default("USER") // ADMIN, MANAGER, USER
   position  String?
+  phone     String?
   avatarUrl String?
-  joinDate  DateTime @default(now())
+  hourlyCost Float?
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  tipoContrato String @default("COMPLETA")
-  
-  // Datos Personales
-  dni             String?
-  fechaNacimiento DateTime?
-  telefono        String?
-  telefonoEmergencia String?
-  direccion       String?
-  ciudad          String?
-  codigoPostal    String?
-  
-  // Datos Bancarios
-  iban            String?
-  titularCuenta   String?
-  
-  // Seguridad Social
-  numSeguridadSocial String?
-  tipoContratacion   String?
-  fechaAltaSS        DateTime?
-  
+
   // Relaciones
-  ticketsSent     Ticket[] @relation("TicketsSent")
-  ticketsReceived Ticket[] @relation("TicketsReceived")
-  eventosCreados  Evento[] @relation("EventosCreados")
-  proyectosAsignados Proyecto[] @relation("ResponsableProyecto")
-  tareasAsignadas    Tarea[]    @relation("AsignadoTarea")
-  permisosSolicitados Permiso[] @relation("PermisosSolicitados")
-  permisosAprobados   Permiso[] @relation("PermisosAprobados")
-  jornadas Jornada[]
+  tareasAsignadas  Tarea[]  @relation("TareaAssignee")
+  clientesAsignados ClienteUsuario[]
+  ticketsSent      Ticket[] @relation("TicketSender")
+  ticketsReceived  Ticket[] @relation("TicketRecipient")
 
   @@map("usuarios")
 }
 
-model Proyecto {
-  id            String    @id @default(cuid())
-  title         String
-  clienteId     String
-  responsibleId String?
-  status        String    @default("ACTIVE")
-  budget        Float?
-  deadline      DateTime?
-  isArchived    Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model ClienteUsuario {
+  id        String   @id @default(cuid())
+  clienteId String
+  usuarioId String
+  role      String   @default("MEMBER") // LEAD, MEMBER
+  createdAt DateTime @default(now())
 
-  cliente     Cliente  @relation(fields: [clienteId], references: [id])
-  responsable Usuario? @relation("ResponsableProyecto", fields: [responsibleId], references: [id])
-  tareas      Tarea[]
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@unique([clienteId, usuarioId])
+  @@map("clientes_usuarios")
+}
+
+model Proyecto {
+  id        String   @id @default(cuid())
+  title     String
+  clienteId String?
+  status    String   @default("ACTIVE") // ACTIVE, BLOCKED, PENDING, COMPLETED
+  budget    Float?
+  deadline  String?
+  isArchived Boolean @default(false)
+  tags      String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cliente   Cliente? @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  tareas    Tarea[]
 
   @@map("proyectos")
 }
 
 model Tarea {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   title          String
   description    String?
-  status         String    @default("PENDING")
-  priority       String    @default("MEDIUM")
-  type           String    @default("OPERATIONAL")
+  status         String   @default("PENDING")
+  priority       String   @default("MEDIUM")
+  type           String   @default("OPERATIONAL")
   proyectoId     String
   assigneeId     String?
   estimatedHours Float?
   dueDate        DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  proyecto    Proyecto     @relation(fields: [proyectoId], references: [id])
-  assignee    Usuario?     @relation("AsignadoTarea", fields: [assigneeId], references: [id])
-  timeEntries TimeEntry[]
+  proyecto       Proyecto @relation(fields: [proyectoId], references: [id], onDelete: Cascade)
+  assignee       Usuario? @relation("TareaAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  timeEntries    TimeEntry[]
 
   @@map("tareas")
 }
@@ -112,139 +147,30 @@ model Tarea {
 model TimeEntry {
   id          String    @id @default(cuid())
   userId      String
-  tareaId     String?
+  tareaId     String
   startTime   DateTime
   endTime     DateTime?
   description String?
   createdAt   DateTime  @default(now())
 
-  tarea Tarea? @relation(fields: [tareaId], references: [id])
+  tarea       Tarea     @relation(fields: [tareaId], references: [id], onDelete: Cascade)
 
   @@map("time_entries")
 }
 
 model Ticket {
-  id           String    @id @default(cuid())
-  title        String
-  description  String?
-  status       String    @default("OPEN")
-  priority     String    @default("MEDIUM")
-  senderId     String
-  recipientId  String?
-  readBy       String[]  @default([])
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  sender    Usuario  @relation("TicketsSent", fields: [senderId], references: [id])
-  recipient Usuario? @relation("TicketsReceived", fields: [recipientId], references: [id])
-
-  @@map("tickets")
-}
-
-model Evento {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  type        String    @default("MEETING")
-  startDate   DateTime
-  endDate     DateTime?
-  startTime   String?
-  endTime     String?
-  allDay      Boolean   @default(false)
-  color       String?
-  createdById String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  createdBy Usuario? @relation("EventosCreados", fields: [createdById], references: [id])
-
-  @@map("eventos")
-}
-
-model Permiso {
-  id              String    @id @default(cuid())
-  tipo            String    // VACACIONES, PERMISO, BAJA_MEDICA, ASUNTOS_PROPIOS
-  motivo          String?
-  fechaInicio     DateTime
-  fechaFin        DateTime
-  estado          String    @default("PENDIENTE") // PENDIENTE, APROBADO, RECHAZADO
-  fechaSolicitud  DateTime  @default(now())
-  fechaResolucion DateTime?
-  comentarioAdmin String?
-  
-  solicitanteId   String
-  solicitante     Usuario   @relation("PermisosSolicitados", fields: [solicitanteId], references: [id])
-  
-  aprobadorId     String?
-  aprobador       Usuario?  @relation("PermisosAprobados", fields: [aprobadorId], references: [id])
-  
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@map("permisos")
-}
-
-model Jornada {
-  id                    String    @id @default(cuid())
-  usuarioId             String
-  fecha                 DateTime  @db.Date
-  horaInicio            DateTime
-  horaPausaAlmuerzo     DateTime?
-  horaReinicioAlmuerzo  DateTime?
-  horaFin               DateTime?
-  totalMinutos          Int?
-  estado                String    @default("EN_CURSO") // EN_CURSO, PAUSADA, FINALIZADA
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
-
-  usuario Usuario @relation(fields: [usuarioId], references: [id])
-
-  @@unique([usuarioId, fecha])
-  @@map("jornadas")
-}
-
-// ============================================
-// CATÁLOGO DE SERVICIOS
-// ============================================
-
-model CategoriaServicio {
   id          String   @id @default(cuid())
-  codigo      String   @unique
-  nombre      String
-  descripcion String?
-  color       String   @default("#6B7280")
-  icono       String?
-  orden       Int      @default(0)
-  activo      Boolean  @default(true)
-  
+  title       String
+  message     String?
+  priority    String   @default("MEDIUM")
+  status      String   @default("OPEN")
+  senderId    String
+  recipientId String?  // null = para todo el equipo
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  plantillas  PlantillaTarea[]
 
-  @@map("categorias_servicio")
-}
+  sender      Usuario  @relation("TicketSender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient   Usuario? @relation("TicketRecipient", fields: [recipientId], references: [id], onDelete: SetNull)
 
-model PlantillaTarea {
-  id              String   @id @default(cuid())
-  codigo          String   @unique
-  nombre          String
-  descripcion     String?
-  
-  categoriaId     String
-  categoria       CategoriaServicio @relation(fields: [categoriaId], references: [id])
-  
-  rolSugeridoTipo String?
-  tiempoEstimado  Float    @default(1)
-  
-  esRecurrente    Boolean  @default(false)
-  frecuencia      String?
-  
-  activo          Boolean  @default(true)
-  orden           Int      @default(0)
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  @@map("plantillas_tarea")
+  @@map("tickets")
 }

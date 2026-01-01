@@ -1,34 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getResponsibleName } from '../../lib/mock-data';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { ClientForm } from '../../components/ClientForm';
 import { ClientDetailPage } from './ClientDetailPage';
-import { Plus, Search, MoreVertical, AlertTriangle } from 'lucide-react';
+import { Plus, Search, MoreVertical, AlertTriangle, Edit, Trash2, Eye } from 'lucide-react';
 import { Client } from '../../types';
 
 export const ClientsPage = () => {
   const [clients, setClients] = useState<Client[]>([]);
+  const [usuarios, setUsuarios] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [clientToEdit, setClientToEdit] = useState<Client | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // --- CARGAR DATOS DE LA API ---
+  // Simular usuario actual (en producción vendría del contexto de auth)
+  const currentUser = { id: '1', role: 'ADMIN', name: 'Admin' };
+
   useEffect(() => {
-    const fetchClients = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/clientes'); 
+        const [clientesRes, usuariosRes] = await Promise.all([
+          fetch('/api/clientes'),
+          fetch('/api/usuarios')
+        ]);
         
-        if (!response.ok) {
-          throw new Error(`Error en la API: ${response.statusText}`);
+        if (!clientesRes.ok) {
+          throw new Error(`Error en la API: ${clientesRes.statusText}`);
         }
         
-        const data = await response.json();
+        const [clientesData, usuariosData] = await Promise.all([
+          clientesRes.json(),
+          usuariosRes.ok ? usuariosRes.json() : []
+        ]);
         
-        // Transformar los datos de la API al formato esperado por el frontend
-        const clientesFormateados: Client[] = data.map((cliente: any) => ({
+        const clientesFormateados: Client[] = clientesData.map((cliente: any) => ({
           id: cliente.id,
           name: cliente.name,
           fiscalData: { taxId: cliente.taxId || '' },
@@ -37,10 +49,13 @@ export const ClientsPage = () => {
           lastActivity: cliente.lastActivity || 'Sin actividad',
           email: cliente.email,
           phone: cliente.phone,
+          address: cliente.address,
+          contactPerson: cliente.contactPerson,
           credentials: []
         }));
         
         setClients(clientesFormateados);
+        setUsuarios(usuariosData);
       } catch (err: any) {
         setError(err.message || 'Error desconocido al cargar clientes.');
         console.error("Fallo al obtener clientes reales:", err);
@@ -49,22 +64,32 @@ export const ClientsPage = () => {
       }
     };
     
-    fetchClients();
-  }, []); 
+    fetchData();
+  }, []);
 
-  // --- CREAR CLIENTE (ENVÍA A LA API) ---
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleCreateClient = async (data: any) => {
     try {
       const response = await fetch('/api/clientes', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
           email: data.email || null,
           phone: data.phone || null,
           taxId: data.taxId || null,
+          address: data.address || null,
+          contactPerson: data.contactPerson || null,
           status: data.status || 'ACTIVE',
           responsibleId: data.responsibleId || null,
         }),
@@ -86,6 +111,8 @@ export const ClientsPage = () => {
         lastActivity: nuevoCliente.lastActivity || 'Ahora mismo',
         email: nuevoCliente.email,
         phone: nuevoCliente.phone,
+        address: nuevoCliente.address,
+        contactPerson: nuevoCliente.contactPerson,
         credentials: []
       };
       
@@ -95,6 +122,84 @@ export const ClientsPage = () => {
       console.error('Error al crear cliente:', err);
       alert('Error al crear cliente: ' + err.message);
     }
+  };
+
+  const handleEditClient = async (data: any) => {
+    if (!clientToEdit) return;
+    
+    try {
+      const response = await fetch('/api/clientes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: clientToEdit.id,
+          name: data.name,
+          email: data.email || null,
+          phone: data.phone || null,
+          taxId: data.taxId || null,
+          address: data.address || null,
+          contactPerson: data.contactPerson || null,
+          status: data.status || 'ACTIVE',
+          responsibleId: data.responsibleId || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al editar cliente');
+      }
+
+      const clienteActualizado = await response.json();
+      
+      const clienteFormateado: Client = {
+        id: clienteActualizado.id,
+        name: clienteActualizado.name,
+        fiscalData: { taxId: clienteActualizado.taxId },
+        status: clienteActualizado.status,
+        responsibleId: clienteActualizado.responsibleId || '',
+        lastActivity: clienteActualizado.lastActivity || 'Editado hace un momento',
+        email: clienteActualizado.email,
+        phone: clienteActualizado.phone,
+        address: clienteActualizado.address,
+        contactPerson: clienteActualizado.contactPerson,
+        credentials: []
+      };
+      
+      setClients(clients.map(c => c.id === clienteFormateado.id ? clienteFormateado : c));
+      setIsEditModalOpen(false);
+      setClientToEdit(null);
+    } catch (err: any) {
+      console.error('Error al editar cliente:', err);
+      alert('Error al editar cliente: ' + err.message);
+    }
+  };
+
+  const handleDeleteClient = async (clientId: string) => {
+    if (!confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.')) return;
+    
+    try {
+      const response = await fetch('/api/clientes', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: clientId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar cliente');
+      }
+
+      setClients(clients.filter(c => c.id !== clientId));
+      setOpenMenuId(null);
+    } catch (err: any) {
+      console.error('Error al eliminar cliente:', err);
+      alert('Error al eliminar cliente: ' + err.message);
+    }
+  };
+
+  const openEditModal = (client: Client) => {
+    setClientToEdit(client);
+    setIsEditModalOpen(true);
+    setOpenMenuId(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -115,21 +220,24 @@ export const ClientsPage = () => {
     return (
       <ClientDetailPage 
         client={selectedClient} 
-        onBack={() => setSelectedClientId(null)} 
+        onBack={() => setSelectedClientId(null)}
+        usuarios={usuarios}
+        currentUser={currentUser}
+        onClientUpdate={(updatedClient) => {
+          setClients(clients.map(c => c.id === updatedClient.id ? updatedClient : c));
+        }}
       />
     );
   }
 
-  // --- LOADING STATE ---
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-elio-yellow animate-pulse">Cargando clientes...</p>
+        <p className="text-xl text-elio-yellow animate-pulse">Cargando clientes reales de Neon...</p>
       </div>
     );
   }
 
-  // --- ERROR STATE ---
   if (error) {
     return (
       <div className="flex justify-center items-center h-96 bg-red-50 p-6 rounded-lg border border-red-200">
@@ -139,7 +247,6 @@ export const ClientsPage = () => {
     );
   }
 
-  // --- RENDER LIST VIEW ---
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header Actions */}
@@ -221,9 +328,61 @@ export const ClientsPage = () => {
                     {client.lastActivity}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors" onClick={(e) => e.stopPropagation()}>
-                      <MoreVertical size={18} />
-                    </button>
+                    <div className="relative" ref={openMenuId === client.id ? menuRef : null}>
+                      <button 
+                        className="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === client.id ? null : client.id);
+                        }}
+                      >
+                        <MoreVertical size={18} />
+                      </button>
+                      
+                      {/* Dropdown Menu */}
+                      {openMenuId === client.id && (
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedClientId(client.id);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                          >
+                            <Eye size={16} className="mr-2 text-gray-400" />
+                            Ver Detalles
+                          </button>
+                          
+                          {/* Solo mostrar editar si es admin */}
+                          {currentUser.role === 'ADMIN' && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditModal(client);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center"
+                              >
+                                <Edit size={16} className="mr-2 text-blue-500" />
+                                Editar Cliente
+                              </button>
+                              <hr className="my-1 border-gray-100" />
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteClient(client.id);
+                                }}
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center"
+                              >
+                                <Trash2 size={16} className="mr-2" />
+                                Eliminar Cliente
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -240,7 +399,37 @@ export const ClientsPage = () => {
       >
         <ClientForm 
           onSubmit={handleCreateClient} 
-          onCancel={() => setIsModalOpen(false)} 
+          onCancel={() => setIsModalOpen(false)}
+          usuarios={usuarios}
+        />
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal 
+        isOpen={isEditModalOpen} 
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setClientToEdit(null);
+        }} 
+        title="Editar Cliente"
+      >
+        <ClientForm 
+          onSubmit={handleEditClient} 
+          onCancel={() => {
+            setIsEditModalOpen(false);
+            setClientToEdit(null);
+          }}
+          usuarios={usuarios}
+          initialData={clientToEdit ? {
+            name: clientToEdit.name,
+            email: clientToEdit.email || '',
+            phone: clientToEdit.phone || '',
+            taxId: clientToEdit.fiscalData?.taxId || '',
+            address: clientToEdit.address || '',
+            contactPerson: clientToEdit.contactPerson || '',
+            status: clientToEdit.status,
+            responsibleId: clientToEdit.responsibleId || ''
+          } : undefined}
         />
       </Modal>
     </div>

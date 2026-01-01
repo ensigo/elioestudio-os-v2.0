@@ -74,8 +74,11 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const [editClientForm, setEditClientForm] = useState({
     name: client.name, email: client.email || '', phone: client.phone || '',
     address: client.address || '', contactPerson: client.contactPerson || '',
-    taxId: client.fiscalData?.taxId || '', status: client.status
+    taxId: client.fiscalData?.taxId || '', status: client.status,
+    metricoolBrandId: (client as any).metricoolBrandId || ''
   });
+  const [metricoolBrands, setMetricoolBrands] = useState<{id: string; name: string}[]>([]);
+  const [loadingBrands, setLoadingBrands] = useState(false);
 
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
@@ -100,6 +103,24 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const [proyectos, setProyectos] = useState<any[]>([]);
   const [tareas, setTareas] = useState<any[]>([]);
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
+
+  // Cargar marcas de Metricool
+  const loadMetricoolBrands = async () => {
+    setLoadingBrands(true);
+    try {
+      const res = await fetch('/api/clientes?resource=metricool&action=brands');
+      if (res.ok) {
+        const data = await res.json();
+        // Metricool puede devolver diferentes estructuras
+        const brands = data.brands || data || [];
+        setMetricoolBrands(brands.map((b: any) => ({ id: b.id || b._id, name: b.name || b.brand_name })));
+      }
+    } catch (err) {
+      console.error('Error cargando marcas Metricool:', err);
+    } finally {
+      setLoadingBrands(false);
+    }
+  };
 
   const loadCredentials = useCallback(async () => {
     setIsLoadingCredentials(true);
@@ -138,6 +159,13 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
     else if (activeTab === 'projects') loadProjectsAndTasks();
   }, [activeTab, loadCredentials, loadTeamMembers, loadProjectsAndTasks]);
 
+  // Cargar marcas de Metricool cuando se abre edición
+  useEffect(() => {
+    if (isEditingClient && metricoolBrands.length === 0) {
+      loadMetricoolBrands();
+    }
+  }, [isEditingClient]);
+
   const handleSaveClientEdit = async () => {
     try {
       const res = await fetch('/api/clientes', {
@@ -146,9 +174,17 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
       });
       if (res.ok) {
         const updated = await res.json();
-        onClientUpdate({ ...client, name: updated.name, email: updated.email, phone: updated.phone,
-          address: updated.address, contactPerson: updated.contactPerson,
-          fiscalData: { taxId: updated.taxId }, status: updated.status });
+        onClientUpdate({ 
+          ...client, 
+          name: updated.name, 
+          email: updated.email, 
+          phone: updated.phone,
+          address: updated.address, 
+          contactPerson: updated.contactPerson,
+          fiscalData: { taxId: updated.taxId }, 
+          status: updated.status,
+          metricoolBrandId: updated.metricoolBrandId
+        } as any);
         setIsEditingClient(false);
       }
     } catch (err) { alert('Error al guardar'); }
@@ -294,6 +330,20 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
                   <select value={editClientForm.status} onChange={e => setEditClientForm({...editClientForm, status: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="ACTIVE">Activo</option><option value="RISK">Riesgo</option><option value="PAUSED">Pausa</option><option value="CHURNED">Baja</option>
                   </select>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Marca Metricool</label>
+                    <select 
+                      value={editClientForm.metricoolBrandId} 
+                      onChange={e => setEditClientForm({...editClientForm, metricoolBrandId: e.target.value})} 
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                      disabled={loadingBrands}
+                    >
+                      <option value="">{loadingBrands ? 'Cargando...' : 'Sin vincular'}</option>
+                      {metricoolBrands.map(brand => (
+                        <option key={brand.id} value={brand.id}>{brand.name}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="flex gap-2">
                     <button onClick={handleSaveClientEdit} className="flex-1 bg-elio-yellow text-white py-2 rounded-lg text-sm">Guardar</button>
                     <button onClick={() => setIsEditingClient(false)} className="px-4 py-2 border rounded-lg text-sm">Cancelar</button>

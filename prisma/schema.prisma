@@ -18,6 +18,7 @@ model Cliente {
   contactPerson String?
   status        String     @default("ACTIVE")
   responsibleId String?
+  metricoolBrandId String?
   lastActivity  String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -25,7 +26,6 @@ model Cliente {
   proyectos         Proyecto[]
   credentials       Credential[]
   usuariosAsignados ClienteUsuario[]
-
   @@map("clientes")
 }
 

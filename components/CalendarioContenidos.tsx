@@ -43,6 +43,7 @@ export const CalendarioContenidos: React.FC<CalendarioContenidosProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
 
   // Cargar posts programados
   const fetchScheduledPosts = async () => {

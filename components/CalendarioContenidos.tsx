@@ -64,7 +64,9 @@ export const CalendarioContenidos: React.FC<CalendarioContenidosProps> = ({
       const data = await res.json();
       
       // Transformar datos de Metricool al formato que necesitamos
-      const transformedPosts = (data.posts || data || []).map((post: any) => ({
+      // La API devuelve { data: [...] }
+      const postsArray = data.data || data.posts || data || [];
+      const transformedPosts = postsArray.map((post: any) => ({
         id: post.id || post._id,
         scheduledDate: post.scheduledDate || post.date || post.publishDate,
         networks: post.networks || post.socialNetworks || [post.network],

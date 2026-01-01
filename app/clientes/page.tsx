@@ -51,7 +51,8 @@ export const ClientsPage = () => {
           phone: cliente.phone,
           address: cliente.address,
           contactPerson: cliente.contactPerson,
-          credentials: []
+          credentials: [],
+          metricoolBrandId: cliente.metricoolBrandId || null
         }));
         
         setClients(clientesFormateados);

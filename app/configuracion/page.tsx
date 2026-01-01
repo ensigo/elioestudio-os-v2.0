@@ -112,7 +112,12 @@ export default function ConfiguracionPage() {
       const res = await fetch('/api/catalogo?tipo=categorias');
       if (res.ok) {
         const data = await res.json();
-        setCategorias(data);
+        // Mapear plantillas_tarea a plantillas para el frontend
+        const categoriasConPlantillas = data.map((cat: any) => ({
+          ...cat,
+          plantillas: cat.plantillas_tarea || cat.plantillas || []
+        }));
+        setCategorias(categoriasConPlantillas);
       }
     } catch (error) {
       console.error('Error cargando catálogo:', error);

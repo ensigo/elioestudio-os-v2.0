@@ -68,11 +68,11 @@ export const CalendarioContenidos: React.FC<CalendarioContenidosProps> = ({
       const postsArray = data.data || data.posts || data || [];
       const transformedPosts = postsArray.map((post: any) => ({
         id: post.id || post._id,
-        scheduledDate: post.scheduledDate || post.date || post.publishDate,
-        networks: post.networks || post.socialNetworks || [post.network],
-        content: post.content || post.text || post.message || '',
-        mediaUrl: post.mediaUrl || post.image,
-        status: post.status || 'scheduled'
+        scheduledDate: post.publicationDate?.dateTime || post.scheduledDate || post.date || new Date().toISOString(),
+        networks: post.providers?.map((p: any) => p.network) || [],
+        content: post.text || post.content || '',
+        mediaUrl: post.media?.[0] || post.mediaUrl,
+        status: post.providers?.[0]?.status || 'scheduled'
       }));
       
       setPosts(transformedPosts);

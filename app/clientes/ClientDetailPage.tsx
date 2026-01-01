@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { Tabs } from '../../components/ui/Tabs';
+import { CalendarioContenidos } from '../../components/CalendarioContenidos';
 import { 
   ArrowLeft, Edit, Mail, Phone, MapPin, 
   Briefcase, CheckSquare, Shield, Lock, Eye, EyeOff, Users,
@@ -273,6 +274,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
       <div className="min-h-[400px]">
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
+          <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Card title="Datos de Contacto" action={currentUser.role === 'ADMIN' && !isEditingClient && (
               <button onClick={() => setIsEditingClient(true)} className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded flex items-center">
@@ -313,6 +315,17 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
               </div>
             </Card>
           </div>
+          
+          {/* Calendario de Contenidos */}
+          <div className="mt-6">
+            <Card title="">
+              <CalendarioContenidos 
+                clienteId={client.id} 
+                metricoolBrandId={(client as any).metricoolBrandId}
+              />
+            </Card>
+          </div>
+          </>
         )}
 
         {/* PROJECTS TAB */}

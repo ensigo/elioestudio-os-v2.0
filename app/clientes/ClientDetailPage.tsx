@@ -113,7 +113,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
         const data = await res.json();
         // Metricool puede devolver diferentes estructuras
         const brands = data.brands || data || [];
-        setMetricoolBrands(brands.map((b: any) => ({ id: b.id || b._id, name: b.name || b.brand_name })));
+        setMetricoolBrands(brands.map((b: any) => ({ id: String(b.id), name: b.label || b.title || 'Sin nombre' })));
       }
     } catch (err) {
       console.error('Error cargando marcas Metricool:', err);

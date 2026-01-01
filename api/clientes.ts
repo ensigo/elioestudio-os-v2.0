@@ -2,7 +2,8 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const METRICOOL_API_KEY = process.env.METRICOOL_API_KEY;
-const METRICOOL_BASE_URL = 'https://app.metricool.com/api/v1';
+const METRICOOL_USER_ID = '2646657';
+const METRICOOL_BASE_URL = 'https://app.metricool.com/api';
 
 export default async function handler(req: any, res: any) {
   const { resource } = req.query;
@@ -171,15 +172,17 @@ async function handleMetricool(req: any, res: any) {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
+  const headers = {
+    'X-Mc-Auth': METRICOOL_API_KEY
+  };
+
   try {
     // OBTENER MARCAS: /api/clientes?resource=metricool&action=brands
     if (action === 'brands') {
-      const response = await fetch(`${METRICOOL_BASE_URL}/brands`, {
-        headers: {
-          'X-API-KEY': METRICOOL_API_KEY || '',
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(
+        `${METRICOOL_BASE_URL}/admin/simpleProfiles?userId=${METRICOOL_USER_ID}`,
+        { headers }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -193,12 +196,10 @@ async function handleMetricool(req: any, res: any) {
 
     // OBTENER POSTS PROGRAMADOS: /api/clientes?resource=metricool&action=scheduled&brandId=xxx
     if (action === 'scheduled' && brandId) {
-      const response = await fetch(`${METRICOOL_BASE_URL}/brands/${brandId}/posts/scheduled`, {
-        headers: {
-          'X-API-KEY': METRICOOL_API_KEY || '',
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await fetch(
+        `${METRICOOL_BASE_URL}/scheduler/list?userId=${METRICOOL_USER_ID}&blogId=${brandId}`,
+        { headers }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -210,33 +211,7 @@ async function handleMetricool(req: any, res: any) {
       return res.status(200).json(data);
     }
 
-    // OBTENER HISTORIAL DE POSTS: /api/clientes?resource=metricool&action=history&brandId=xxx
-    if (action === 'history' && brandId) {
-      const now = new Date();
-      const startDate = new Date(now);
-      startDate.setMonth(startDate.getMonth() - 1);
-      
-      const response = await fetch(
-        `${METRICOOL_BASE_URL}/brands/${brandId}/posts?startDate=${startDate.toISOString().split('T')[0]}&endDate=${now.toISOString().split('T')[0]}`,
-        {
-          headers: {
-            'X-API-KEY': METRICOOL_API_KEY || '',
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error Metricool history:', response.status, errorText);
-        return res.status(response.status).json({ error: 'Error obteniendo historial', details: errorText });
-      }
-
-      const data = await response.json();
-      return res.status(200).json(data);
-    }
-
-    return res.status(400).json({ error: 'Acción requerida: brands, scheduled, o history' });
+    return res.status(400).json({ error: 'Acción requerida: brands o scheduled' });
 
   } catch (error: any) {
     console.error('Error Metricool:', error);

@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {
@@ -7,15 +6,12 @@ export default async function handler(req: any, res: any) {
     // GET - Obtener permisos
     if (req.method === 'GET') {
       const { solicitanteId, estado, todos } = req.query;
-
       let where: any = {};
 
-      // Si se pide un usuario específico
       if (solicitanteId) {
         where.solicitanteId = solicitanteId;
       }
 
-      // Filtrar por estado
       if (estado) {
         where.estado = estado;
       }
@@ -46,12 +42,14 @@ export default async function handler(req: any, res: any) {
 
       const nuevoPermiso = await prisma.permisos.create({
         data: {
+          id: require('crypto').randomUUID(),
           tipo,
           motivo: motivo || null,
           fechaInicio: new Date(fechaInicio),
           fechaFin: new Date(fechaFin),
           solicitanteId,
-          estado: 'PENDIENTE'
+          estado: 'PENDIENTE',
+          updatedAt: new Date()
         },
         include: {
           solicitante: {
@@ -71,7 +69,9 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'ID es obligatorio' });
       }
 
-      const dataToUpdate: any = {};
+      const dataToUpdate: any = {
+        updatedAt: new Date()
+      };
 
       if (estado) {
         dataToUpdate.estado = estado;

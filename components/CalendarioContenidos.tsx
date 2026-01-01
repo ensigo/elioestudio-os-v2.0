@@ -42,7 +42,7 @@ export const CalendarioContenidos: React.FC<CalendarioContenidosProps> = ({
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   // Cargar posts programados
   const fetchScheduledPosts = async () => {
@@ -280,6 +280,7 @@ export const CalendarioContenidos: React.FC<CalendarioContenidosProps> = ({
                         key={post.id || postIdx}
                         className="flex items-center gap-1 px-1 py-0.5 bg-white rounded border border-slate-200 hover:border-slate-300 cursor-pointer transition-colors"
                         title={post.content}
+                        onClick={() => setSelectedPost(post)}
                       >
                         <div className="flex -space-x-1">
                           {(post.networks || []).slice(0, 3).map((network, nIdx) => (
@@ -323,6 +324,74 @@ export const CalendarioContenidos: React.FC<CalendarioContenidosProps> = ({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal de detalle del post */}
+      {selectedPost && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedPost(null)}>
+          <div className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+              <h3 className="font-bold text-slate-800">Detalle de publicación</h3>
+              <button onClick={() => setSelectedPost(null)} className="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              {/* Fecha y hora */}
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <Calendar size={16} />
+                <span>
+                  {new Date(selectedPost.scheduledDate).toLocaleDateString('es-ES', { 
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' 
+                  })}
+                  {' a las '}
+                  {new Date(selectedPost.scheduledDate).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+
+              {/* Estado */}
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  selectedPost.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' :
+                  selectedPost.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
+                  'bg-slate-100 text-slate-700'
+                }`}>
+                  {selectedPost.status === 'PUBLISHED' ? '✓ Publicado' : 
+                   selectedPost.status === 'PENDING' ? '⏳ Programado' : selectedPost.status}
+                </span>
+              </div>
+
+              {/* Redes sociales */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-500">Redes:</span>
+                <div className="flex gap-1">
+                  {selectedPost.networks.map((network, idx) => (
+                    <div key={idx}>{renderNetworkIcon(network, 'md')}</div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Contenido */}
+              <div>
+                <p className="text-sm text-slate-500 mb-1">Contenido:</p>
+                <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 p-3 rounded-lg">
+                  {selectedPost.content || 'Sin contenido'}
+                </p>
+              </div>
+
+              {/* Media */}
+              {selectedPost.mediaUrl && (
+                <div>
+                  <p className="text-sm text-slate-500 mb-1">Media:</p>
+                  {selectedPost.mediaUrl.includes('.mp4') ? (
+                    <video src={selectedPost.mediaUrl} controls className="w-full rounded-lg max-h-48 object-cover" />
+                  ) : (
+                    <img src={selectedPost.mediaUrl} alt="Media" className="w-full rounded-lg max-h-48 object-cover" />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

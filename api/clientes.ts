@@ -176,7 +176,7 @@ async function handleMetricool(req: any, res: any) {
     if (action === 'brands') {
       const response = await fetch(`${METRICOOL_BASE_URL}/brands`, {
         headers: {
-          'Authorization': `Bearer ${METRICOOL_API_KEY}`,
+          'X-API-KEY': METRICOOL_API_KEY || '',
           'Content-Type': 'application/json'
         }
       });
@@ -195,7 +195,7 @@ async function handleMetricool(req: any, res: any) {
     if (action === 'scheduled' && brandId) {
       const response = await fetch(`${METRICOOL_BASE_URL}/brands/${brandId}/posts/scheduled`, {
         headers: {
-          'Authorization': `Bearer ${METRICOOL_API_KEY}`,
+          'X-API-KEY': METRICOOL_API_KEY || '',
           'Content-Type': 'application/json'
         }
       });
@@ -220,7 +220,7 @@ async function handleMetricool(req: any, res: any) {
         `${METRICOOL_BASE_URL}/brands/${brandId}/posts?startDate=${startDate.toISOString().split('T')[0]}&endDate=${now.toISOString().split('T')[0]}`,
         {
           headers: {
-            'Authorization': `Bearer ${METRICOOL_API_KEY}`,
+            'X-API-KEY': METRICOOL_API_KEY || '',
             'Content-Type': 'application/json'
           }
         }

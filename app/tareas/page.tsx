@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
@@ -41,6 +42,7 @@ interface ActiveTimer {
 }
 
 export const TasksPage = () => {
+  const { currentUser } = useAuth();
   const [tasks, setTasks] = useState<Tarea[]>([]);
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -115,7 +117,7 @@ export const TasksPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 'user-temp', // TODO: usar usuario real cuando haya auth
+          userId: currentUser?.id || '',
           tareaId
         })
       });

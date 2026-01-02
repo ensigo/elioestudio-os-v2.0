@@ -5,7 +5,7 @@ export default async function handler(req: any, res: any) {
   try {
     // GET - Obtener time entries (con filtros)
     if (req.method === 'GET') {
-      const { tareaId, userId, mes, año } = req.query;
+      const { tareaId, userId, mes, año, fechaInicio, fechaFin } = req.query;
       
       const where: any = {};
       
@@ -17,8 +17,15 @@ export default async function handler(req: any, res: any) {
         where.userId = userId;
       }
       
+      // Filtrar por rango de fechas (semana)
+      if (fechaInicio && fechaFin) {
+        where.startTime = {
+          gte: new Date(fechaInicio),
+          lte: new Date(fechaFin)
+        };
+      }
       // Filtrar por mes y año
-      if (mes && año) {
+      else if (mes && año) {
         const mesNum = parseInt(mes);
         const añoNum = parseInt(año);
         const inicioMes = new Date(añoNum, mesNum - 1, 1);

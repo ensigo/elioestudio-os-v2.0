@@ -69,6 +69,8 @@ export default function ReportesPage() {
   const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null);
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [loadingTimeEntries, setLoadingTimeEntries] = useState(false);
+  const [vistaParteTrabajo, setVistaParteTrabajo] = useState<'semana' | 'mes'>('semana');
+  const [semanaActual, setSemanaActual] = useState(new Date());
 
   const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const horasEsperadas = usuario?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
@@ -124,10 +126,18 @@ export default function ReportesPage() {
       if (!isAdmin) return;
       setLoadingTimeEntries(true);
       try {
-        const mes = mesActual.getMonth() + 1;
-        const año = mesActual.getFullYear();
+        let url = `/api/time-entries?`;
         
-        let url = `/api/time-entries?mes=${mes}&año=${año}`;
+        if (vistaParteTrabajo === 'semana') {
+          const inicio = getInicioSemana(semanaActual);
+          const fin = getFinSemana(semanaActual);
+          url += `fechaInicio=${inicio.toISOString()}&fechaFin=${fin.toISOString()}`;
+        } else {
+          const mes = mesActual.getMonth() + 1;
+          const año = mesActual.getFullYear();
+          url += `mes=${mes}&año=${año}`;
+        }
+        
         if (selectedUserId !== 'todos') {
           url += `&userId=${selectedUserId}`;
         }
@@ -145,7 +155,7 @@ export default function ReportesPage() {
     };
     
     fetchTimeEntries();
-  }, [mesActual, selectedUserId, isAdmin]);
+  }, [mesActual, semanaActual, selectedUserId, isAdmin, vistaParteTrabajo]);
 
 
   const calcularResumenSemanal = (jornadasData: Jornada[]) => {
@@ -193,6 +203,33 @@ export default function ReportesPage() {
     const nuevoMes = new Date(mesActual);
     nuevoMes.setMonth(nuevoMes.getMonth() + offset);
     setMesActual(nuevoMes);
+  };
+
+  const cambiarSemana = (offset: number) => {
+    const nuevaSemana = new Date(semanaActual);
+    nuevaSemana.setDate(nuevaSemana.getDate() + (offset * 7));
+    setSemanaActual(nuevaSemana);
+  };
+
+  const getInicioSemana = (fecha: Date) => {
+    const d = new Date(fecha);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  };
+
+  const getFinSemana = (fecha: Date) => {
+    const inicio = getInicioSemana(fecha);
+    const fin = new Date(inicio);
+    fin.setDate(fin.getDate() + 6);
+    fin.setHours(23, 59, 59, 999);
+    return fin;
+  };
+
+  const formatSemana = (fecha: Date) => {
+    const inicio = getInicioSemana(fecha);
+    const fin = getFinSemana(fecha);
+    return `${inicio.getDate()} ${inicio.toLocaleDateString('es-ES', { month: 'short' })} - ${fin.getDate()} ${fin.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}`;
   };
 
   const getEstadoBadge = (estado: string) => {
@@ -576,8 +613,50 @@ export default function ReportesPage() {
       {/* Parte de Trabajo - Solo Admin */}
       {isAdmin && (
         <Card title="Parte de Trabajo" className="overflow-hidden">
-          <div className="mb-4 text-sm text-slate-500">
-            Desglose de tiempo por tarea y cliente
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+            <div className="text-sm text-slate-500">
+              Desglose de tiempo por tarea y cliente
+            </div>
+            <div className="flex items-center gap-3">
+              {/* Toggle Semana/Mes */}
+              <div className="flex bg-slate-100 rounded-lg p-1">
+                <button
+                  onClick={() => setVistaParteTrabajo('semana')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    vistaParteTrabajo === 'semana' 
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Semana
+                </button>
+                <button
+                  onClick={() => setVistaParteTrabajo('mes')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    vistaParteTrabajo === 'mes' 
+                      ? 'bg-white text-slate-900 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Mes
+                </button>
+              </div>
+              
+              {/* Selector de Semana */}
+              {vistaParteTrabajo === 'semana' && (
+                <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
+                  <button onClick={() => cambiarSemana(-1)} className="p-2 hover:bg-white rounded-md">
+                    <ChevronLeft size={18} />
+                  </button>
+                  <span className="text-sm font-semibold min-w-[180px] text-center">
+                    {formatSemana(semanaActual)}
+                  </span>
+                  <button onClick={() => cambiarSemana(1)} className="p-2 hover:bg-white rounded-md">
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           
           {loadingTimeEntries ? (

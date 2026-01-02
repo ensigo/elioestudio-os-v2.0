@@ -37,6 +37,27 @@ interface ResumenSemanal {
   cumplimiento: number;
 }
 
+interface TimeEntry {
+  id: string;
+  userId: string;
+  tareaId: string | null;
+  startTime: string;
+  endTime: string | null;
+  description: string | null;
+  tarea: {
+    id: string;
+    title: string;
+    proyecto: {
+      id: string;
+      title: string;
+      cliente?: {
+        id: string;
+        name: string;
+      };
+    };
+  } | null;
+}
+
 export default function ReportesPage() {
   const { usuario } = useAuth();
   const [jornadas, setJornadas] = useState<Jornada[]>([]);
@@ -46,6 +67,8 @@ export default function ReportesPage() {
   const [mesActual, setMesActual] = useState(new Date());
   const [resumenSemanal, setResumenSemanal] = useState<ResumenSemanal | null>(null);
   const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null);
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
+  const [loadingTimeEntries, setLoadingTimeEntries] = useState(false);
 
   const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const horasEsperadas = usuario?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
@@ -94,6 +117,36 @@ export default function ReportesPage() {
       fetchJornadas();
     }
   }, [mesActual, selectedUserId, usuario, isAdmin]);
+
+  // Cargar time entries
+  useEffect(() => {
+    const fetchTimeEntries = async () => {
+      if (!isAdmin) return;
+      setLoadingTimeEntries(true);
+      try {
+        const mes = mesActual.getMonth() + 1;
+        const año = mesActual.getFullYear();
+        
+        let url = `/api/time-entries?mes=${mes}&año=${año}`;
+        if (selectedUserId !== 'todos') {
+          url += `&userId=${selectedUserId}`;
+        }
+        
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          setTimeEntries(data);
+        }
+      } catch (err) {
+        console.error('Error cargando time entries:', err);
+      } finally {
+        setLoadingTimeEntries(false);
+      }
+    };
+    
+    fetchTimeEntries();
+  }, [mesActual, selectedUserId, isAdmin]);
+
 
   const calcularResumenSemanal = (jornadasData: Jornada[]) => {
     const hoy = new Date();
@@ -519,6 +572,104 @@ export default function ReportesPage() {
           </table>
         </div>
       </Card>
+
+      {/* Parte de Trabajo - Solo Admin */}
+      {isAdmin && (
+        <Card title="Parte de Trabajo" className="overflow-hidden">
+          <div className="mb-4 text-sm text-slate-500">
+            Desglose de tiempo por tarea y cliente
+          </div>
+          
+          {loadingTimeEntries ? (
+            <div className="text-center py-8 text-slate-400">Cargando...</div>
+          ) : timeEntries.length === 0 ? (
+            <div className="text-center py-8 text-slate-400">
+              No hay registros de tiempo para este periodo
+            </div>
+          ) : (
+            <>
+              {/* Resumen por Cliente */}
+              <div className="mb-6">
+                <h4 className="text-sm font-bold text-slate-700 mb-3">Tiempo por Cliente</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {Object.entries(
+                    timeEntries.reduce((acc: Record<string, number>, entry) => {
+                      const clienteName = entry.tarea?.proyecto?.cliente?.name || 'Sin cliente';
+                      const minutos = entry.endTime 
+                        ? Math.round((new Date(entry.endTime).getTime() - new Date(entry.startTime).getTime()) / 60000)
+                        : 0;
+                      acc[clienteName] = (acc[clienteName] || 0) + minutos;
+                      return acc;
+                    }, {})
+                  ).sort((a, b) => b[1] - a[1]).map(([cliente, minutos]) => (
+                    <div key={cliente} className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-xs text-blue-600 font-medium truncate">{cliente}</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {Math.floor(minutos / 60)}h {minutos % 60}m
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabla de Registros */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-bold text-slate-600">Fecha</th>
+                      <th className="px-4 py-3 text-left font-bold text-slate-600">Tarea</th>
+                      <th className="px-4 py-3 text-left font-bold text-slate-600">Cliente</th>
+                      <th className="px-4 py-3 text-center font-bold text-slate-600">Inicio</th>
+                      <th className="px-4 py-3 text-center font-bold text-slate-600">Fin</th>
+                      <th className="px-4 py-3 text-center font-bold text-slate-600">Duración</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {timeEntries.map(entry => {
+                      const inicio = new Date(entry.startTime);
+                      const fin = entry.endTime ? new Date(entry.endTime) : null;
+                      const minutos = fin ? Math.round((fin.getTime() - inicio.getTime()) / 60000) : 0;
+                      
+                      return (
+                        <tr key={entry.id} className="hover:bg-slate-50">
+                          <td className="px-4 py-3 font-medium">
+                            {inicio.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="font-medium text-slate-900">
+                              {entry.tarea?.title || 'Sin tarea'}
+                            </span>
+                            <span className="block text-xs text-slate-500">
+                              {entry.tarea?.proyecto?.title || ''}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">
+                              {entry.tarea?.proyecto?.cliente?.name || 'Sin cliente'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-mono">
+                            {inicio.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          </td>
+                          <td className="px-4 py-3 text-center font-mono">
+                            {fin ? fin.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`font-bold ${minutos >= 60 ? 'text-green-600' : 'text-slate-600'}`}>
+                              {Math.floor(minutos / 60)}h {minutos % 60}m
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </Card>
+      )}
 
       {/* Resumen Mensual */}
       {jornadas.length > 0 && (

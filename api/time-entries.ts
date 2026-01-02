@@ -1,22 +1,51 @@
 import { PrismaClient } from '@prisma/client';
-
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {
   try {
-    // GET - Obtener time entries (con filtro opcional por tarea)
+    // GET - Obtener time entries (con filtros)
     if (req.method === 'GET') {
-      const { tareaId } = req.query;
+      const { tareaId, userId, mes, año } = req.query;
       
-      const where = tareaId ? { tareaId } : {};
+      const where: any = {};
+      
+      if (tareaId) {
+        where.tareaId = tareaId;
+      }
+      
+      if (userId) {
+        where.userId = userId;
+      }
+      
+      // Filtrar por mes y año
+      if (mes && año) {
+        const mesNum = parseInt(mes);
+        const añoNum = parseInt(año);
+        const inicioMes = new Date(añoNum, mesNum - 1, 1);
+        const finMes = new Date(añoNum, mesNum, 0, 23, 59, 59);
+        
+        where.startTime = {
+          gte: inicioMes,
+          lte: finMes
+        };
+      }
       
       const entries = await prisma.timeEntry.findMany({
         where,
         include: {
-          tarea: true
+          tarea: {
+            include: {
+              proyecto: {
+                include: {
+                  cliente: true
+                }
+              }
+            }
+          }
         },
         orderBy: { startTime: 'desc' }
       });
+      
       return res.status(200).json(entries);
     }
 
@@ -36,7 +65,15 @@ export default async function handler(req: any, res: any) {
           description: description || null
         },
         include: {
-          tarea: true
+          tarea: {
+            include: {
+              proyecto: {
+                include: {
+                  cliente: true
+                }
+              }
+            }
+          }
         }
       });
 
@@ -58,7 +95,15 @@ export default async function handler(req: any, res: any) {
           description
         },
         include: {
-          tarea: true
+          tarea: {
+            include: {
+              proyecto: {
+                include: {
+                  cliente: true
+                }
+              }
+            }
+          }
         }
       });
 

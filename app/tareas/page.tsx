@@ -42,7 +42,7 @@ interface ActiveTimer {
 }
 
 export const TasksPage = () => {
-  const { currentUser } = useAuth();
+  const { usuario } = useAuth();
   const [tasks, setTasks] = useState<Tarea[]>([]);
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -117,7 +117,7 @@ export const TasksPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: currentUser?.id || '',
+          userId: usuario?.id || '',
           tareaId
         })
       });

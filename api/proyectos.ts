@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
 
     // PUT - Actualizar proyecto
     if (req.method === 'PUT') {
-      const { id, title, clienteId, responsibleId: responsibleId || null, status, budget, deadline, isArchived } = req.body;
+      const { id, title, clienteId, responsibleId, status, budget, deadline, isArchived } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'ID es obligatorio' });

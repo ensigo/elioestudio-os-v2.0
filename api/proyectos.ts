@@ -18,7 +18,7 @@ export default async function handler(req: any, res: any) {
 
     // POST - Crear un nuevo proyecto
     if (req.method === 'POST') {
-      const { title, clienteId, responsibleId, status, budget, deadline } = req.body;
+      const { title, clienteId, responsibleId: responsibleId || null, status, budget, deadline } = req.body;
 
       if (!title || !clienteId) {
         return res.status(400).json({ error: 'Título y cliente son obligatorios' });
@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
           clienteId,
           responsibleId: responsibleId || null,
           status: status || 'ACTIVE',
-          budget: budget ? parseFloat(budget) : null,
+          budget: budget && budget !== "" ? parseFloat(budget) : null,
           deadline: deadline ? new Date(deadline) : null
         },
         include: {
@@ -44,7 +44,7 @@ export default async function handler(req: any, res: any) {
 
     // PUT - Actualizar proyecto
     if (req.method === 'PUT') {
-      const { id, title, clienteId, responsibleId, status, budget, deadline, isArchived } = req.body;
+      const { id, title, clienteId, responsibleId: responsibleId || null, status, budget, deadline, isArchived } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'ID es obligatorio' });
@@ -55,9 +55,9 @@ export default async function handler(req: any, res: any) {
         data: {
           title,
           clienteId,
-          responsibleId,
+          responsibleId: responsibleId || null,
           status,
-          budget: budget ? parseFloat(budget) : null,
+          budget: budget && budget !== "" ? parseFloat(budget) : null,
           deadline: deadline ? new Date(deadline) : null,
           isArchived
         },

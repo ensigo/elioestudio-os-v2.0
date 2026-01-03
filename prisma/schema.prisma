@@ -29,6 +29,8 @@ model Cliente {
   hostings          Hosting[]
   dominios          Dominio[]
   contratos         Contrato[]
+  campanasSEM       CampanaSEM[]
+  campanasMailing   CampanaMailing[]
   @@map("clientes")
 }
 
@@ -127,6 +129,7 @@ model Proyecto {
   cliente       Cliente   @relation(fields: [clienteId], references: [id])
   responsable   Usuario?  @relation(fields: [responsibleId], references: [id])
   tareas        Tarea[]
+  campanasSEM   CampanaSEM[]
 
   @@map("proyectos")
 }
@@ -449,4 +452,73 @@ model HistorialContrato {
   contrato    Contrato @relation(fields: [contratoId], references: [id])
   
   @@map("historial_contratos")
+}
+
+// ============ SEM & SOCIAL ADS ============
+model CampanaSEM {
+  id              String   @id @default(cuid())
+  clienteId       String
+  proyectoId      String?
+  nombre          String
+  plataforma      String   // GOOGLE, META, TIKTOK, LINKEDIN
+  estado          String   @default("PLANIFICADA") // ACTIVA, PAUSADA, FINALIZADA, PLANIFICADA
+  fechaInicio     DateTime
+  fechaFin        DateTime?
+  presupuesto     Float
+  objetivo        String?  // CONVERSIONES, TRAFICO, RECONOCIMIENTO, LEADS
+  notas           String?
+  urlPlataforma   String?  // Link al dashboard de la plataforma
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  cliente         Cliente  @relation(fields: [clienteId], references: [id])
+  proyecto        Proyecto? @relation(fields: [proyectoId], references: [id])
+  reportesDiarios ReporteSEM[]
+  
+  @@map("campanas_sem")
+}
+
+model ReporteSEM {
+  id            String   @id @default(cuid())
+  campanaId     String
+  fecha         DateTime
+  impresiones   Int      @default(0)
+  clics         Int      @default(0)
+  ctr           Float    @default(0)
+  conversiones  Int      @default(0)
+  cpa           Float    @default(0)
+  gastoDia      Float    @default(0)
+  roas          Float    @default(0)
+  notas         String?  // Cambios realizados ese día
+  createdAt     DateTime @default(now())
+  
+  campana       CampanaSEM @relation(fields: [campanaId], references: [id])
+  
+  @@unique([campanaId, fecha])
+  @@map("reportes_sem")
+}
+
+// ============ EMAIL MARKETING ============
+model CampanaMailing {
+  id              String   @id @default(cuid())
+  clienteId       String
+  nombreInterno   String
+  asunto          String?
+  plataforma      String   // MAILCHIMP, ACTIVECAMPAIGN, KLAVIYO, BREVO
+  estado          String   @default("BORRADOR") // ENVIADA, PROGRAMADA, BORRADOR
+  fechaEnvio      DateTime?
+  tamanoAudiencia Int      @default(0)
+  entregados      Int      @default(0)
+  aperturas       Int      @default(0)
+  clics           Int      @default(0)
+  rebotes         Int      @default(0)
+  bajas           Int      @default(0)
+  spam            Int      @default(0)
+  notas           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  cliente         Cliente  @relation(fields: [clienteId], references: [id])
+  
+  @@map("campanas_mailing")
 }

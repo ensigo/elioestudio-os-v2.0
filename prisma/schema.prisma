@@ -28,6 +28,7 @@ model Cliente {
   usuariosAsignados ClienteUsuario[]
   hostings          Hosting[]
   dominios          Dominio[]
+  contratos         Contrato[]
   @@map("clientes")
 }
 
@@ -389,4 +390,58 @@ model PlanHosting {
   updatedAt       DateTime @updatedAt
 
   @@map("planes_hosting")
+}
+
+model ServicioRecurrente {
+  id          String   @id @default(cuid())
+  codigo      String   @unique
+  nombre      String
+  descripcion String?
+  categoria   String   // SEO, SOCIAL_MEDIA, MANTENIMIENTO, DISENO, PUBLICIDAD, OTROS
+  precioBase  Float?   // Precio orientativo
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  contratos   Contrato[]
+  
+  @@map("servicios_recurrentes")
+}
+
+model Contrato {
+  id                String    @id @default(cuid())
+  clienteId         String
+  servicioId        String
+  nombre            String?   // Nombre personalizado del contrato
+  descripcion       String?
+  importeMensual    Float
+  periodicidad      String    @default("MENSUAL") // MENSUAL, TRIMESTRAL, SEMESTRAL, ANUAL
+  fechaInicio       DateTime
+  fechaFin          DateTime?
+  fechaRenovacion   DateTime?
+  autoRenovar       Boolean   @default(true)
+  estado            String    @default("ACTIVO") // ACTIVO, PAUSADO, CANCELADO, FINALIZADO
+  notas             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  cliente           Cliente   @relation(fields: [clienteId], references: [id])
+  servicio          ServicioRecurrente @relation(fields: [servicioId], references: [id])
+  historial         HistorialContrato[]
+  
+  @@map("contratos")
+}
+
+model HistorialContrato {
+  id          String   @id @default(cuid())
+  contratoId  String
+  tipo        String   // CREACION, RENOVACION, CAMBIO_PRECIO, PAUSA, CANCELACION, REACTIVACION
+  descripcion String?
+  valorAnterior Float?
+  valorNuevo    Float?
+  fecha       DateTime @default(now())
+  
+  contrato    Contrato @relation(fields: [contratoId], references: [id])
+  
+  @@map("historial_contratos")
 }

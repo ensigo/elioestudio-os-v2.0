@@ -23,6 +23,16 @@ export default async function handler(req: any, res: any) {
       return handleMetricool(req, res);
     }
 
+    // SERVICIOS RECURRENTES: /api/clientes?resource=servicios
+    if (resource === 'servicios') {
+      return handleServicios(req, res);
+    }
+    
+    // CONTRATOS: /api/clientes?resource=contratos
+    if (resource === 'contratos') {
+      return handleContratos(req, res);
+    }
+
     // CLIENTES (default)
     return handleClientes(req, res);
   } catch (error: any) {
@@ -227,4 +237,228 @@ async function handleMetricool(req: any, res: any) {
     console.error('Error Metricool:', error);
     return res.status(500).json({ error: 'Error de conexión con Metricool', details: error.message });
   }
+}
+
+// ============ SERVICIOS RECURRENTES ============
+async function handleServicios(req: any, res: any) {
+  if (req.method === 'GET') {
+    const servicios = await prisma.servicioRecurrente.findMany({
+      where: { activo: true },
+      orderBy: { nombre: 'asc' }
+    });
+    return res.status(200).json(servicios);
+  }
+
+  if (req.method === 'POST') {
+    const data = req.body;
+    const servicio = await prisma.servicioRecurrente.create({
+      data: {
+        codigo: data.codigo,
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        categoria: data.categoria,
+        precioBase: data.precioBase ? parseFloat(data.precioBase) : null,
+        activo: data.activo ?? true
+      }
+    });
+    return res.status(201).json(servicio);
+  }
+
+  if (req.method === 'PUT') {
+    const { id, ...data } = req.body;
+    if (data.precioBase) data.precioBase = parseFloat(data.precioBase);
+    const servicio = await prisma.servicioRecurrente.update({ where: { id }, data });
+    return res.status(200).json(servicio);
+  }
+
+  if (req.method === 'DELETE') {
+    const { id } = req.body;
+    await prisma.servicioRecurrente.update({ where: { id }, data: { activo: false } });
+    return res.status(200).json({ message: 'Servicio desactivado' });
+  }
+
+  return res.status(405).json({ error: 'Método no permitido' });
+}
+
+// ============ CONTRATOS ============
+async function handleContratos(req: any, res: any) {
+  if (req.method === 'GET') {
+    const { clienteId, estado, dashboard } = req.query;
+
+    // Dashboard de contratos
+    if (dashboard === 'true') {
+      const contratos = await prisma.contrato.findMany({
+        where: { estado: { in: ['ACTIVO', 'PAUSADO'] } },
+        include: {
+          cliente: { select: { id: true, name: true } },
+          servicio: { select: { id: true, nombre: true, categoria: true } }
+        }
+      });
+
+      const hoy = new Date();
+      const en30Dias = new Date(hoy);
+      en30Dias.setDate(hoy.getDate() + 30);
+
+      // Calcular MRR (Monthly Recurring Revenue)
+      const mrrTotal = contratos.reduce((sum, c) => {
+        if (c.estado !== 'ACTIVO') return sum;
+        switch (c.periodicidad) {
+          case 'MENSUAL': return sum + c.importeMensual;
+          case 'TRIMESTRAL': return sum + (c.importeMensual / 3);
+          case 'SEMESTRAL': return sum + (c.importeMensual / 6);
+          case 'ANUAL': return sum + (c.importeMensual / 12);
+          default: return sum + c.importeMensual;
+        }
+      }, 0);
+
+      // Contratos próximos a vencer
+      const proximosVencer = contratos.filter(c => {
+        if (!c.fechaRenovacion && !c.fechaFin) return false;
+        const fechaLimite = c.fechaRenovacion || c.fechaFin;
+        return fechaLimite && new Date(fechaLimite) <= en30Dias && new Date(fechaLimite) >= hoy;
+      });
+
+      // Agrupar por categoría
+      const porCategoria = contratos.reduce((acc: any, c) => {
+        if (c.estado !== 'ACTIVO') return acc;
+        const cat = c.servicio.categoria;
+        if (!acc[cat]) acc[cat] = { count: 0, mrr: 0 };
+        acc[cat].count++;
+        switch (c.periodicidad) {
+          case 'MENSUAL': acc[cat].mrr += c.importeMensual; break;
+          case 'TRIMESTRAL': acc[cat].mrr += c.importeMensual / 3; break;
+          case 'SEMESTRAL': acc[cat].mrr += c.importeMensual / 6; break;
+          case 'ANUAL': acc[cat].mrr += c.importeMensual / 12; break;
+          default: acc[cat].mrr += c.importeMensual;
+        }
+        return acc;
+      }, {});
+
+      return res.status(200).json({
+        totalContratos: contratos.filter(c => c.estado === 'ACTIVO').length,
+        contratosPausados: contratos.filter(c => c.estado === 'PAUSADO').length,
+        mrrTotal: Math.round(mrrTotal * 100) / 100,
+        arrTotal: Math.round(mrrTotal * 12 * 100) / 100,
+        proximosVencer,
+        porCategoria
+      });
+    }
+
+    // Lista de contratos
+    const where: any = {};
+    if (clienteId) where.clienteId = clienteId;
+    if (estado) where.estado = estado;
+
+    const contratos = await prisma.contrato.findMany({
+      where,
+      include: {
+        cliente: { select: { id: true, name: true } },
+        servicio: { select: { id: true, nombre: true, categoria: true } }
+      },
+      orderBy: { fechaInicio: 'desc' }
+    });
+    return res.status(200).json(contratos);
+  }
+
+  if (req.method === 'POST') {
+    const data = req.body;
+    const contrato = await prisma.contrato.create({
+      data: {
+        clienteId: data.clienteId,
+        servicioId: data.servicioId,
+        nombre: data.nombre,
+        descripcion: data.descripcion,
+        importeMensual: parseFloat(data.importeMensual),
+        periodicidad: data.periodicidad || 'MENSUAL',
+        fechaInicio: new Date(data.fechaInicio),
+        fechaFin: data.fechaFin ? new Date(data.fechaFin) : null,
+        fechaRenovacion: data.fechaRenovacion ? new Date(data.fechaRenovacion) : null,
+        autoRenovar: data.autoRenovar ?? true,
+        estado: data.estado || 'ACTIVO',
+        notas: data.notas
+      },
+      include: {
+        cliente: { select: { id: true, name: true } },
+        servicio: { select: { id: true, nombre: true, categoria: true } }
+      }
+    });
+
+    // Registrar en historial
+    await prisma.historialContrato.create({
+      data: {
+        contratoId: contrato.id,
+        tipo: 'CREACION',
+        descripcion: `Contrato creado: ${contrato.servicio.nombre} para ${contrato.cliente.name}`,
+        valorNuevo: contrato.importeMensual
+      }
+    });
+
+    return res.status(201).json(contrato);
+  }
+
+  if (req.method === 'PUT') {
+    const { id, ...data } = req.body;
+    
+    // Obtener contrato actual para historial
+    const contratoActual = await prisma.contrato.findUnique({ where: { id } });
+    
+    if (data.importeMensual) data.importeMensual = parseFloat(data.importeMensual);
+    if (data.fechaInicio) data.fechaInicio = new Date(data.fechaInicio);
+    if (data.fechaFin) data.fechaFin = new Date(data.fechaFin);
+    if (data.fechaRenovacion) data.fechaRenovacion = new Date(data.fechaRenovacion);
+
+    const contrato = await prisma.contrato.update({
+      where: { id },
+      data,
+      include: {
+        cliente: { select: { id: true, name: true } },
+        servicio: { select: { id: true, nombre: true, categoria: true } }
+      }
+    });
+
+    // Registrar cambios en historial
+    if (contratoActual && data.importeMensual && contratoActual.importeMensual !== data.importeMensual) {
+      await prisma.historialContrato.create({
+        data: {
+          contratoId: id,
+          tipo: 'CAMBIO_PRECIO',
+          descripcion: 'Cambio de precio',
+          valorAnterior: contratoActual.importeMensual,
+          valorNuevo: data.importeMensual
+        }
+      });
+    }
+
+    if (contratoActual && data.estado && contratoActual.estado !== data.estado) {
+      await prisma.historialContrato.create({
+        data: {
+          contratoId: id,
+          tipo: data.estado === 'PAUSADO' ? 'PAUSA' : data.estado === 'CANCELADO' ? 'CANCELACION' : 'REACTIVACION',
+          descripcion: `Estado cambiado a ${data.estado}`
+        }
+      });
+    }
+
+    return res.status(200).json(contrato);
+  }
+
+  if (req.method === 'DELETE') {
+    const { id } = req.body;
+    await prisma.contrato.update({
+      where: { id },
+      data: { estado: 'CANCELADO' }
+    });
+    
+    await prisma.historialContrato.create({
+      data: {
+        contratoId: id,
+        tipo: 'CANCELACION',
+        descripcion: 'Contrato cancelado'
+      }
+    });
+
+    return res.status(200).json({ message: 'Contrato cancelado' });
+  }
+
+  return res.status(405).json({ error: 'Método no permitido' });
 }

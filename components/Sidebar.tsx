@@ -44,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
     { id: 'mailing', label: 'E-mail Marketing', icon: Mail },
     { id: 'hosting', label: 'Hosting y Dominios', icon: Server },
     { id: 'analisis', label: 'Análisis', icon: BarChart3 },
+    { id: 'contratos', label: 'Contratos', icon: FileText },
     
     // Items inferiores
     { id: 'configuracion', label: 'Configuración', icon: Settings, roles: ['ADMIN', 'SUPERADMIN'], isBottom: true },

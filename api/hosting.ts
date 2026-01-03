@@ -318,14 +318,16 @@ export default async function handler(req: any, res: any) {
         return res.status(201).json(plan);
       }
       if (req.method === 'PUT') {
-        const { id, ...data } = req.body;
-        if (data.emails) data.emails = parseInt(data.emails);
-        if (data.precioCoste) data.precioCoste = parseFloat(data.precioCoste);
-        if (data.precioSugerido) data.precioSugerido = parseFloat(data.precioSugerido);
-        if (data.orden) data.orden = parseInt(data.orden);
-        const plan = await prisma.planHosting.update({ where: { id }, data });
-        return res.status(200).json(plan);
-      }
+  const { id, ...data } = req.body;
+  if (data.emails !== undefined) data.emails = data.emails ? parseInt(data.emails) : null;
+  if (data.precioCoste !== undefined) data.precioCoste = parseFloat(data.precioCoste);
+  if (data.precioSugerido !== undefined) data.precioSugerido = data.precioSugerido ? parseFloat(data.precioSugerido) : null;
+  if (data.orden !== undefined) data.orden = parseInt(data.orden);
+  if (data.incluyeDominio !== undefined) data.incluyeDominio = Boolean(data.incluyeDominio);
+  if (data.activo !== undefined) data.activo = Boolean(data.activo);
+  const plan = await prisma.planHosting.update({ where: { id }, data });
+  return res.status(200).json(plan);
+}
       if (req.method === 'DELETE') {
         const { id } = req.body;
         await prisma.planHosting.delete({ where: { id } });

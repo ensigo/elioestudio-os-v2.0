@@ -54,7 +54,11 @@ export default function SoportePage() {
     setLoading(true);
     try {
       const res = await fetch('/api/dashboard?tipo=documentos');
-      if (res.ok) setDocumentos(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setDocumentos(Array.isArray(data) ? data : []);
+      }
+      
     } catch (error) {
       console.error('Error:', error);
     } finally {

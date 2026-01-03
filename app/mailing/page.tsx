@@ -64,8 +64,15 @@ export default function MailingPage() {
         fetch('/api/dashboard?tipo=mailing'),
         fetch('/api/clientes')
       ]);
-      if (campRes.ok) setCampanas(await campRes.json());
-      if (cliRes.ok) setClientes(await cliRes.json());
+      if (campRes.ok) {
+        const data = await campRes.json();
+        setCampanas(Array.isArray(data) ? data : []);
+      }
+      if (cliRes.ok) {
+        const data = await cliRes.json();
+        setClientes(Array.isArray(data) ? data : []);
+      }
+      
     } catch (error) {
       console.error('Error:', error);
     } finally {

@@ -88,9 +88,19 @@ export default function SEMPage() {
         fetch('/api/clientes'),
         fetch('/api/proyectos')
       ]);
-      if (campRes.ok) setCampanas(await campRes.json());
-      if (cliRes.ok) setClientes(await cliRes.json());
-      if (proyRes.ok) setProyectos(await proyRes.json());
+      if (campRes.ok) {
+        const data = await campRes.json();
+        setCampanas(Array.isArray(data) ? data : []);
+      }
+      if (cliRes.ok) {
+        const data = await cliRes.json();
+        setClientes(Array.isArray(data) ? data : []);
+      }
+      if (proyRes.ok) {
+        const data = await proyRes.json();
+        setProyectos(Array.isArray(data) ? data : []);
+      }
+      
     } catch (error) {
       console.error('Error:', error);
     } finally {

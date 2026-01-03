@@ -393,17 +393,20 @@ model PlanHosting {
 }
 
 model ServicioRecurrente {
-  id          String   @id @default(cuid())
-  codigo      String   @unique
-  nombre      String
-  descripcion String?
-  categoria   String   // SEO, SOCIAL_MEDIA, MANTENIMIENTO, DISENO, PUBLICIDAD, OTROS
-  precioBase  Float?   // Precio orientativo
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  codigo             String   @unique
+  nombre             String
+  descripcion        String?
+  categoria          String
+  tipo               String   @default("INDIVIDUAL") // PACK, INDIVIDUAL
+  serviciosIncluidos String?  // Descripción de servicios incluidos en packs
+  precioBase         Float?
+  cuotaActivacion    Float?   // Cuota de activación para packs
+  activo             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
   
-  contratos   Contrato[]
+  contratos          Contrato[]
   
   @@map("servicios_recurrentes")
 }
@@ -424,6 +427,8 @@ model Contrato {
   notas             String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+  cuotaActivacion    Float?
+  activacionPagada   Boolean   @default(false)
   
   cliente           Cliente   @relation(fields: [clienteId], references: [id])
   servicio          ServicioRecurrente @relation(fields: [servicioId], references: [id])

@@ -244,7 +244,7 @@ async function handleServicios(req: any, res: any) {
   if (req.method === 'GET') {
     const servicios = await prisma.servicioRecurrente.findMany({
       where: { activo: true },
-      orderBy: { nombre: 'asc' }
+      orderBy: [{ tipo: 'desc' }, { nombre: 'asc' }]
     });
     return res.status(200).json(servicios);
   }
@@ -257,7 +257,10 @@ async function handleServicios(req: any, res: any) {
         nombre: data.nombre,
         descripcion: data.descripcion,
         categoria: data.categoria,
+        tipo: data.tipo || 'INDIVIDUAL',
+        serviciosIncluidos: data.serviciosIncluidos || null,
         precioBase: data.precioBase ? parseFloat(data.precioBase) : null,
+        cuotaActivacion: data.cuotaActivacion ? parseFloat(data.cuotaActivacion) : null,
         activo: data.activo ?? true
       }
     });
@@ -266,7 +269,8 @@ async function handleServicios(req: any, res: any) {
 
   if (req.method === 'PUT') {
     const { id, ...data } = req.body;
-    if (data.precioBase) data.precioBase = parseFloat(data.precioBase);
+    if (data.precioBase !== undefined) data.precioBase = data.precioBase ? parseFloat(data.precioBase) : null;
+    if (data.cuotaActivacion !== undefined) data.cuotaActivacion = data.cuotaActivacion ? parseFloat(data.cuotaActivacion) : null;
     const servicio = await prisma.servicioRecurrente.update({ where: { id }, data });
     return res.status(200).json(servicio);
   }

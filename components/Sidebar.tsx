@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Megaphone,
   Mail,
-  Server
+  Server,
+  BarChart3
 } from 'lucide-react';
 import { NavItem, UserRole } from '../types';
 
@@ -42,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
     { id: 'sem', label: 'SEM Ads', icon: Megaphone },
     { id: 'mailing', label: 'E-mail Marketing', icon: Mail },
     { id: 'hosting', label: 'Hosting y Dominios', icon: Server },
+    { id: 'analisis', label: 'Análisis', icon: BarChart3 },
     
     // Items inferiores
     { id: 'configuracion', label: 'Configuración', icon: Settings, roles: ['ADMIN', 'SUPERADMIN'], isBottom: true },

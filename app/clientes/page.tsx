@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getResponsibleName } from '../../lib/mock-data';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
@@ -19,6 +18,37 @@ export const ClientsPage = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Obtener nombre del responsable
+  const getResponsibleName = (responsibleId: string | null) => {
+    if (!responsibleId) return 'Sin asignar';
+    const usuario = usuarios.find(u => u.id === responsibleId);
+    return usuario ? usuario.name : 'Sin asignar';
+  };
+
+  // Formatear fecha de última actividad
+  const formatLastActivity = (dateStr: string) => {
+    if (!dateStr || dateStr === 'Sin actividad') return 'Sin actividad';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return dateStr;
+      
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      
+      if (diffMins < 1) return 'Ahora mismo';
+      if (diffMins < 60) return `Hace ${diffMins} min`;
+      if (diffHours < 24) return `Hace ${diffHours}h`;
+      if (diffDays < 7) return `Hace ${diffDays} días`;
+      
+      return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return dateStr;
+    }
+  };
 
   // Simular usuario actual (en producción vendría del contexto de auth)
   const currentUser = { id: '1', role: 'ADMIN', name: 'Admin' };
@@ -326,7 +356,7 @@ export const ClientsPage = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 text-gray-500">
-                    {client.lastActivity}
+                    {formatLastActivity(client.lastActivity)}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="relative" ref={openMenuId === client.id ? menuRef : null}>

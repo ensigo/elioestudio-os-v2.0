@@ -96,6 +96,7 @@ model Usuario {
 
   eventos                                   eventos[]
   jornadas                                  jornadas[]
+  timeEntries         TimeEntry[]
   permisos_aprobador                        permisos[] @relation("permisos_aprobadorIdTousuarios")
   permisos_solicitante                      permisos[] @relation("permisos_solicitanteIdTousuarios")
   proyectos                                 Proyecto[]
@@ -157,8 +158,8 @@ model TimeEntry {
   description String?
   createdAt   DateTime  @default(now())
   
+  usuario     Usuario   @relation(fields: [userId], references: [id])
   tarea       Tarea?    @relation(fields: [tareaId], references: [id])
-
   @@map("time_entries")
 }
 

@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
-
 export default async function handler(req: any, res: any) {
   try {
     // GET - Obtener time entries (con filtros)
@@ -40,6 +39,12 @@ export default async function handler(req: any, res: any) {
       const entries = await prisma.timeEntry.findMany({
         where,
         include: {
+          usuario: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           tarea: {
             include: {
               proyecto: {
@@ -55,15 +60,12 @@ export default async function handler(req: any, res: any) {
       
       return res.status(200).json(entries);
     }
-
     // POST - Iniciar un nuevo timer
     if (req.method === 'POST') {
       const { userId, tareaId, description } = req.body;
-
       if (!userId) {
         return res.status(400).json({ error: 'userId es obligatorio' });
       }
-
       const newEntry = await prisma.timeEntry.create({
         data: {
           userId,
@@ -72,6 +74,12 @@ export default async function handler(req: any, res: any) {
           description: description || null
         },
         include: {
+          usuario: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           tarea: {
             include: {
               proyecto: {
@@ -83,18 +91,14 @@ export default async function handler(req: any, res: any) {
           }
         }
       });
-
       return res.status(201).json(newEntry);
     }
-
     // PUT - Detener timer (actualizar endTime)
     if (req.method === 'PUT') {
       const { id, endTime, description } = req.body;
-
       if (!id) {
         return res.status(400).json({ error: 'ID es obligatorio' });
       }
-
       const updatedEntry = await prisma.timeEntry.update({
         where: { id },
         data: {
@@ -102,6 +106,12 @@ export default async function handler(req: any, res: any) {
           description
         },
         include: {
+          usuario: {
+            select: {
+              id: true,
+              name: true
+            }
+          },
           tarea: {
             include: {
               proyecto: {
@@ -113,27 +123,20 @@ export default async function handler(req: any, res: any) {
           }
         }
       });
-
       return res.status(200).json(updatedEntry);
     }
-
     // DELETE - Eliminar time entry
     if (req.method === 'DELETE') {
       const { id } = req.body;
-
       if (!id) {
         return res.status(400).json({ error: 'ID es obligatorio' });
       }
-
       await prisma.timeEntry.delete({
         where: { id }
       });
-
       return res.status(200).json({ message: 'Time entry eliminado' });
     }
-
     return res.status(405).json({ error: 'Método no permitido' });
-
   } catch (error: any) {
     console.error('Error en API time-entries:', error);
     return res.status(500).json({ error: 'Error en la API', details: error.message });

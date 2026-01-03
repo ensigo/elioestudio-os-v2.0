@@ -8,10 +8,8 @@ import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
 import { useAuth } from '../../context/AuthContext';
 import { exportToPDF, exportToExcel } from '../../utils/exportUtils';
-
 const HORAS_COMPLETA = 37.5;
 const HORAS_MEDIA = 20;
-
 interface Jornada {
   id: string;
   fecha: string;
@@ -29,14 +27,12 @@ interface Jornada {
     tipoContrato?: string;
   };
 }
-
 interface ResumenSemanal {
   totalMinutos: number;
   diasTrabajados: number;
   promedioMinutosDia: number;
   cumplimiento: number;
 }
-
 interface TimeEntry {
   id: string;
   userId: string;
@@ -44,6 +40,10 @@ interface TimeEntry {
   startTime: string;
   endTime: string | null;
   description: string | null;
+  usuario: {
+    id: string;
+    name: string;
+  };
   tarea: {
     id: string;
     title: string;
@@ -57,7 +57,6 @@ interface TimeEntry {
     };
   } | null;
 }
-
 export default function ReportesPage() {
   const { usuario } = useAuth();
   const [jornadas, setJornadas] = useState<Jornada[]>([]);
@@ -71,11 +70,9 @@ export default function ReportesPage() {
   const [loadingTimeEntries, setLoadingTimeEntries] = useState(false);
   const [vistaParteTrabajo, setVistaParteTrabajo] = useState<'semana' | 'mes'>('semana');
   const [semanaActual, setSemanaActual] = useState(new Date());
-
   const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const horasEsperadas = usuario?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
   const minutosEsperados = horasEsperadas * 60;
-
   // Cargar usuarios (solo admin)
   useEffect(() => {
     if (isAdmin) {
@@ -85,7 +82,6 @@ export default function ReportesPage() {
         .catch(err => console.error(err));
     }
   }, [isAdmin]);
-
   // Cargar jornadas
   useEffect(() => {
     const fetchJornadas = async () => {
@@ -101,7 +97,6 @@ export default function ReportesPage() {
         } else if (isAdmin && selectedUserId !== 'todos') {
           url += `&usuarioId=${selectedUserId}`;
         }
-
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
@@ -114,12 +109,10 @@ export default function ReportesPage() {
         setIsLoading(false);
       }
     };
-
     if (usuario?.id) {
       fetchJornadas();
     }
   }, [mesActual, selectedUserId, usuario, isAdmin]);
-
   // Cargar time entries
   useEffect(() => {
     const fetchTimeEntries = async () => {
@@ -157,23 +150,19 @@ export default function ReportesPage() {
     fetchTimeEntries();
   }, [mesActual, semanaActual, selectedUserId, isAdmin, vistaParteTrabajo]);
 
-
   const calcularResumenSemanal = (jornadasData: Jornada[]) => {
     const hoy = new Date();
     const inicioSemana = new Date(hoy);
     inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1);
     inicioSemana.setHours(0, 0, 0, 0);
-
     const jornadasSemana = jornadasData.filter(j => {
       const fecha = new Date(j.fecha);
       return fecha >= inicioSemana && j.estado === 'FINALIZADA';
     });
-
     const totalMinutos = jornadasSemana.reduce((acc, j) => acc + (j.totalMinutos || 0), 0);
     const diasTrabajados = jornadasSemana.length;
     const promedioMinutosDia = diasTrabajados > 0 ? Math.round(totalMinutos / diasTrabajados) : 0;
     const cumplimiento = Math.round((totalMinutos / minutosEsperados) * 100);
-
     setResumenSemanal({
       totalMinutos,
       diasTrabajados,
@@ -181,43 +170,36 @@ export default function ReportesPage() {
       cumplimiento
     });
   };
-
   const formatHora = (dateStr: string | null) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
   };
-
   const formatMinutosAHoras = (minutos: number | null) => {
     if (!minutos) return '-';
     const horas = Math.floor(minutos / 60);
     const mins = minutos % 60;
     return `${horas}h ${mins}m`;
   };
-
   const formatFecha = (dateStr: string) => {
     const fecha = new Date(dateStr);
     return fecha.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'short' });
   };
-
   const cambiarMes = (offset: number) => {
     const nuevoMes = new Date(mesActual);
     nuevoMes.setMonth(nuevoMes.getMonth() + offset);
     setMesActual(nuevoMes);
   };
-
   const cambiarSemana = (offset: number) => {
     const nuevaSemana = new Date(semanaActual);
     nuevaSemana.setDate(nuevaSemana.getDate() + (offset * 7));
     setSemanaActual(nuevaSemana);
   };
-
   const getInicioSemana = (fecha: Date) => {
     const d = new Date(fecha);
     const day = d.getDay();
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     return new Date(d.setDate(diff));
   };
-
   const getFinSemana = (fecha: Date) => {
     const inicio = getInicioSemana(fecha);
     const fin = new Date(inicio);
@@ -225,13 +207,11 @@ export default function ReportesPage() {
     fin.setHours(23, 59, 59, 999);
     return fin;
   };
-
   const formatSemana = (fecha: Date) => {
     const inicio = getInicioSemana(fecha);
     const fin = getFinSemana(fecha);
     return `${inicio.getDate()} ${inicio.toLocaleDateString('es-ES', { month: 'short' })} - ${fin.getDate()} ${fin.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}`;
   };
-
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case 'EN_CURSO': return <Badge variant="success">En curso</Badge>;
@@ -240,10 +220,6 @@ export default function ReportesPage() {
       default: return <Badge variant="neutral">{estado}</Badge>;
     }
   };
-
-  // ============================================
-  // FUNCIONES DE EXPORTACIÓN
-  // ============================================
   const getUsuarioParaExportar = () => {
     if (isAdmin && selectedUserId !== 'todos') {
       const user = usuarios.find(u => u.id === selectedUserId);
@@ -251,7 +227,6 @@ export default function ReportesPage() {
     }
     return usuario;
   };
-
   const handleExportPDF = async () => {
     if (jornadas.length === 0) return;
     setExportando('pdf');
@@ -265,7 +240,6 @@ export default function ReportesPage() {
       const primerDiaMes = new Date(mesActual.getFullYear(), mesActual.getMonth(), 1);
       const ultimoDiaMes = new Date(mesActual.getFullYear(), mesActual.getMonth() + 1, 0);
       
-      // Calcular días laborables del mes
       let diasLaborables = 0;
       for (let d = new Date(primerDiaMes); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
         const dia = d.getDay();
@@ -274,7 +248,6 @@ export default function ReportesPage() {
       
       const horasUsuario = userExport?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
       const horasObjetivo = (horasUsuario / 5) * diasLaborables;
-
       await exportToPDF({
         jornadas: jornadas.map(j => ({
           id: j.id,
@@ -311,7 +284,6 @@ export default function ReportesPage() {
       setExportando(null);
     }
   };
-
   const handleExportExcel = async () => {
     if (jornadas.length === 0) return;
     setExportando('excel');
@@ -333,7 +305,6 @@ export default function ReportesPage() {
       
       const horasUsuario = userExport?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
       const horasObjetivo = (horasUsuario / 5) * diasLaborables;
-
       await exportToExcel({
         jornadas: jornadas.map(j => ({
           id: j.id,
@@ -370,7 +341,6 @@ export default function ReportesPage() {
       setExportando(null);
     }
   };
-
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -378,7 +348,6 @@ export default function ReportesPage() {
       </div>
     );
   }
-
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
@@ -391,7 +360,6 @@ export default function ReportesPage() {
           </p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          {/* Botones de Exportación */}
           <button
             onClick={handleExportPDF}
             disabled={exportando !== null || jornadas.length === 0}
@@ -408,8 +376,6 @@ export default function ReportesPage() {
             <FileSpreadsheet size={18} />
             {exportando === 'excel' ? 'Exportando...' : 'Excel'}
           </button>
-
-          {/* Filtro por usuario (solo admin) */}
           {isAdmin && (
             <select
               value={selectedUserId}
@@ -425,7 +391,6 @@ export default function ReportesPage() {
             </select>
           )}
           
-          {/* Selector de mes */}
           <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1">
             <button onClick={() => cambiarMes(-1)} className="p-2 hover:bg-white rounded-md">
               <ChevronLeft size={18} />
@@ -439,7 +404,6 @@ export default function ReportesPage() {
           </div>
         </div>
       </div>
-
       {/* Resumen Semanal */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -456,7 +420,6 @@ export default function ReportesPage() {
             </div>
           </div>
         </Card>
-
         <Card>
           <div className="flex items-center justify-between">
             <div>
@@ -471,7 +434,6 @@ export default function ReportesPage() {
             </div>
           </div>
         </Card>
-
         <Card>
           <div className="flex items-center justify-between">
             <div>
@@ -486,7 +448,6 @@ export default function ReportesPage() {
             </div>
           </div>
         </Card>
-
         <Card>
           <div className="flex items-center justify-between">
             <div>
@@ -511,7 +472,6 @@ export default function ReportesPage() {
           </div>
         </Card>
       </div>
-
       {/* Tabla de Jornadas */}
       <Card title="Registro de Jornadas" className="overflow-hidden">
         <div className="overflow-x-auto">
@@ -609,7 +569,6 @@ export default function ReportesPage() {
           </table>
         </div>
       </Card>
-
       {/* Parte de Trabajo - Solo Admin */}
       {isAdmin && (
         <Card title="Parte de Trabajo" className="overflow-hidden">
@@ -658,7 +617,7 @@ export default function ReportesPage() {
               )}
             </div>
           </div>
-          
+
           {loadingTimeEntries ? (
             <div className="text-center py-8 text-slate-400">Cargando...</div>
           ) : timeEntries.length === 0 ? (
@@ -690,12 +649,14 @@ export default function ReportesPage() {
                   ))}
                 </div>
               </div>
-
               {/* Tabla de Registros */}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
+                      {selectedUserId === 'todos' && (
+                        <th className="px-4 py-3 text-left font-bold text-slate-600">Empleado</th>
+                      )}
                       <th className="px-4 py-3 text-left font-bold text-slate-600">Fecha</th>
                       <th className="px-4 py-3 text-left font-bold text-slate-600">Tarea</th>
                       <th className="px-4 py-3 text-left font-bold text-slate-600">Cliente</th>
@@ -712,6 +673,18 @@ export default function ReportesPage() {
                       
                       return (
                         <tr key={entry.id} className="hover:bg-slate-50">
+                          {selectedUserId === 'todos' && (
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full bg-elio-yellow text-white flex items-center justify-center font-bold text-xs">
+                                  {entry.usuario?.name?.charAt(0) || '?'}
+                                </div>
+                                <span className="font-medium text-slate-700">
+                                  {entry.usuario?.name || 'Desconocido'}
+                                </span>
+                              </div>
+                            </td>
+                          )}
                           <td className="px-4 py-3 font-medium">
                             {inicio.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                           </td>
@@ -749,7 +722,6 @@ export default function ReportesPage() {
           )}
         </Card>
       )}
-
       {/* Resumen Mensual */}
       {jornadas.length > 0 && (
         <Card title="Resumen del Mes">

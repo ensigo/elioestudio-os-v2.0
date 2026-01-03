@@ -90,7 +90,7 @@ export default function ReportesPage() {
         const mes = mesActual.getMonth() + 1;
         const año = mesActual.getFullYear();
         
-        let url = `/api/jornadas?mes=${mes}&año=${año}`;
+        let url = `/api/control-horario?entity=jornadas?mes=${mes}&año=${año}`;
         
         if (!isAdmin && usuario?.id) {
           url += `&usuarioId=${usuario.id}`;
@@ -119,7 +119,7 @@ export default function ReportesPage() {
       if (!isAdmin) return;
       setLoadingTimeEntries(true);
       try {
-        let url = `/api/time-entries?`;
+        let url = `/api/control-horario?entity=time-entries?`;
         
         if (vistaParteTrabajo === 'semana') {
           const inicio = getInicioSemana(semanaActual);

@@ -119,10 +119,10 @@ export default function HostingPage() {
     setLoading(true);
     try {
       const [dashRes, hostRes, domRes, provRes, cliRes] = await Promise.all([
-        fetch('/api/hosting-dashboard'),
-        fetch('/api/hostings'),
-        fetch('/api/dominios'),
-        fetch('/api/proveedores'),
+        fetch('/api/hosting?entity=dashboard'),
+        fetch('/api/hosting?entity=hostings'),
+        fetch('/api/hosting?entity=dominios'),
+        fetch('/api/hosting?entity=proveedores'),
         fetch('/api/clientes')
       ]);
 
@@ -340,10 +340,10 @@ export default function HostingPage() {
     setLoading(true);
     try {
       const [dashRes, hostRes, domRes, provRes, cliRes] = await Promise.all([
-        fetch('/api/hosting-dashboard'),
-        fetch('/api/hostings'),
-        fetch('/api/dominios'),
-        fetch('/api/proveedores'),
+        fetch('/api/hosting?entity=dashboard'),
+        fetch('/api/hosting?entity=hostings'),
+        fetch('/api/hosting?entity=dominios'),
+        fetch('/api/hosting?entity=proveedores'),
         fetch('/api/clientes')
       ]);
 
@@ -994,7 +994,7 @@ function ModalProveedor({ proveedor, onClose, onSave }: { proveedor: Proveedor |
       const method = proveedor ? 'PUT' : 'POST';
       const body = proveedor ? { id: proveedor.id, ...form } : form;
       
-      const res = await fetch('/api/proveedores', {
+      const res = await fetch('/api/hosting?entity=proveedores', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -1101,7 +1101,7 @@ function ModalHosting({ hosting, clientes, proveedores, onClose, onSave }: {
       const method = hosting ? 'PUT' : 'POST';
       const body = hosting ? { id: hosting.id, ...form } : form;
       
-      const res = await fetch('/api/hostings', {
+      const res = await fetch('/api/hosting?entity=hostings', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -1394,7 +1394,7 @@ function ModalDominio({ dominio, clientes, proveedores, hostings, onClose, onSav
       const method = dominio ? 'PUT' : 'POST';
       const body = dominio ? { id: dominio.id, ...form } : form;
       
-      const res = await fetch('/api/dominios', {
+      const res = await fetch('/api/hosting?entity=dominios', {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)

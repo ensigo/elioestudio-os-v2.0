@@ -113,7 +113,7 @@ export const TasksPage = () => {
     }
 
     try {
-      const response = await fetch('/api/time-entries', {
+      const response = await fetch('/api/control-horario?entity=time-entries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,7 +143,7 @@ export const TasksPage = () => {
     if (!activeTimer) return;
 
     try {
-      const response = await fetch('/api/time-entries', {
+      const response = await fetch('/api/control-horario?entity=time-entries', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

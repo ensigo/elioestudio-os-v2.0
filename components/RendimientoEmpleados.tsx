@@ -85,7 +85,7 @@ export const RendimientoEmpleado: React.FC<RendimientoEmpleadoProps> = ({
       try {
         // Cargar jornadas
         const jornadasRes = await fetch(
-          `/api/jornadas?usuarioId=${usuarioId}&fechaInicio=${inicio}&fechaFin=${fin}`
+          `/api/control-horario?entity=jornadas?usuarioId=${usuarioId}&fechaInicio=${inicio}&fechaFin=${fin}`
         );
         const jornadasData = jornadasRes.ok ? await jornadasRes.json() : [];
 

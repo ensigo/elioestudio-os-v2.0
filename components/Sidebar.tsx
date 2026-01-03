@@ -5,7 +5,8 @@ import {
   Briefcase, 
   CheckSquare, 
   Users, 
-  BarChart3, 
+  BarChart3,
+  FileText, 
   Settings, 
   LifeBuoy,
   X,
@@ -14,7 +15,8 @@ import {
   Megaphone,
   Mail,
   Server,
-  BarChart3
+  BarChart3,
+  FileText
 } from 'lucide-react';
 import { NavItem, UserRole } from '../types';
 
@@ -38,12 +40,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
     { id: 'tareas', label: 'Tareas', icon: CheckSquare },
     { id: 'calendario', label: 'Calendario', icon: Calendar },
     { id: 'equipo', label: 'Mi Equipo', icon: Users },
-    { id: 'reportes', label: 'Reportes', icon: BarChart3, roles: ['ADMIN', 'SUPERADMIN'] },
+    { id: 'reportes', label: 'Reportes', icon: BarChart3,
+  FileText, roles: ['ADMIN', 'SUPERADMIN'] },
     { id: 'tickets', label: 'Tickets', icon: MessageSquare },
     { id: 'sem', label: 'SEM Ads', icon: Megaphone },
     { id: 'mailing', label: 'E-mail Marketing', icon: Mail },
     { id: 'hosting', label: 'Hosting y Dominios', icon: Server },
-    { id: 'analisis', label: 'Análisis', icon: BarChart3 },
+    { id: 'analisis', label: 'Análisis', icon: BarChart3,
+  FileText },
     { id: 'contratos', label: 'Contratos', icon: FileText },
     
     // Items inferiores

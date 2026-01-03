@@ -15,6 +15,7 @@ import SemPage from './sem/page';
 import MailingPage from './mailing/page';
 import SoportePage from './soporte/page';
 import ConfiguracionPage from './configuracion/page';
+import HostingPage from './hosting/page';
 import { LoginPage } from './login/page';
 
 import { TimeTrackingProvider } from '../context/TimeTrackingContext';
@@ -67,6 +68,7 @@ function AppContent() {
       case 'mailing': return <MailingPage />;
       case 'soporte': return <SoportePage />;
       case 'configuracion': return <ConfiguracionPage />;
+      case 'hosting': return <HostingPage />;
       default: return <DashboardPage />;
     }
   };

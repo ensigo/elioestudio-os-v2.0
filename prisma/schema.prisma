@@ -77,7 +77,7 @@ model ClienteUsuario {
 model Usuario {
   id                 String     @id @default(cuid())
   name               String
-  email              String     @unique
+  email              String?    
   password           String?
   role               String     @default("DEV")
   position           String?

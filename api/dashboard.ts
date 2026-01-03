@@ -10,7 +10,6 @@ export default async function handler(req: any, res: any) {
       // ============ CARGA DE TRABAJO ============
       if (tipo === 'carga-trabajo') {
         const usuarios = await prisma.usuario.findMany({
-          where: { activo: true },
           select: { id: true, name: true, position: true, tipoContrato: true }
         });
 

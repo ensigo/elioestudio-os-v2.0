@@ -18,7 +18,7 @@ export default async function handler(req: any, res: any) {
 
     // POST - Crear un nuevo proyecto
     if (req.method === 'POST') {
-      const { title, clienteId, responsibleId: responsibleId || null, status, budget, deadline } = req.body;
+      const { title, clienteId, responsibleId, status, budget, deadline } = req.body;
 
       if (!title || !clienteId) {
         return res.status(400).json({ error: 'Título y cliente son obligatorios' });

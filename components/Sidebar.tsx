@@ -14,9 +14,7 @@ import {
   MessageSquare,
   Megaphone,
   Mail,
-  Server,
-  BarChart3,
-  FileText
+  Server
 } from 'lucide-react';
 import { NavItem, UserRole } from '../types';
 
@@ -40,15 +38,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
     { id: 'tareas', label: 'Tareas', icon: CheckSquare },
     { id: 'calendario', label: 'Calendario', icon: Calendar },
     { id: 'equipo', label: 'Mi Equipo', icon: Users },
-    { id: 'reportes', label: 'Reportes', icon: BarChart3,
-  FileText, roles: ['ADMIN', 'SUPERADMIN'] },
+    { id: 'reportes', label: 'Reportes', icon: BarChart3, roles: ['ADMIN', 'SUPERADMIN'] },
     { id: 'tickets', label: 'Tickets', icon: MessageSquare },
     { id: 'sem', label: 'SEM Ads', icon: Megaphone },
     { id: 'mailing', label: 'E-mail Marketing', icon: Mail },
-    { id: 'hosting', label: 'Hosting y Dominios', icon: Server },
-    { id: 'analisis', label: 'Análisis', icon: BarChart3,
-  FileText },
-    { id: 'contratos', label: 'Contratos', icon: FileText },
+    { id: 'hosting', label: 'Hosting y Dominios', icon: Server, roles: ['ADMIN', 'SUPERADMIN'] },
+    { id: 'analisis', label: 'Análisis', icon: BarChart3, roles: ['ADMIN', 'SUPERADMIN'] },
+    { id: 'contratos', label: 'Contratos', icon: FileText, roles: ['ADMIN', 'SUPERADMIN'] },
     
     // Items inferiores
     { id: 'configuracion', label: 'Configuración', icon: Settings, roles: ['ADMIN', 'SUPERADMIN'], isBottom: true },

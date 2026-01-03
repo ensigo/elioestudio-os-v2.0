@@ -88,7 +88,7 @@ export const TimeTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const cargarJornadaHoy = async (usuarioId: string) => {
     try {
       const hoy = new Date().toISOString().split('T')[0];
-      const response = await fetch(`/api/jornadas?usuarioId=${usuarioId}&fecha=${hoy}`);
+      const response = await fetch(`/api/control-horario?entity=jornadas&usuarioId=${usuarioId}&fecha=${hoy}`);
       
       if (response.ok) {
         const jornadas = await response.json();
@@ -125,7 +125,7 @@ export const TimeTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Iniciar jornada
   const iniciarJornada = async (usuarioId: string) => {
     try {
-      const response = await fetch('/api/jornadas', {
+      const response = await fetch('/api/control-horario?entity=jornadas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'iniciar', usuarioId })
@@ -150,7 +150,7 @@ export const TimeTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Pausar jornada (almuerzo)
   const pausarJornada = async (usuarioId: string) => {
     try {
-      const response = await fetch('/api/jornadas', {
+      const response = await fetch('/api/control-horario?entity=jornadas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'pausar', usuarioId })
@@ -169,7 +169,7 @@ export const TimeTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Reanudar jornada
   const reanudarJornada = async (usuarioId: string) => {
     try {
-      const response = await fetch('/api/jornadas', {
+      const response = await fetch('/api/control-horario?entity=jornadas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'reanudar', usuarioId })
@@ -188,7 +188,7 @@ export const TimeTrackingProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // Finalizar jornada
   const finalizarJornada = async (usuarioId: string) => {
     try {
-      const response = await fetch('/api/jornadas', {
+      const response = await fetch('/api/control-horario?entity=jornadas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'finalizar', usuarioId })

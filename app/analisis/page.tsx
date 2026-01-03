@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users, TrendingUp, TrendingDown, Clock, AlertTriangle,
-  BarChart3, DollarSign, Target, CheckCircle2, XCircle,
-  ChevronDown, ChevronRight, Briefcase
+  BarChart3, DollarSign, Target, CheckCircle2,
+  ChevronDown, ChevronRight, Calendar
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -38,22 +38,21 @@ interface RentabilidadProyecto {
 export default function AnalisisPage() {
   const { usuario } = useAuth();
   const [activeTab, setActiveTab] = useState<'carga' | 'rentabilidad'>('carga');
+  const [periodoCarga, setPeriodoCarga] = useState<'semana' | 'mes' | 'todo'>('semana');
   const [cargaData, setCargaData] = useState<any>(null);
   const [rentabilidadData, setRentabilidadData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
-  const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
-
   useEffect(() => {
     fetchData();
-  }, [activeTab]);
+  }, [activeTab, periodoCarga]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
       if (activeTab === 'carga') {
-        const res = await fetch('/api/dashboard?tipo=carga-trabajo');
+        const res = await fetch(`/api/dashboard?tipo=carga-trabajo&periodo=${periodoCarga}`);
         if (res.ok) setCargaData(await res.json());
       } else {
         const res = await fetch('/api/dashboard?tipo=rentabilidad');
@@ -90,6 +89,14 @@ export default function AnalisisPage() {
     return 'text-red-600';
   };
 
+  const getPeriodoLabel = () => {
+    switch (periodoCarga) {
+      case 'semana': return 'próximos 7 días';
+      case 'mes': return 'este mes';
+      default: return 'todas las tareas';
+    }
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-96"><p className="text-xl text-blue-500 animate-pulse">Cargando análisis...</p></div>;
   }
@@ -121,12 +128,37 @@ export default function AnalisisPage() {
       {/* CARGA DE TRABAJO */}
       {activeTab === 'carga' && cargaData && (
         <div className="space-y-6">
+          {/* Selector de período */}
+          <div className="flex items-center gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <Calendar size={20} className="text-blue-600" />
+            <span className="text-sm font-medium text-blue-900">Mostrar tareas que vencen en:</span>
+            <div className="flex gap-2">
+              {[
+                { id: 'semana', label: 'Esta semana' },
+                { id: 'mes', label: 'Este mes' },
+                { id: 'todo', label: 'Todo' }
+              ].map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => setPeriodoCarga(p.id as any)}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    periodoCarga === p.id 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-white text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Resumen */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">Total Tareas</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Tareas ({getPeriodoLabel()})</p>
                   <p className="text-2xl font-bold text-slate-900 mt-1">{cargaData.resumen.totalTareas}</p>
                 </div>
                 <div className="p-3 bg-blue-100 rounded-xl"><Target size={24} className="text-blue-600" /></div>
@@ -153,10 +185,10 @@ export default function AnalisisPage() {
             <Card>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">Empleados</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">{cargaData.usuarios.length}</p>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Horas Estimadas</p>
+                  <p className="text-2xl font-bold text-purple-600 mt-1">{cargaData.resumen.horasEstimadas || 0}h</p>
                 </div>
-                <div className="p-3 bg-green-100 rounded-xl"><Users size={24} className="text-green-600" /></div>
+                <div className="p-3 bg-purple-100 rounded-xl"><Clock size={24} className="text-purple-600" /></div>
               </div>
             </Card>
           </div>
@@ -164,84 +196,89 @@ export default function AnalisisPage() {
           {/* Carga por empleado */}
           <Card title="Carga por Empleado">
             <div className="space-y-4">
-              {cargaData.usuarios.map((user: CargaUsuario) => {
-                const cargaLabel = getCargaLabel(user.cargaPorcentaje);
-                const isExpanded = expandedUser === user.id;
-                return (
-                  <div key={user.id} className="border border-slate-200 rounded-lg overflow-hidden">
-                    <div
-                      className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
-                      onClick={() => setExpandedUser(isExpanded ? null : user.id)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                          <div>
-                            <h3 className="font-bold text-slate-900">{user.nombre}</h3>
-                            <p className="text-sm text-slate-500">{user.position || 'Sin puesto'}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <p className="text-sm text-slate-600">{user.tareas.total} tareas</p>
-                            <p className="text-xs text-slate-400">{user.horas.estimadas}h estimadas</p>
-                          </div>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${cargaLabel.color}`}>
-                            {cargaLabel.text}
-                          </span>
-                        </div>
-                      </div>
-                      {/* Barra de progreso */}
-                      <div className="mt-3">
-                        <div className="flex justify-between text-xs text-slate-500 mb-1">
-                          <span>Carga de trabajo</span>
-                          <span>{user.cargaPorcentaje}%</span>
-                        </div>
-                        <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${getCargaColor(user.cargaPorcentaje)} transition-all duration-300`}
-                            style={{ width: `${Math.min(100, user.cargaPorcentaje)}%` }}
-                          />
-                        </div>
-                      </div>
-                      {/* Indicadores rápidos */}
-                      <div className="mt-3 flex gap-2">
-                        {user.tareas.urgentes > 0 && (
-                          <Badge variant="error">{user.tareas.urgentes} urgentes</Badge>
-                        )}
-                        {user.tareas.enProgreso > 0 && (
-                          <Badge variant="warning">{user.tareas.enProgreso} en progreso</Badge>
-                        )}
-                        {user.tareas.pendientes > 0 && (
-                          <Badge variant="neutral">{user.tareas.pendientes} pendientes</Badge>
-                        )}
-                      </div>
-                    </div>
-                    {/* Detalle expandido */}
-                    {isExpanded && user.tareasDetalle.length > 0 && (
-                      <div className="border-t border-slate-200 bg-slate-50 p-4">
-                        <h4 className="text-sm font-bold text-slate-700 mb-2">Tareas asignadas:</h4>
-                        <div className="space-y-2">
-                          {user.tareasDetalle.map((t: any) => (
-                            <div key={t.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100">
-                              <div>
-                                <p className="font-medium text-slate-900">{t.title}</p>
-                                <p className="text-xs text-slate-500">{t.cliente} → {t.proyecto}</p>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {t.estimatedHours && <span className="text-xs text-slate-500">{t.estimatedHours}h</span>}
-                                <Badge variant={t.priority === 'URGENT' ? 'error' : t.priority === 'HIGH' ? 'warning' : 'neutral'}>
-                                  {t.priority}
-                                </Badge>
-                              </div>
+              {cargaData.usuarios.length === 0 ? (
+                <p className="text-center text-slate-400 py-8">No hay empleados con tareas en este período</p>
+              ) : (
+                cargaData.usuarios.map((user: CargaUsuario) => {
+                  const cargaLabel = getCargaLabel(user.cargaPorcentaje);
+                  const isExpanded = expandedUser === user.id;
+                  return (
+                    <div key={user.id} className="border border-slate-200 rounded-lg overflow-hidden">
+                      <div
+                        className="p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                        onClick={() => setExpandedUser(isExpanded ? null : user.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                            <div>
+                              <h3 className="font-bold text-slate-900">{user.nombre}</h3>
+                              <p className="text-sm text-slate-500">{user.position || 'Sin puesto'} · {user.tipoContrato === 'MEDIA' ? '20h/semana' : '37.5h/semana'}</p>
                             </div>
-                          ))}
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="text-right">
+                              <p className="text-sm text-slate-600">{user.tareas.total} tareas</p>
+                              <p className="text-xs text-slate-400">{user.horas.estimadas}h estimadas</p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${cargaLabel.color}`}>
+                              {cargaLabel.text}
+                            </span>
+                          </div>
                         </div>
+                        {/* Barra de progreso */}
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs text-slate-500 mb-1">
+                            <span>Carga {periodoCarga === 'semana' ? 'semanal' : periodoCarga === 'mes' ? 'mensual' : 'total'}</span>
+                            <span>{user.cargaPorcentaje}%</span>
+                          </div>
+                          <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${getCargaColor(user.cargaPorcentaje)} transition-all duration-300`}
+                              style={{ width: `${Math.min(100, user.cargaPorcentaje)}%` }}
+                            />
+                          </div>
+                        </div>
+                        {/* Indicadores rápidos */}
+                        {(user.tareas.urgentes > 0 || user.tareas.enProgreso > 0 || user.tareas.pendientes > 0) && (
+                          <div className="mt-3 flex gap-2">
+                            {user.tareas.urgentes > 0 && <Badge variant="error">{user.tareas.urgentes} urgentes</Badge>}
+                            {user.tareas.enProgreso > 0 && <Badge variant="warning">{user.tareas.enProgreso} en progreso</Badge>}
+                            {user.tareas.pendientes > 0 && <Badge variant="neutral">{user.tareas.pendientes} pendientes</Badge>}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      {/* Detalle expandido */}
+                      {isExpanded && user.tareasDetalle.length > 0 && (
+                        <div className="border-t border-slate-200 bg-slate-50 p-4">
+                          <h4 className="text-sm font-bold text-slate-700 mb-2">Tareas asignadas:</h4>
+                          <div className="space-y-2">
+                            {user.tareasDetalle.map((t: any) => (
+                              <div key={t.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100">
+                                <div>
+                                  <p className="font-medium text-slate-900">{t.title}</p>
+                                  <p className="text-xs text-slate-500">{t.cliente} → {t.proyecto}</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {t.dueDate && (
+                                    <span className="text-xs text-slate-500">
+                                      {new Date(t.dueDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                                    </span>
+                                  )}
+                                  {t.estimatedHours && <span className="text-xs text-slate-500">{t.estimatedHours}h</span>}
+                                  <Badge variant={t.priority === 'URGENT' ? 'error' : t.priority === 'HIGH' ? 'warning' : 'neutral'}>
+                                    {t.priority}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </Card>
 
@@ -255,9 +292,16 @@ export default function AnalisisPage() {
                       <p className="font-medium text-slate-900">{t.title}</p>
                       <p className="text-xs text-slate-500">{t.cliente} → {t.proyecto}</p>
                     </div>
-                    <Badge variant={t.priority === 'URGENT' ? 'error' : t.priority === 'HIGH' ? 'warning' : 'neutral'}>
-                      {t.priority}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {t.dueDate && (
+                        <span className="text-xs text-slate-500">
+                          {new Date(t.dueDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                        </span>
+                      )}
+                      <Badge variant={t.priority === 'URGENT' ? 'error' : t.priority === 'HIGH' ? 'warning' : 'neutral'}>
+                        {t.priority}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -522,3 +522,23 @@ model CampanaMailing {
   
   @@map("campanas_mailing")
 }
+
+// ============ DOCUMENTOS SOPORTE ============
+model DocumentoSoporte {
+  id          String   @id @default(cuid())
+  nombre      String
+  descripcion String?
+  familia     String   // DISENO, SEO, RRHH, ADMINISTRACION, DESARROLLO, LEGAL, MARKETING
+  subfamilia  String?
+  archivoUrl  String?  // URL del archivo subido
+  archivoNombre String?
+  tamano      Int?     // Tamaño en bytes
+  tipo        String?  // pdf, docx, xlsx, etc.
+  creadoPorId String?
+  creadoPorNombre String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("documentos_soporte")
+}

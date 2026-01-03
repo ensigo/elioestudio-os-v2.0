@@ -498,7 +498,58 @@ export default async function handler(req: any, res: any) {
           return res.status(200).json({ message: 'Campaña eliminada' });
         }
       }
-      
+    // ============ DOCUMENTOS SOPORTE ============
+      if (tipo === 'documentos') {
+        if (req.method === 'GET') {
+          const { familia } = req.query;
+          const where: any = { activo: true };
+          if (familia) where.familia = familia;
+          
+          const documentos = await prisma.documentoSoporte.findMany({
+            where,
+            orderBy: { createdAt: 'desc' }
+          });
+          return res.status(200).json(documentos);
+        }
+        
+        if (req.method === 'POST') {
+          const data = req.body;
+          const documento = await prisma.documentoSoporte.create({
+            data: {
+              nombre: data.nombre,
+              descripcion: data.descripcion,
+              familia: data.familia,
+              subfamilia: data.subfamilia,
+              archivoUrl: data.archivoUrl,
+              archivoNombre: data.archivoNombre,
+              tamano: data.tamano ? parseInt(data.tamano) : null,
+              tipo: data.tipo,
+              creadoPorId: data.creadoPorId,
+              creadoPorNombre: data.creadoPorNombre
+            }
+          });
+          return res.status(201).json(documento);
+        }
+        
+        if (req.method === 'PUT') {
+          const { id, ...data } = req.body;
+          const documento = await prisma.documentoSoporte.update({
+            where: { id },
+            data
+          });
+          return res.status(200).json(documento);
+        }
+        
+        if (req.method === 'DELETE') {
+          const { id } = req.body;
+          await prisma.documentoSoporte.update({
+            where: { id },
+            data: { activo: false }
+          });
+          return res.status(200).json({ message: 'Documento eliminado' });
+        }
+      }
+        
     return res.status(405).json({ error: 'Método no permitido' });
   } catch (error: any) {
     console.error('Error en API dashboard:', error);

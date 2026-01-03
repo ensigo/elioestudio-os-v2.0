@@ -286,7 +286,54 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    return res.status(400).json({ error: 'Entity no válida. Usa: proveedores, hostings, dominios, dashboard' });
+    // ============ PLANES ============
+    if (entity === 'planes') {
+      if (req.method === 'GET') {
+        const { tipo, activo } = req.query;
+        const where: any = {};
+        if (tipo) where.tipo = tipo;
+        if (activo !== undefined) where.activo = activo === 'true';
+        const planes = await prisma.planHosting.findMany({
+          where,
+          orderBy: [{ tipo: 'asc' }, { orden: 'asc' }, { precioCoste: 'asc' }]
+        });
+        return res.status(200).json(planes);
+      }
+      if (req.method === 'POST') {
+        const data = req.body;
+        const plan = await prisma.planHosting.create({
+          data: {
+            nombre: data.nombre,
+            tipo: data.tipo,
+            descripcion: data.descripcion,
+            espacio: data.espacio,
+            emails: data.emails ? parseInt(data.emails) : null,
+            incluyeDominio: data.incluyeDominio ?? false,
+            precioCoste: parseFloat(data.precioCoste),
+            precioSugerido: data.precioSugerido ? parseFloat(data.precioSugerido) : null,
+            activo: data.activo ?? true,
+            orden: data.orden ? parseInt(data.orden) : 0
+          }
+        });
+        return res.status(201).json(plan);
+      }
+      if (req.method === 'PUT') {
+        const { id, ...data } = req.body;
+        if (data.emails) data.emails = parseInt(data.emails);
+        if (data.precioCoste) data.precioCoste = parseFloat(data.precioCoste);
+        if (data.precioSugerido) data.precioSugerido = parseFloat(data.precioSugerido);
+        if (data.orden) data.orden = parseInt(data.orden);
+        const plan = await prisma.planHosting.update({ where: { id }, data });
+        return res.status(200).json(plan);
+      }
+      if (req.method === 'DELETE') {
+        const { id } = req.body;
+        await prisma.planHosting.delete({ where: { id } });
+        return res.status(200).json({ message: 'Plan eliminado' });
+      }
+    }
+
+    return res.status(400).json({ error: 'Entity no válida. Usa: proveedores, hostings, dominios, dashboard, planes' });
   } catch (error: any) {
     console.error('Error en API hosting:', error);
     return res.status(500).json({ error: 'Error en la API', details: error.message });

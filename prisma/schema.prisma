@@ -372,3 +372,21 @@ model Dominio {
 
   @@map("dominios")
 }
+
+model PlanHosting {
+  id              String   @id @default(cuid())
+  nombre          String
+  tipo            String   // HOSTING, DOMINIO
+  descripcion     String?
+  espacio         String?  // 1GB, 2+16GB, etc.
+  emails          Int?     // Número de emails incluidos
+  incluyeDominio  Boolean  @default(false)
+  precioCoste     Float    // Lo que pagamos al proveedor
+  precioSugerido  Float?   // Precio sugerido de venta
+  activo          Boolean  @default(true)
+  orden           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("planes_hosting")
+}

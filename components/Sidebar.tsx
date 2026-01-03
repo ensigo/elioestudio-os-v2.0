@@ -12,7 +12,8 @@ import {
   Building2,
   MessageSquare,
   Megaphone,
-  Mail
+  Mail,
+  Server
 } from 'lucide-react';
 import { NavItem, UserRole } from '../types';
 
@@ -40,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
     { id: 'tickets', label: 'Tickets', icon: MessageSquare },
     { id: 'sem', label: 'SEM Ads', icon: Megaphone },
     { id: 'mailing', label: 'E-mail Marketing', icon: Mail },
+    { id: 'hosting', label: 'Hosting y Dominios', icon: Server },
     
     // Items inferiores
     { id: 'configuracion', label: 'Configuración', icon: Settings, roles: ['ADMIN', 'SUPERADMIN'], isBottom: true },

@@ -26,6 +26,8 @@ model Cliente {
   proyectos         Proyecto[]
   credentials       Credential[]
   usuariosAsignados ClienteUsuario[]
+  hostings          Hosting[]
+  dominios          Dominio[]
   @@map("clientes")
 }
 
@@ -267,4 +269,106 @@ model plantillas_tarea {
   updatedAt       DateTime
   
   categoria       categorias_servicio @relation(fields: [categoriaId], references: [id])
+}
+// ==========================================
+// MÓDULO DE HOSTING Y DOMINIOS
+// ==========================================
+
+model Proveedor {
+  id          String   @id @default(cuid())
+  nombre      String   @unique
+  tipo        String   // HOSTING, DOMINIOS, AMBOS
+  website     String?
+  notas       String?
+  activo      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  hostings    Hosting[]
+  dominios    Dominio[]
+
+  @@map("proveedores")
+}
+
+model Hosting {
+  id                  String    @id @default(cuid())
+  clienteId           String
+  proveedorId         String
+  nombre              String    // Nombre identificativo del hosting
+  tipoHosting         String    // COMPARTIDO, VPS, DEDICADO, CLOUD, RESELLER
+  especificaciones    String?   // RAM, CPU, espacio, etc.
+  ipServidor          String?
+  panelControl        String?   // cPanel, Plesk, DirectAdmin, etc.
+  urlPanel            String?
+  usuarioPanel        String?
+  passwordPanel       String?
+  
+  // Facturación
+  importeCoste        Float     // Lo que pagamos al proveedor
+  importeVenta        Float     // Lo que cobramos al cliente
+  periodicidad        String    @default("ANUAL") // MENSUAL, TRIMESTRAL, SEMESTRAL, ANUAL
+  
+  // Fechas
+  fechaContratacion   DateTime
+  fechaVencimiento    DateTime
+  fechaUltimaRenovacion DateTime?
+  
+  // Estado
+  estado              String    @default("ACTIVO") // ACTIVO, SUSPENDIDO, CANCELADO, PENDIENTE_RENOVACION
+  autoRenovar         Boolean   @default(true)
+  notificado30Dias    Boolean   @default(false)
+  
+  notas               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  cliente             Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  proveedor           Proveedor @relation(fields: [proveedorId], references: [id])
+  dominios            Dominio[]
+
+  @@map("hostings")
+}
+
+model Dominio {
+  id                  String    @id @default(cuid())
+  clienteId           String
+  hostingId           String?   // Puede estar asociado a un hosting o ser independiente
+  proveedorId         String
+  
+  nombre              String    // ejemplo.com
+  extension           String    // .com, .es, .net, etc.
+  
+  // SSL
+  tieneSSL            Boolean   @default(false)
+  tipoSSL             String?   // LETS_ENCRYPT, COMODO, GEOTRUST, etc.
+  fechaVencimientoSSL DateTime?
+  
+  // DNS
+  nameservers         String?   // NS1, NS2 separados por coma
+  registroDNS         String?   // Notas sobre configuración DNS
+  
+  // Facturación
+  importeCoste        Float     // Lo que pagamos al proveedor
+  importeVenta        Float     // Lo que cobramos al cliente
+  periodicidad        String    @default("ANUAL")
+  
+  // Fechas
+  fechaRegistro       DateTime
+  fechaVencimiento    DateTime
+  fechaUltimaRenovacion DateTime?
+  
+  // Estado
+  estado              String    @default("ACTIVO") // ACTIVO, SUSPENDIDO, TRANSFERIDO, EXPIRADO, PENDIENTE_RENOVACION
+  autoRenovar         Boolean   @default(true)
+  notificado30Dias    Boolean   @default(false)
+  
+  notas               String?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  cliente             Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  hosting             Hosting?  @relation(fields: [hostingId], references: [id])
+  proveedor           Proveedor @relation(fields: [proveedorId], references: [id])
+
+  @@map("dominios")
 }

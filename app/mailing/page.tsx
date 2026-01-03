@@ -1,599 +1,494 @@
+'use client';
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { 
   Mail, Plus, Search, Send, MousePointer2, 
-  Users, AlertOctagon, X, Save, Ban, Eye,
-  BarChart2, Calendar, FileEdit
+  Users, AlertOctagon, X, Edit, Eye,
+  BarChart2, Calendar, CheckCircle2
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
-// --- TYPES ---
-type PlatformType = 'MAILCHIMP' | 'ACTIVECAMPAIGN' | 'KLAVIYO' | 'BREVO';
-type StatusType = 'SENT' | 'SCHEDULED' | 'DRAFT';
-
-interface MailingMetrics {
-  delivered: number;
-  opens: number;
-  clicks: number;
-  bounces: number;
-  unsubscribes: number;
-  spamComplaints: number;
-}
-
-interface MailingCampaign {
+interface CampanaMailing {
   id: string;
-  internalName: string;
-  subject: string;
-  client: string;
-  platform: PlatformType;
-  status: StatusType;
-  sendDate: string; // Fecha de envío o programada
-  audienceSize: number;
-  metrics?: MailingMetrics;
+  clienteId: string;
+  nombreInterno: string;
+  asunto: string | null;
+  plataforma: string;
+  estado: string;
+  fechaEnvio: string | null;
+  tamanoAudiencia: number;
+  entregados: number;
+  aperturas: number;
+  clics: number;
+  rebotes: number;
+  bajas: number;
+  spam: number;
+  notas: string | null;
+  cliente: { id: string; name: string };
 }
 
-// --- MOCK DATA ---
-const INITIAL_MAILINGS: MailingCampaign[] = [
-  {
-    id: 'em-001',
-    internalName: 'Newsletter Noviembre - Black Friday Teaser',
-    subject: '👀 ¿Preparado para lo que viene? Acceso VIP dentro.',
-    client: 'TechSolutions S.L.',
-    platform: 'MAILCHIMP',
-    status: 'SENT',
-    sendDate: '2025-11-15',
-    audienceSize: 12500,
-    metrics: {
-      delivered: 12450,
-      opens: 4890,
-      clicks: 1205,
-      bounces: 50,
-      unsubscribes: 12,
-      spamComplaints: 2
-    }
-  },
-  {
-    id: 'em-002',
-    internalName: 'Automatización: Carrito Abandonado (Seq 1)',
-    subject: 'Te has dejado algo increíble en el carrito...',
-    client: 'Nike Store Madrid',
-    platform: 'KLAVIYO',
-    status: 'SENT',
-    sendDate: 'Automático (Last 30 days)',
-    audienceSize: 850,
-    metrics: {
-      delivered: 840,
-      opens: 520, // High Open Rate typical for cart abandonment
-      clicks: 210,
-      bounces: 10,
-      unsubscribes: 5,
-      spamComplaints: 0
-    }
-  },
-  {
-    id: 'em-003',
-    internalName: 'Promo Navidad - Early Bird',
-    subject: 'Regala tecnología al mejor precio 🎁',
-    client: 'TechSolutions S.L.',
-    platform: 'ACTIVECAMPAIGN',
-    status: 'SCHEDULED',
-    sendDate: '2025-12-01',
-    audienceSize: 15000,
-    // No metrics yet
-  },
-  {
-    id: 'em-004',
-    internalName: 'Boletín Mensual: Tendencias SEO',
-    subject: '[Borrador] 5 Cambios en el algoritmo de Google',
-    client: 'Startup Unicornio',
-    platform: 'BREVO',
-    status: 'DRAFT',
-    sendDate: '',
-    audienceSize: 0,
-  }
+interface Cliente { id: string; name: string; }
+
+const PLATAFORMAS = [
+  { id: 'MAILCHIMP', nombre: 'Mailchimp', color: 'bg-yellow-100 text-yellow-700' },
+  { id: 'ACTIVECAMPAIGN', nombre: 'ActiveCampaign', color: 'bg-blue-100 text-blue-700' },
+  { id: 'KLAVIYO', nombre: 'Klaviyo', color: 'bg-green-100 text-green-700' },
+  { id: 'BREVO', nombre: 'Brevo', color: 'bg-indigo-100 text-indigo-700' }
 ];
 
-// --- CLIENTS MOCK ---
-const MOCK_CLIENTS = [
-  'TechSolutions S.L.',
-  'Restaurante La Abuela',
-  'Startup Unicornio',
-  'Nike Store Madrid',
-  'Clínica Dental Sonrisas'
+const ESTADOS = [
+  { id: 'ENVIADA', nombre: 'Enviada', color: 'bg-green-100 text-green-700' },
+  { id: 'PROGRAMADA', nombre: 'Programada', color: 'bg-blue-100 text-blue-700' },
+  { id: 'BORRADOR', nombre: 'Borrador', color: 'bg-slate-100 text-slate-700' }
 ];
 
 export default function MailingPage() {
-  // State
-  const [mailings, setMailings] = useState<MailingCampaign[]>(INITIAL_MAILINGS);
-  const [selectedMailing, setSelectedMailing] = useState<MailingCampaign | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { usuario } = useAuth();
+  const [campanas, setCampanas] = useState<CampanaMailing[]>([]);
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterPlataforma, setFilterPlataforma] = useState('todas');
+  const [filterEstado, setFilterEstado] = useState('todas');
+  const [showModal, setShowModal] = useState(false);
+  const [editingCampana, setEditingCampana] = useState<CampanaMailing | null>(null);
+  const [selectedCampana, setSelectedCampana] = useState<CampanaMailing | null>(null);
 
-  // Edit Mode State (Results Registration)
-  const [isEditing, setIsEditing] = useState(false);
-  const [editMetrics, setEditMetrics] = useState<MailingMetrics>({
-      delivered: 0, opens: 0, clicks: 0, bounces: 0, unsubscribes: 0, spamComplaints: 0
-  });
+  useEffect(() => { fetchData(); }, []);
 
-  // Init Edit Form when opening mailing
-  useEffect(() => {
-    if (selectedMailing) {
-        setIsEditing(false);
-        if (selectedMailing.metrics) {
-            setEditMetrics(selectedMailing.metrics);
-        } else {
-            // Default init if no metrics exist
-            setEditMetrics({
-                delivered: selectedMailing.audienceSize,
-                opens: 0,
-                clicks: 0,
-                bounces: 0,
-                unsubscribes: 0,
-                spamComplaints: 0
-            });
-        }
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [campRes, cliRes] = await Promise.all([
+        fetch('/api/dashboard?tipo=mailing'),
+        fetch('/api/clientes')
+      ]);
+      if (campRes.ok) setCampanas(await campRes.json());
+      if (cliRes.ok) setClientes(await cliRes.json());
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [selectedMailing]);
+  };
 
-  // Create Form State
-  const [formData, setFormData] = useState({
-    client: '',
-    internalName: '',
-    subject: '',
-    platform: 'MAILCHIMP' as PlatformType,
-    status: 'DRAFT' as StatusType,
-    sendDate: '',
-    audienceSize: ''
-  });
-
-  // --- HELPERS ---
   const formatNumber = (num: number) => new Intl.NumberFormat('es-ES').format(num);
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+  const formatPercent = (value: number, total: number) => total > 0 ? ((value / total) * 100).toFixed(1) : '0';
 
-  const getStatusBadge = (status: StatusType) => {
-    switch (status) {
-      case 'SENT': return <Badge variant="success">Enviado</Badge>;
-      case 'SCHEDULED': return <Badge variant="blue">Programado</Badge>;
-      case 'DRAFT': return <Badge variant="neutral">Borrador</Badge>;
-    }
-  };
+  const getPlataformaStyle = (plat: string) => PLATAFORMAS.find(p => p.id === plat)?.color || 'bg-slate-100 text-slate-700';
+  const getPlataformaNombre = (plat: string) => PLATAFORMAS.find(p => p.id === plat)?.nombre || plat;
+  const getEstadoStyle = (est: string) => ESTADOS.find(e => e.id === est)?.color || 'bg-slate-100 text-slate-700';
+  const getEstadoNombre = (est: string) => ESTADOS.find(e => e.id === est)?.nombre || est;
 
-  const getPlatformBadge = (platform: PlatformType) => {
-    let colorClass = '';
-    switch (platform) {
-      case 'MAILCHIMP': colorClass = 'bg-yellow-100 text-yellow-800 border-yellow-200'; break;
-      case 'KLAVIYO': colorClass = 'bg-green-50 text-green-800 border-green-200'; break;
-      case 'ACTIVECAMPAIGN': colorClass = 'bg-blue-50 text-blue-800 border-blue-200'; break;
-      default: colorClass = 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-    return (
-      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${colorClass}`}>
-        {platform}
-      </span>
-    );
-  };
+  const filteredCampanas = campanas.filter(c => {
+    const matchSearch = c.nombreInterno.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        c.cliente.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchPlataforma = filterPlataforma === 'todas' || c.plataforma === filterPlataforma;
+    const matchEstado = filterEstado === 'todas' || c.estado === filterEstado;
+    return matchSearch && matchPlataforma && matchEstado;
+  });
 
-  // KPI Calculations
-  const calculateRate = (part: number, total: number) => {
-    if (!total || total === 0) return '0.0%';
-    return ((part / total) * 100).toFixed(1) + '%';
-  };
+  // Calcular totales
+  const campanasEnviadas = campanas.filter(c => c.estado === 'ENVIADA');
+  const totalEnviados = campanasEnviadas.reduce((sum, c) => sum + c.entregados, 0);
+  const totalAperturas = campanasEnviadas.reduce((sum, c) => sum + c.aperturas, 0);
+  const totalClics = campanasEnviadas.reduce((sum, c) => sum + c.clics, 0);
+  const tasaApertura = totalEnviados > 0 ? ((totalAperturas / totalEnviados) * 100).toFixed(1) : '0';
+  const tasaClics = totalAperturas > 0 ? ((totalClics / totalAperturas) * 100).toFixed(1) : '0';
 
-  // --- HANDLERS ---
-  const handleCreate = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.internalName || !formData.client) return;
-
-    const newMailing: MailingCampaign = {
-      id: `em-${Date.now()}`,
-      internalName: formData.internalName,
-      subject: formData.subject || '(Sin Asunto)',
-      client: formData.client,
-      platform: formData.platform,
-      status: formData.status,
-      sendDate: formData.sendDate || 'Pendiente',
-      audienceSize: formData.audienceSize ? parseInt(formData.audienceSize) : 0,
-      metrics: undefined
-    };
-
-    setMailings([newMailing, ...mailings]);
-    setIsCreateModalOpen(false);
-    
-    // Reset
-    setFormData({
-      client: '', internalName: '', subject: '', platform: 'MAILCHIMP', status: 'DRAFT', sendDate: '', audienceSize: ''
-    });
-  };
-
-  const handleUpdateMetrics = () => {
-    if (!selectedMailing) return;
-
-    const updatedMailing = {
-        ...selectedMailing,
-        status: 'SENT' as StatusType, // Force status to SENT if we are adding metrics
-        metrics: editMetrics
-    };
-
-    setMailings(mailings.map(m => m.id === selectedMailing.id ? updatedMailing : m));
-    setSelectedMailing(updatedMailing);
-    setIsEditing(false);
-  };
-
-  const MetricInput = ({ label, value, field }: { label: string, value: number, field: keyof MailingMetrics }) => (
-      <div>
-        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">{label}</label>
-        <input 
-            type="number" 
-            value={value}
-            onChange={(e) => setEditMetrics({...editMetrics, [field]: parseInt(e.target.value) || 0})}
-            className="w-full border border-gray-300 rounded px-3 py-2 text-lg font-bold text-gray-900 focus:border-elio-yellow outline-none bg-white"
-        />
-      </div>
-  );
+  if (loading) {
+    return <div className="flex justify-center items-center h-96"><p className="text-xl text-blue-500 animate-pulse">Cargando campañas...</p></div>;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Mail className="text-elio-yellow" /> E-mail Marketing
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            <Mail className="text-blue-500" /> Email Marketing
           </h1>
-          <p className="text-gray-500 text-sm">Auditoría de campañas, newsletters y automatizaciones.</p>
+          <p className="text-gray-500 text-sm">Gestión de campañas de correo electrónico</p>
         </div>
-        <div className="flex space-x-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:flex-none">
-             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-             <input type="text" placeholder="Buscar mailing..." className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full outline-none focus:border-elio-yellow" />
-          </div>
-          <button 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-elio-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors flex items-center space-x-2 font-medium whitespace-nowrap shadow-sm"
-          >
-             <Plus size={18} />
-             <span>Nuevo Mailing</span>
-          </button>
-        </div>
+        <button onClick={() => { setEditingCampana(null); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">
+          <Plus size={18} /> Nueva Campaña
+        </button>
       </div>
 
-      {/* Main Table */}
-      <Card noPadding className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-bold tracking-wider">
-              <tr>
-                <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4">Plataforma</th>
-                <th className="px-6 py-4">Campaña / Asunto</th>
-                <th className="px-6 py-4">Audiencia</th>
-                <th className="px-6 py-4 text-right">Fecha</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {mailings.map(mail => (
-                <tr 
-                  key={mail.id} 
-                  onClick={() => setSelectedMailing(mail)}
-                  className="group hover:bg-gray-50 transition-colors cursor-pointer"
-                >
-                  <td className="px-6 py-4">{getStatusBadge(mail.status)}</td>
-                  <td className="px-6 py-4">{getPlatformBadge(mail.platform)}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-col max-w-md">
-                      <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover truncate transition-colors">{mail.internalName}</span>
-                      <span className="text-xs text-gray-500 truncate italic">
-                        {mail.subject}
-                      </span>
-                      <span className="text-[10px] text-gray-400 mt-1 uppercase font-bold">{mail.client}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                     <div className="flex items-center gap-2">
-                        <Users size={14} className="text-gray-400"/>
-                        {mail.audienceSize > 0 ? formatNumber(mail.audienceSize) : '-'}
-                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-right text-gray-500 font-mono text-xs">
-                     {mail.sendDate}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Dashboard Resumen */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase">Campañas</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{campanas.length}</p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-xl"><Mail size={24} className="text-blue-600" /></div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase">Enviadas</p>
+              <p className="text-2xl font-bold text-green-600 mt-1">{campanasEnviadas.length}</p>
+            </div>
+            <div className="p-3 bg-green-100 rounded-xl"><Send size={24} className="text-green-600" /></div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase">Emails Enviados</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1">{formatNumber(totalEnviados)}</p>
+            </div>
+            <div className="p-3 bg-slate-100 rounded-xl"><Users size={24} className="text-slate-600" /></div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase">Tasa Apertura</p>
+              <p className="text-2xl font-bold text-purple-600 mt-1">{tasaApertura}%</p>
+            </div>
+            <div className="p-3 bg-purple-100 rounded-xl"><Eye size={24} className="text-purple-600" /></div>
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase">Tasa Clics</p>
+              <p className="text-2xl font-bold text-orange-600 mt-1">{tasaClics}%</p>
+            </div>
+            <div className="p-3 bg-orange-100 rounded-xl"><MousePointer2 size={24} className="text-orange-600" /></div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex flex-wrap gap-3">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input type="text" placeholder="Buscar campaña..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
         </div>
+        <select value={filterPlataforma} onChange={(e) => setFilterPlataforma(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+          <option value="todas">Todas las plataformas</option>
+          {PLATAFORMAS.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+        </select>
+        <select value={filterEstado} onChange={(e) => setFilterEstado(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+          <option value="todas">Todos los estados</option>
+          {ESTADOS.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+        </select>
+      </div>
+
+      {/* Lista de Campañas */}
+      <Card className="overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b">
+            <tr>
+              <th className="px-4 py-3 text-left font-bold text-slate-600">Estado</th>
+              <th className="px-4 py-3 text-left font-bold text-slate-600">Plataforma</th>
+              <th className="px-4 py-3 text-left font-bold text-slate-600">Cliente / Campaña</th>
+              <th className="px-4 py-3 text-center font-bold text-slate-600">Audiencia</th>
+              <th className="px-4 py-3 text-center font-bold text-slate-600">Aperturas</th>
+              <th className="px-4 py-3 text-center font-bold text-slate-600">Clics</th>
+              <th className="px-4 py-3 text-center font-bold text-slate-600">Fecha</th>
+              <th className="px-4 py-3 text-center font-bold text-slate-600">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {filteredCampanas.length === 0 ? (
+              <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400"><Mail size={32} className="mx-auto mb-2 opacity-30" />No hay campañas</td></tr>
+            ) : filteredCampanas.map(c => (
+              <tr key={c.id} className="hover:bg-slate-50 cursor-pointer" onClick={() => setSelectedCampana(c)}>
+                <td className="px-4 py-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEstadoStyle(c.estado)}`}>{getEstadoNombre(c.estado)}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getPlataformaStyle(c.plataforma)}`}>{getPlataformaNombre(c.plataforma)}</span>
+                </td>
+                <td className="px-4 py-3">
+                  <p className="font-bold text-slate-900">{c.nombreInterno}</p>
+                  <p className="text-xs text-slate-500">{c.cliente.name}</p>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <p className="font-medium">{formatNumber(c.tamanoAudiencia)}</p>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {c.estado === 'ENVIADA' ? (
+                    <p className="font-medium text-purple-600">{formatPercent(c.aperturas, c.entregados)}%</p>
+                  ) : '-'}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  {c.estado === 'ENVIADA' ? (
+                    <p className="font-medium text-orange-600">{formatPercent(c.clics, c.aperturas)}%</p>
+                  ) : '-'}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-slate-500">
+                  {c.fechaEnvio ? formatDate(c.fechaEnvio) : '-'}
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <div className="flex justify-center gap-1">
+                    <button onClick={(e) => { e.stopPropagation(); setSelectedCampana(c); }} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded"><Eye size={16} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingCampana(c); setShowModal(true); }} className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded"><Edit size={16} /></button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </Card>
 
-      {/* --- MODAL DETALLE / REGISTRO RESULTADOS --- */}
-      {selectedMailing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setSelectedMailing(null)} />
-          
-          <div className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            
-            {/* Header */}
-            <div className={`border-b border-gray-100 px-6 py-5 flex justify-between items-start transition-colors ${isEditing ? 'bg-yellow-50' : 'bg-slate-50'}`}>
-               <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    {getStatusBadge(selectedMailing.status)}
-                    {getPlatformBadge(selectedMailing.platform)}
-                    <span className="text-xs font-mono text-gray-400 uppercase">ID: {selectedMailing.id}</span>
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 line-clamp-1">{selectedMailing.internalName}</h2>
-                  <p className="text-sm text-gray-500 mt-1"><span className="font-bold text-gray-700">Asunto:</span> {selectedMailing.subject}</p>
-               </div>
-               
-               <div className="flex items-center gap-2">
-                 {isEditing ? (
-                   <>
-                      <button 
-                        onClick={() => setIsEditing(false)} 
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
-                      >
-                         <X size={20} />
-                      </button>
-                      <button 
-                        onClick={handleUpdateMetrics} 
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-green-700 shadow-sm"
-                      >
-                         <Save size={16} /> Guardar Resultados
-                      </button>
-                   </>
-                 ) : (
-                   <>
-                      <button 
-                        onClick={() => setIsEditing(true)} 
-                        className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-gray-50 shadow-sm"
-                      >
-                         <FileEdit size={16} /> Registrar Resultados
-                      </button>
-                      <button onClick={() => setSelectedMailing(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors">
-                        <X size={24} />
-                      </button>
-                   </>
-                 )}
-               </div>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 overflow-y-auto bg-gray-50/50">
-              
-              {isEditing ? (
-                /* --- EDIT MODE FORM --- */
-                <div className="space-y-6">
-                    <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-sm text-yellow-800 mb-4 flex items-center">
-                        <AlertOctagon size={16} className="mr-2" />
-                        Edita los valores absolutos. Los porcentajes se calcularán automáticamente al guardar.
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <MetricInput label="Entregados (Delivered)" value={editMetrics.delivered} field="delivered" />
-                        <MetricInput label="Aperturas (Opens)" value={editMetrics.opens} field="opens" />
-                        <MetricInput label="Clics Totales" value={editMetrics.clicks} field="clicks" />
-                        <MetricInput label="Rebotes (Bounces)" value={editMetrics.bounces} field="bounces" />
-                        <MetricInput label="Bajas (Unsubs)" value={editMetrics.unsubscribes} field="unsubscribes" />
-                        <MetricInput label="Quejas Spam" value={editMetrics.spamComplaints} field="spamComplaints" />
-                    </div>
-                </div>
-              ) : (
-                /* --- READ MODE --- */
-                <>
-                {(!selectedMailing.metrics || (selectedMailing.status !== 'SENT' && !selectedMailing.metrics)) ? (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                    <BarChart2 size={48} className="text-gray-300 mb-4" />
-                    <h3 className="text-lg font-bold text-gray-600">Métricas no disponibles</h3>
-                    <p className="text-gray-400 max-w-sm">
-                        Esta campaña aún está en estado <strong>{selectedMailing.status}</strong>. 
-                        Pulsa "Registrar Resultados" para añadir datos manualmente.
-                    </p>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                    {/* Row 1: Positive Engagement */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        
-                        {/* Open Rate */}
-                        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                            <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Eye size={14}/> Tasa de Apertura</p>
-                                <p className="text-3xl font-bold text-slate-900 mt-1">
-                                    {calculateRate(selectedMailing.metrics!.opens, selectedMailing.metrics!.delivered)}
-                                </p>
-                            </div>
-                            <div className="bg-blue-50 text-blue-600 p-2 rounded-lg"><Eye size={20}/></div>
-                            </div>
-                            <p className="text-xs text-gray-400">{formatNumber(selectedMailing.metrics!.opens)} aperturas únicas</p>
-                            <div className="w-full bg-gray-100 h-1 mt-4 rounded-full overflow-hidden">
-                            <div className="bg-blue-500 h-full" style={{ width: calculateRate(selectedMailing.metrics!.opens, selectedMailing.metrics!.delivered) }}></div>
-                            </div>
-                        </div>
-
-                        {/* CTR */}
-                        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm relative overflow-hidden">
-                            <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><MousePointer2 size={14}/> Tasa de Clics (CTR)</p>
-                                <p className="text-3xl font-bold text-slate-900 mt-1">
-                                    {calculateRate(selectedMailing.metrics!.clicks, selectedMailing.metrics!.delivered)}
-                                </p>
-                            </div>
-                            <div className="bg-green-50 text-green-600 p-2 rounded-lg"><MousePointer2 size={20}/></div>
-                            </div>
-                            <p className="text-xs text-gray-400">{formatNumber(selectedMailing.metrics!.clicks)} clics totales</p>
-                            <div className="w-full bg-gray-100 h-1 mt-4 rounded-full overflow-hidden">
-                            <div className="bg-green-500 h-full" style={{ width: calculateRate(selectedMailing.metrics!.clicks, selectedMailing.metrics!.delivered) }}></div>
-                            </div>
-                        </div>
-
-                        {/* Deliverability */}
-                        <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                            <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <p className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Send size={14}/> Entregabilidad</p>
-                                <p className="text-3xl font-bold text-slate-900 mt-1">
-                                    {calculateRate(selectedMailing.metrics!.delivered, selectedMailing.audienceSize)}
-                                </p>
-                            </div>
-                            <div className="bg-purple-50 text-purple-600 p-2 rounded-lg"><Send size={20}/></div>
-                            </div>
-                            <p className="text-xs text-gray-400">{formatNumber(selectedMailing.metrics!.delivered)} entregados de {formatNumber(selectedMailing.audienceSize)}</p>
-                        </div>
-                    </div>
-
-                    {/* Row 2: Negative Engagement (The Audit Part) */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-red-50 p-4 rounded-xl border border-red-100 flex items-center justify-between">
-                            <div>
-                            <p className="text-xs font-bold text-red-500 uppercase flex items-center gap-1 mb-1"><Ban size={14}/> Rebotes (Bounces)</p>
-                            <p className="text-xl font-bold text-red-900">{formatNumber(selectedMailing.metrics!.bounces)}</p>
-                            <p className="text-[10px] text-red-400">Emails no existentes o buzones llenos.</p>
-                            </div>
-                            <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-red-500 font-bold text-xs shadow-sm">
-                            {calculateRate(selectedMailing.metrics!.bounces, selectedMailing.audienceSize)}
-                            </div>
-                        </div>
-
-                        <div className="bg-orange-50 p-4 rounded-xl border border-orange-100 flex items-center justify-between">
-                            <div>
-                            <p className="text-xs font-bold text-orange-600 uppercase flex items-center gap-1 mb-1"><AlertOctagon size={14}/> Bajas + Spam</p>
-                            <p className="text-xl font-bold text-orange-900">{selectedMailing.metrics!.unsubscribes + selectedMailing.metrics!.spamComplaints}</p>
-                            <p className="text-[10px] text-orange-500">Usuarios que han rechazado el correo.</p>
-                            </div>
-                            <div className="h-10 w-10 bg-white rounded-full flex items-center justify-center text-orange-500 font-bold text-xs shadow-sm">
-                            {calculateRate(selectedMailing.metrics!.unsubscribes + selectedMailing.metrics!.spamComplaints, selectedMailing.audienceSize)}
-                            </div>
-                        </div>
-                    </div>
-
-                    </div>
-                )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* Modal Detalle */}
+      {selectedCampana && (
+        <ModalDetalle campana={selectedCampana} onClose={() => setSelectedCampana(null)} />
       )}
 
-      {/* --- MODAL CREAR (FORM) --- */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setIsCreateModalOpen(false)} />
-           
-           <div className="relative bg-white w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-              <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gray-50">
-                 <h3 className="font-bold text-lg text-gray-800">Planificar Nuevo Mailing</h3>
-                 <button onClick={() => setIsCreateModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+      {/* Modal Crear/Editar */}
+      {showModal && (
+        <ModalCampana 
+          campana={editingCampana} 
+          clientes={clientes} 
+          onClose={() => setShowModal(false)} 
+          onSave={() => { fetchData(); setShowModal(false); }} 
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal Detalle
+function ModalDetalle({ campana, onClose }: { campana: CampanaMailing; onClose: () => void }) {
+  const formatNumber = (num: number) => new Intl.NumberFormat('es-ES').format(num);
+  const formatPercent = (value: number, total: number) => total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+  const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const getPlataformaNombre = (plat: string) => {
+    const plats: Record<string, string> = { MAILCHIMP: 'Mailchimp', ACTIVECAMPAIGN: 'ActiveCampaign', KLAVIYO: 'Klaviyo', BREVO: 'Brevo' };
+    return plats[plat] || plat;
+  };
+  const getEstadoStyle = (est: string) => {
+    const styles: Record<string, string> = { ENVIADA: 'bg-green-100 text-green-700', PROGRAMADA: 'bg-blue-100 text-blue-700', BORRADOR: 'bg-slate-100 text-slate-700' };
+    return styles[est] || 'bg-slate-100 text-slate-700';
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl">
+        <div className="p-6 border-b flex justify-between items-start">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getEstadoStyle(campana.estado)}`}>{campana.estado}</span>
+              <span className="text-xs text-slate-400">{getPlataformaNombre(campana.plataforma)}</span>
+            </div>
+            <h2 className="text-xl font-bold text-slate-900">{campana.nombreInterno}</h2>
+            <p className="text-slate-500">{campana.cliente.name}</p>
+            {campana.asunto && <p className="text-sm text-slate-600 mt-1">📧 {campana.asunto}</p>}
+          </div>
+          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600"><X size={20} /></button>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {campana.estado === 'ENVIADA' ? (
+            <>
+              {/* Métricas principales */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Entregados</p>
+                  <p className="text-2xl font-bold text-green-600">{formatNumber(campana.entregados)}</p>
+                  <p className="text-xs text-slate-400">de {formatNumber(campana.tamanoAudiencia)}</p>
+                </Card>
+                <Card>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Aperturas</p>
+                  <p className="text-2xl font-bold text-purple-600">{formatPercent(campana.aperturas, campana.entregados)}%</p>
+                  <p className="text-xs text-slate-400">{formatNumber(campana.aperturas)} emails</p>
+                </Card>
+                <Card>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Clics</p>
+                  <p className="text-2xl font-bold text-orange-600">{formatPercent(campana.clics, campana.aperturas)}%</p>
+                  <p className="text-xs text-slate-400">{formatNumber(campana.clics)} clics</p>
+                </Card>
               </div>
 
-              <form onSubmit={handleCreate} className="p-6 overflow-y-auto space-y-5">
-                 {/* Form content remains same... */}
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cliente <span className="text-red-500">*</span></label>
-                       <select 
-                         required
-                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 bg-white"
-                         value={formData.client}
-                         onChange={e => setFormData({...formData, client: e.target.value})}
-                       >
-                          <option value="">Seleccionar cliente...</option>
-                          {MOCK_CLIENTS.map(c => <option key={c} value={c}>{c}</option>)}
-                       </select>
-                    </div>
-                    <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nombre Interno <span className="text-red-500">*</span></label>
-                       <input 
-                         required
-                         type="text" 
-                         placeholder="Ej: Newsletter Octubre" 
-                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
-                         value={formData.internalName}
-                         onChange={e => setFormData({...formData, internalName: e.target.value})}
-                       />
-                    </div>
-                 </div>
+              {/* Métricas negativas */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Rebotes</p>
+                  <p className="text-xl font-bold text-red-600">{formatNumber(campana.rebotes)}</p>
+                  <p className="text-xs text-slate-400">{formatPercent(campana.rebotes, campana.tamanoAudiencia)}%</p>
+                </Card>
+                <Card>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Bajas</p>
+                  <p className="text-xl font-bold text-orange-600">{formatNumber(campana.bajas)}</p>
+                  <p className="text-xs text-slate-400">{formatPercent(campana.bajas, campana.entregados)}%</p>
+                </Card>
+                <Card>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Spam</p>
+                  <p className="text-xl font-bold text-red-600">{formatNumber(campana.spam)}</p>
+                  <p className="text-xs text-slate-400">{formatPercent(campana.spam, campana.entregados)}%</p>
+                </Card>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8 text-slate-400">
+              <Mail size={48} className="mx-auto mb-4 opacity-30" />
+              <p>Las métricas estarán disponibles cuando la campaña sea enviada</p>
+            </div>
+          )}
 
-                 <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asunto (Subject Line)</label>
-                    <input 
-                      type="text" 
-                      placeholder="El asunto que verá el usuario..." 
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
-                      value={formData.subject}
-                      onChange={e => setFormData({...formData, subject: e.target.value})}
-                    />
-                 </div>
+          {campana.fechaEnvio && (
+            <p className="text-sm text-slate-500 text-center">
+              📅 {campana.estado === 'PROGRAMADA' ? 'Programada para' : 'Enviada el'}: {formatDate(campana.fechaEnvio)}
+            </p>
+          )}
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Plataforma</label>
-                       <select 
-                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 bg-white"
-                         value={formData.platform}
-                         onChange={e => setFormData({...formData, platform: e.target.value as PlatformType})}
-                       >
-                          <option value="MAILCHIMP">Mailchimp</option>
-                          <option value="ACTIVECAMPAIGN">ActiveCampaign</option>
-                          <option value="KLAVIYO">Klaviyo</option>
-                          <option value="BREVO">Brevo</option>
-                       </select>
-                    </div>
-                    <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado Inicial</label>
-                       <select 
-                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 bg-white"
-                         value={formData.status}
-                         onChange={e => setFormData({...formData, status: e.target.value as StatusType})}
-                       >
-                          <option value="DRAFT">Borrador</option>
-                          <option value="SCHEDULED">Programado</option>
-                          <option value="SENT">Enviado (Log manual)</option>
-                       </select>
-                    </div>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha Envío</label>
-                       <input 
-                         type="date" 
-                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
-                         value={formData.sendDate}
-                         onChange={e => setFormData({...formData, sendDate: e.target.value})}
-                       />
-                    </div>
-                    <div>
-                       <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tamaño Audiencia (Aprox)</label>
-                       <input 
-                         type="number" 
-                         placeholder="0"
-                         className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
-                         value={formData.audienceSize}
-                         onChange={e => setFormData({...formData, audienceSize: e.target.value})}
-                       />
-                    </div>
-                 </div>
-
-                 <div className="pt-4 flex justify-end gap-3 border-t border-gray-50 mt-4">
-                   <button 
-                     type="button" 
-                     onClick={() => setIsCreateModalOpen(false)} 
-                     className="px-4 py-2 text-slate-500 hover:bg-slate-100 rounded-lg font-medium text-sm transition-colors"
-                   >
-                     Cancelar
-                   </button>
-                   <button 
-                     type="submit" 
-                     className="px-6 py-2 bg-elio-yellow text-white rounded-lg font-bold hover:bg-elio-yellow-hover transition-colors shadow-lg shadow-elio-yellow/20 flex items-center"
-                   >
-                     <Save size={18} className="mr-2" /> Guardar Mailing
-                   </button>
-                 </div>
-
-              </form>
-           </div>
+          {campana.notas && (
+            <div className="p-3 bg-slate-50 rounded-lg">
+              <p className="text-xs font-bold text-slate-500 mb-1">Notas:</p>
+              <p className="text-sm text-slate-600">{campana.notas}</p>
+            </div>
+          )}
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
 
+// Modal Crear/Editar
+function ModalCampana({ campana, clientes, onClose, onSave }: { 
+  campana: CampanaMailing | null; 
+  clientes: Cliente[]; 
+  onClose: () => void; 
+  onSave: () => void; 
+}) {
+  const [form, setForm] = useState({
+    clienteId: campana?.clienteId || '',
+    nombreInterno: campana?.nombreInterno || '',
+    asunto: campana?.asunto || '',
+    plataforma: campana?.plataforma || 'MAILCHIMP',
+    estado: campana?.estado || 'BORRADOR',
+    fechaEnvio: campana?.fechaEnvio?.split('T')[0] || '',
+    tamanoAudiencia: campana?.tamanoAudiencia?.toString() || '',
+    entregados: campana?.entregados?.toString() || '0',
+    aperturas: campana?.aperturas?.toString() || '0',
+    clics: campana?.clics?.toString() || '0',
+    rebotes: campana?.rebotes?.toString() || '0',
+    bajas: campana?.bajas?.toString() || '0',
+    spam: campana?.spam?.toString() || '0',
+    notas: campana?.notas || ''
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    await fetch('/api/dashboard?tipo=mailing', {
+      method: campana ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(campana ? { id: campana.id, ...form } : form)
+    });
+    setSaving(false);
+    onSave();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
+        <div className="p-6 border-b"><h2 className="text-xl font-bold">{campana ? 'Editar' : 'Nueva'} Campaña</h2></div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div>
+            <label className="block text-sm font-medium mb-1">Cliente *</label>
+            <select value={form.clienteId} onChange={e => setForm({ ...form, clienteId: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required>
+              <option value="">Seleccionar...</option>
+              {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Nombre Interno *</label>
+            <input type="text" value={form.nombreInterno} onChange={e => setForm({ ...form, nombreInterno: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Asunto del Email</label>
+            <input type="text" value={form.asunto} onChange={e => setForm({ ...form, asunto: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Plataforma *</label>
+              <select value={form.plataforma} onChange={e => setForm({ ...form, plataforma: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                <option value="MAILCHIMP">Mailchimp</option>
+                <option value="ACTIVECAMPAIGN">ActiveCampaign</option>
+                <option value="KLAVIYO">Klaviyo</option>
+                <option value="BREVO">Brevo</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Estado</label>
+              <select value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                <option value="BORRADOR">Borrador</option>
+                <option value="PROGRAMADA">Programada</option>
+                <option value="ENVIADA">Enviada</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Fecha Envío</label>
+              <input type="date" value={form.fechaEnvio} onChange={e => setForm({ ...form, fechaEnvio: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Tamaño Audiencia</label>
+              <input type="number" value={form.tamanoAudiencia} onChange={e => setForm({ ...form, tamanoAudiencia: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+            </div>
+          </div>
+
+          {form.estado === 'ENVIADA' && (
+            <>
+              <p className="text-sm font-bold text-slate-700 mt-4">Métricas de la campaña:</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1">Entregados</label>
+                  <input type="number" value={form.entregados} onChange={e => setForm({ ...form, entregados: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Aperturas</label>
+                  <input type="number" value={form.aperturas} onChange={e => setForm({ ...form, aperturas: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Clics</label>
+                  <input type="number" value={form.clics} onChange={e => setForm({ ...form, clics: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Rebotes</label>
+                  <input type="number" value={form.rebotes} onChange={e => setForm({ ...form, rebotes: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Bajas</label>
+                  <input type="number" value={form.bajas} onChange={e => setForm({ ...form, bajas: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Spam</label>
+                  <input type="number" value={form.spam} onChange={e => setForm({ ...form, spam: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Notas</label>
+            <textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={2} />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

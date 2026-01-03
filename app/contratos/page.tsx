@@ -90,8 +90,14 @@ export default function ContratosPage() {
         fetch('/api/clientes')
       ]);
       if (dashRes.ok) setDashboard(await dashRes.json());
-      if (contRes.ok) setContratos(await contRes.json());
-      if (servRes.ok) setServicios(await servRes.json());
+      if (contRes.ok) {
+        const data = await contRes.json();
+        setContratos(Array.isArray(data) ? data : []);
+      }
+      if (servRes.ok) {
+        const data = await servRes.json();
+        setServicios(Array.isArray(data) ? data : []);
+      }
       if (cliRes.ok) setClientes(await cliRes.json());
     } catch (error) {
       console.error('Error:', error);

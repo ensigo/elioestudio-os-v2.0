@@ -110,8 +110,14 @@ export default function HostingPage() {
         fetch('/api/hosting?entity=planes')
       ]);
       if (dashRes.ok) setDashboard(await dashRes.json());
-      if (hostRes.ok) setHostings(await hostRes.json());
-      if (domRes.ok) setDominios(await domRes.json());
+      if (hostRes.ok) {
+        const data = await hostRes.json();
+        setHostings(Array.isArray(data) ? data : []);
+      }
+      if (domRes.ok) {
+        const data = await domRes.json();
+        setDominios(Array.isArray(data) ? data : []);
+      }
       if (provRes.ok) setProveedores(await provRes.json());
       if (cliRes.ok) setClientes(await cliRes.json());
       if (planRes.ok) setPlanes(await planRes.json());

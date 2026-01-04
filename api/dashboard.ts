@@ -221,6 +221,7 @@ export default async function handler(req: any, res: any) {
       }
 
       // ============ DASHBOARD GENERAL (existente) ============
+      if (!tipo) {
       const today = new Date();
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       const endOfWeek = new Date(today);
@@ -295,8 +296,8 @@ export default async function handler(req: any, res: any) {
         eventosProximos,
         tareasRecientes
       });
-    }
-    
+      }
+
     // ============ SEM & SOCIAL ADS ============
       if (tipo === 'sem-campanas') {
         if (req.method === 'GET') {

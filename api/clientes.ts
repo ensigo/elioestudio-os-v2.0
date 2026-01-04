@@ -86,6 +86,9 @@ async function handleClientes(req: any, res: any) {
   if (req.method === 'DELETE') {
     const { id } = req.body;
     if (!id) return res.status(400).json({ error: 'id es requerido' });
+    // Eliminar relaciones primero
+    await prisma.clienteUsuario.deleteMany({ where: { clienteId: id } });
+    await prisma.credencial.deleteMany({ where: { clienteId: id } });
     await prisma.cliente.delete({ where: { id } });
     return res.status(200).json({ success: true });
   }

@@ -206,7 +206,7 @@ async function handleRecurrentes(req: any, res: any) {
 
 // ============ GENERACIÓN AUTOMÁTICA DE TAREAS ============
 async function handleGenerarRecurrentes(req: any, res: any) {
-  if (req.method !== 'POST') {
+  if (req.method !== 'POST' && req.method !== 'GET') {
     return res.status(405).json({ error: 'Usar POST' });
   }
 

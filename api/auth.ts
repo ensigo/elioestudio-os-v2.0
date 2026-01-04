@@ -25,7 +25,7 @@ export default async function handler(req: any, res: any) {
           return res.status(400).json({ error: 'Email y contraseña son obligatorios' });
         }
 
-        const usuario = await prisma.usuario.findUnique({
+        const usuario = await prisma.usuario.findFirst({
           where: { email: email.toLowerCase() }
         });
 
@@ -55,7 +55,7 @@ export default async function handler(req: any, res: any) {
           return res.status(400).json({ error: 'Datos incompletos' });
         }
 
-        const usuario = await prisma.usuario.findUnique({
+        const usuario = await prisma.usuario.findFirst({
           where: { id: userId }
         });
 
@@ -108,7 +108,7 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'ID de usuario requerido' });
       }
 
-      const usuario = await prisma.usuario.findUnique({
+      const usuario = await prisma.usuario.findFirst({
         where: { id: userId as string }
       });
 

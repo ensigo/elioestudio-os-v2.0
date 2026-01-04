@@ -117,6 +117,10 @@ export const TasksPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          description: data.description || null,
+          isRecurring: data.isRecurring || false,
+          recurrenceFrequency: data.recurrenceFrequency || null,
+          leadTime: data.leadTime || 3,
           userId: usuario?.id || '',
           tareaId
         })
@@ -147,6 +151,10 @@ export const TasksPage = () => {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          description: data.description || null,
+          isRecurring: data.isRecurring || false,
+          recurrenceFrequency: data.recurrenceFrequency || null,
+          leadTime: data.leadTime || 3,
           id: activeTimer.id
         })
       });
@@ -174,6 +182,10 @@ export const TasksPage = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          description: data.description || null,
+          isRecurring: data.isRecurring || false,
+          recurrenceFrequency: data.recurrenceFrequency || null,
+          leadTime: data.leadTime || 3,
           title: data.title,
           proyectoId: data.proyectoId,
           type: data.type,

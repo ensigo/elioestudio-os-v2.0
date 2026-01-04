@@ -65,20 +65,20 @@ async function handleClientes(req: any, res: any) {
   }
 
   if (req.method === 'POST') {
-    const { name, email, phone, taxId, address, contactPerson, status, responsibleId, metricoolBrandId } = req.body;
+    const { name, nombreComercial, email, phone, taxId, address, contactPerson, status, responsibleId, metricoolBrandId } = req.body;
     if (!name) return res.status(400).json({ error: 'name es requerido' });
     const cliente = await prisma.cliente.create({
-      data: { name, email, phone, taxId, address, contactPerson, status: status || 'ACTIVE', responsibleId, metricoolBrandId, lastActivity: new Date().toISOString() }
+      data: { name, nombreComercial, email, phone, taxId, address, contactPerson, status: status || 'ACTIVE', responsibleId, metricoolBrandId, lastActivity: new Date().toISOString() }
     });
     return res.status(201).json(cliente);
   }
 
   if (req.method === 'PUT') {
-    const { id, name, email, phone, taxId, address, contactPerson, status, responsibleId, metricoolBrandId } = req.body;
+    const { id, name, nombreComercial, email, phone, taxId, address, contactPerson, status, responsibleId, metricoolBrandId } = req.body;
     if (!id) return res.status(400).json({ error: 'id es requerido' });
     const cliente = await prisma.cliente.update({
       where: { id },
-      data: { name, email, phone, taxId, address, contactPerson, status, responsibleId, metricoolBrandId, lastActivity: new Date().toISOString() }
+      data: { name, nombreComercial, email, phone, taxId, address, contactPerson, status, responsibleId, metricoolBrandId, lastActivity: new Date().toISOString() }
     });
     return res.status(200).json(cliente);
   }

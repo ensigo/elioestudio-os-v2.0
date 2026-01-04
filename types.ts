@@ -56,6 +56,7 @@ export interface ClientCredential {
 }
 
 export interface Client {
+  nombreComercial?: string;
   id: string;
   name: string;
   fiscalData: Record<string, any>; // JSONB

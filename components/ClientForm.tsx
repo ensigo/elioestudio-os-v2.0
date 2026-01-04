@@ -8,6 +8,7 @@ interface ClientFormProps {
   usuarios?: any[];
   initialData?: {
     name: string;
+    nombreComercial?: string;
     email: string;
     phone: string;
     taxId: string;
@@ -21,6 +22,7 @@ interface ClientFormProps {
 export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usuarios = [], initialData }) => {
   const [formData, setFormData] = useState({
     name: '',
+    nombreComercial: '',
     email: '',
     phone: '',
     taxId: '',
@@ -37,6 +39,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
     if (initialData) {
       setFormData({
         name: initialData.name || '',
+        nombreComercial: initialData.nombreComercial || '',
         email: initialData.email || '',
         phone: initialData.phone || '',
         taxId: initialData.taxId || '',
@@ -51,7 +54,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = 'El Nombre Fiscal es obligatorio.';
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -65,7 +67,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Name Input */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Nombre Fiscal <span className="text-red-500">*</span>
@@ -74,19 +75,27 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
           type="text"
           value={formData.name}
           onChange={(e) => setFormData({...formData, name: e.target.value})}
-          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none transition-all ${
-            errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'
-          }`}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none transition-all ${errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'}`}
           placeholder="Ej: TechSolutions S.L."
         />
         {errors.name && <p className="text-xs text-red-500 mt-1 flex items-center"><AlertCircle size={10} className="mr-1"/> {errors.name}</p>}
       </div>
 
-      {/* Tax ID */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          CIF / NIF
+          Nombre Comercial <span className="text-gray-400 text-xs font-normal">(cómo lo llamáis internamente)</span>
         </label>
+        <input
+          type="text"
+          value={formData.nombreComercial}
+          onChange={(e) => setFormData({...formData, nombreComercial: e.target.value})}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-elio-yellow/50 outline-none transition-all"
+          placeholder="Ej: Scava Cocinas"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">CIF / NIF</label>
         <input
           type="text"
           value={formData.taxId}
@@ -96,12 +105,9 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
         />
       </div>
 
-      {/* Email & Phone in 2 columns */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
             type="email"
             value={formData.email}
@@ -111,9 +117,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Teléfono
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
           <input
             type="tel"
             value={formData.phone}
@@ -124,11 +128,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
         </div>
       </div>
 
-      {/* Address */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Dirección Fiscal
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Dirección Fiscal</label>
         <input
           type="text"
           value={formData.address}
@@ -138,11 +139,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
         />
       </div>
 
-      {/* Contact Person */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Persona de Contacto
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Persona de Contacto</label>
         <input
           type="text"
           value={formData.contactPerson}
@@ -152,11 +150,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
         />
       </div>
 
-      {/* Responsible Select */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Responsable Interno
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Responsable Interno</label>
         <select
           value={formData.responsibleId}
           onChange={(e) => setFormData({...formData, responsibleId: e.target.value})}
@@ -169,7 +164,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
         </select>
       </div>
 
-      {/* Status Select */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
         <select
@@ -185,17 +179,10 @@ export const ClientForm: React.FC<ClientFormProps> = ({ onSubmit, onCancel, usua
       </div>
 
       <div className="pt-4 flex items-center justify-end space-x-3">
-        <button 
-          type="button" 
-          onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-        >
+        <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
           Cancelar
         </button>
-        <button 
-          type="submit"
-          className="px-4 py-2 text-sm font-medium text-white bg-elio-black hover:bg-gray-900 rounded-lg transition-colors shadow-sm"
-        >
+        <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-elio-black hover:bg-gray-900 rounded-lg transition-colors shadow-sm">
           {isEditing ? 'Guardar Cambios' : 'Crear Cliente'}
         </button>
       </div>

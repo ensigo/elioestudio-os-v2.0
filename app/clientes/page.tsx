@@ -17,16 +17,15 @@ export const ClientsPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
   
-  // Obtener nombre del responsable
   const getResponsibleName = (responsibleId: string | null) => {
     if (!responsibleId) return 'Sin asignar';
     const usuario = usuarios.find(u => u.id === responsibleId);
     return usuario ? usuario.name : 'Sin asignar';
   };
 
-  // Formatear fecha de última actividad
   const formatLastActivity = (dateStr: string) => {
     if (!dateStr || dateStr === 'Sin actividad') return 'Sin actividad';
     try {
@@ -50,7 +49,6 @@ export const ClientsPage = () => {
     }
   };
 
-  // Simular usuario actual (en producción vendría del contexto de auth)
   const currentUser = { id: '1', role: 'ADMIN', name: 'Admin' };
 
   useEffect(() => {
@@ -73,6 +71,7 @@ export const ClientsPage = () => {
         const clientesFormateados: Client[] = clientesData.map((cliente: any) => ({
           id: cliente.id,
           name: cliente.name,
+          nombreComercial: cliente.nombreComercial || '',
           fiscalData: { taxId: cliente.taxId || '' },
           status: cliente.status || 'ACTIVE',
           responsibleId: cliente.responsibleId || '',
@@ -98,7 +97,6 @@ export const ClientsPage = () => {
     fetchData();
   }, []);
 
-  // Cerrar menú al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -116,6 +114,7 @@ export const ClientsPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: data.name,
+          nombreComercial: data.nombreComercial || null,
           email: data.email || null,
           phone: data.phone || null,
           taxId: data.taxId || null,
@@ -136,6 +135,7 @@ export const ClientsPage = () => {
       const clienteFormateado: Client = {
         id: nuevoCliente.id,
         name: nuevoCliente.name,
+        nombreComercial: nuevoCliente.nombreComercial || '',
         fiscalData: { taxId: nuevoCliente.taxId },
         status: nuevoCliente.status,
         responsibleId: nuevoCliente.responsibleId || '',
@@ -165,6 +165,7 @@ export const ClientsPage = () => {
         body: JSON.stringify({
           id: clientToEdit.id,
           name: data.name,
+          nombreComercial: data.nombreComercial || null,
           email: data.email || null,
           phone: data.phone || null,
           taxId: data.taxId || null,
@@ -185,6 +186,7 @@ export const ClientsPage = () => {
       const clienteFormateado: Client = {
         id: clienteActualizado.id,
         name: clienteActualizado.name,
+        nombreComercial: clienteActualizado.nombreComercial || '',
         fiscalData: { taxId: clienteActualizado.taxId },
         status: clienteActualizado.status,
         responsibleId: clienteActualizado.responsibleId || '',
@@ -243,7 +245,14 @@ export const ClientsPage = () => {
     }
   };
 
-  // --- RENDER DETAIL VIEW ---
+  // Filtrar clientes por búsqueda
+  const filteredClients = clients.filter(client => {
+    const term = searchTerm.toLowerCase();
+    return client.name.toLowerCase().includes(term) || 
+           (client.nombreComercial && client.nombreComercial.toLowerCase().includes(term)) ||
+           (client.fiscalData?.taxId && client.fiscalData.taxId.toLowerCase().includes(term));
+  });
+
   if (selectedClientId) {
     const selectedClient = clients.find(c => c.id === selectedClientId);
     if (!selectedClient) return <div>Error: Cliente no encontrado</div>;
@@ -280,7 +289,6 @@ export const ClientsPage = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* Header Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
            <h1 className="text-2xl font-bold text-gray-900">Cartera de Clientes</h1>
@@ -292,6 +300,8 @@ export const ClientsPage = () => {
             <input 
               type="text" 
               placeholder="Buscar cliente..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-elio-yellow w-full sm:w-64"
             />
           </div>
@@ -305,12 +315,11 @@ export const ClientsPage = () => {
         </div>
       </div>
 
-      {/* Clients Table */}
       <Card noPadding className="overflow-visible">
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
              <tr>
-               <th className="px-6 py-4 font-semibold text-gray-600">Cliente / Razón Social</th>
+               <th className="px-6 py-4 font-semibold text-gray-600">Cliente</th>
                <th className="px-6 py-4 font-semibold text-gray-600">Responsable</th>
                <th className="px-6 py-4 font-semibold text-gray-600">Estado</th>
                <th className="px-6 py-4 font-semibold text-gray-600">Última Actividad</th>
@@ -318,14 +327,14 @@ export const ClientsPage = () => {
              </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {clients.length === 0 && !isLoading ? (
+            {filteredClients.length === 0 && !isLoading ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  <p>No se encontraron clientes. ¡Crea el primero!</p>
+                  <p>{searchTerm ? 'No se encontraron clientes con esa búsqueda.' : 'No se encontraron clientes. ¡Crea el primero!'}</p>
                 </td>
               </tr>
             ) : (
-              clients.map(client => (
+              filteredClients.map(client => (
                 <tr 
                   key={client.id} 
                   onClick={() => setSelectedClientId(client.id)}
@@ -335,8 +344,17 @@ export const ClientsPage = () => {
                 >
                   <td className="px-6 py-4">
                     <div className="flex flex-col">
-                      <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors">{client.name}</span>
-                      <span className="text-xs text-gray-400">{client.fiscalData.taxId}</span>
+                      {client.nombreComercial ? (
+                        <>
+                          <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors">{client.nombreComercial}</span>
+                          <span className="text-xs text-gray-400">{client.name}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors">{client.name}</span>
+                          <span className="text-xs text-gray-400">{client.fiscalData?.taxId || ''}</span>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -370,7 +388,6 @@ export const ClientsPage = () => {
                         <MoreVertical size={18} />
                       </button>
                       
-                      {/* Dropdown Menu */}
                       {openMenuId === client.id && (
                         <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
                           <button
@@ -385,7 +402,6 @@ export const ClientsPage = () => {
                             Ver Detalles
                           </button>
                           
-                          {/* Solo mostrar editar si es admin */}
                           {currentUser.role === 'ADMIN' && (
                             <>
                               <button
@@ -422,7 +438,6 @@ export const ClientsPage = () => {
         </table>
       </Card>
 
-      {/* Creation Modal */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
@@ -435,7 +450,6 @@ export const ClientsPage = () => {
         />
       </Modal>
 
-      {/* Edit Modal */}
       <Modal 
         isOpen={isEditModalOpen} 
         onClose={() => {
@@ -453,6 +467,7 @@ export const ClientsPage = () => {
           usuarios={usuarios}
           initialData={clientToEdit ? {
             name: clientToEdit.name,
+            nombreComercial: clientToEdit.nombreComercial || '',
             email: clientToEdit.email || '',
             phone: clientToEdit.phone || '',
             taxId: clientToEdit.fiscalData?.taxId || '',

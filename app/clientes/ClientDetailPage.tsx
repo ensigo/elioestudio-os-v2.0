@@ -72,7 +72,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientForm, setEditClientForm] = useState({
-    name: client.name, email: client.email || '', phone: client.phone || '',
+    name: client.name, nombreComercial: (client as any).nombreComercial || "", email: client.email || '', phone: client.phone || '',
     address: client.address || '', contactPerson: client.contactPerson || '',
     taxId: client.fiscalData?.taxId || '', status: client.status,
     metricoolBrandId: (client as any).metricoolBrandId || ''
@@ -170,7 +170,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
     try {
       const res = await fetch('/api/clientes', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: client.id, ...editClientForm })
+        body: JSON.stringify({ id: client.id, name: editClientForm.name, nombreComercial: (editClientForm as any).nombreComercial || null, email: editClientForm.email, phone: editClientForm.phone, address: editClientForm.address, contactPerson: editClientForm.contactPerson, taxId: editClientForm.taxId, status: editClientForm.status, metricoolBrandId: editClientForm.metricoolBrandId })
       });
       if (res.ok) {
         const updated = await res.json();
@@ -319,7 +319,8 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
             )}>
               {isEditingClient ? (
                 <div className="space-y-3">
-                  <input value={editClientForm.name} onChange={e => setEditClientForm({...editClientForm, name: e.target.value})} placeholder="Nombre" className="w-full px-3 py-2 border rounded-lg text-sm" />
+                  <input value={editClientForm.name} onChange={e => setEditClientForm({...editClientForm, name: e.target.value})} placeholder="Nombre Fiscal" className="w-full px-3 py-2 border rounded-lg text-sm" />
+                  <input value={(editClientForm as any).nombreComercial || ""} onChange={e => setEditClientForm({...editClientForm, nombreComercial: e.target.value} as any)} placeholder="Nombre Comercial (interno)" className="w-full px-3 py-2 border rounded-lg text-sm" />
                   <input value={editClientForm.taxId} onChange={e => setEditClientForm({...editClientForm, taxId: e.target.value})} placeholder="CIF/NIF" className="w-full px-3 py-2 border rounded-lg text-sm" />
                   <input value={editClientForm.address} onChange={e => setEditClientForm({...editClientForm, address: e.target.value})} placeholder="Dirección" className="w-full px-3 py-2 border rounded-lg text-sm" />
                   <div className="grid grid-cols-2 gap-2">

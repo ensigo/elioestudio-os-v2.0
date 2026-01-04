@@ -131,6 +131,7 @@ model Proyecto {
   responsable   Usuario?  @relation(fields: [responsibleId], references: [id])
   tareas        Tarea[]
   campanasSEM   CampanaSEM[]
+  tareasRecurrentes TareaRecurrente[]
 
   @@map("proyectos")
 }
@@ -542,4 +543,33 @@ model DocumentoSoporte {
   updatedAt   DateTime @updatedAt
   
   @@map("documentos_soporte")
+}
+
+// ============ TAREAS RECURRENTES ============
+model TareaRecurrente {
+  id                String    @id @default(cuid())
+  titulo            String
+  descripcion       String?
+  proyectoId        String
+  assigneeId        String?
+  prioridad         String    @default("MEDIUM")
+  tipo              String    @default("OPERATIONAL")
+  horasEstimadas    Float?
+  
+  // Configuración de recurrencia
+  frecuencia        String    // DAILY, WEEKLY, MONTHLY, QUARTERLY
+  diasAntelacion    Int       @default(3)
+  diaEjecucion      Int?      // 1-7 para semanal (1=lunes), 1-31 para mensual
+  activa            Boolean   @default(true)
+  
+  // Control
+  ultimaGeneracion  DateTime?
+  proximaGeneracion DateTime?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  proyecto          Proyecto  @relation(fields: [proyectoId], references: [id])
+  
+  @@map("tareas_recurrentes")
 }

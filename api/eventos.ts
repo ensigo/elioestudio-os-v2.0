@@ -17,7 +17,7 @@ export default async function handler(req: any, res: any) {
 
       const nuevoEvento = await prisma.eventos.create({
         data: {
-          id: require('crypto').randomUUID(),
+          id: 'evt_' + Date.now().toString(36) + Math.random().toString(36).substring(2, 9),
           title, description: description || null, type: type || 'MEETING',
           startDate: new Date(startDate), endDate: endDate ? new Date(endDate) : null,
           startTime: startTime || null, endTime: endTime || null,

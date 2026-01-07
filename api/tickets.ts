@@ -1,21 +1,51 @@
 import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {
   try {
-    // GET - Obtener todos los tickets
+    const { resource } = req.query;
+
+    // Rutas para respuestas
+    if (resource === 'respuestas') {
+      return handleRespuestas(req, res);
+    }
+
+    // GET - Obtener tickets
     if (req.method === 'GET') {
+      const { id } = req.query;
+      
+      if (id) {
+        // Obtener un ticket específico con sus respuestas
+        const ticket = await prisma.ticket.findUnique({
+          where: { id },
+          include: {
+            sender: true,
+            recipient: true,
+            respuestas: {
+              include: { usuario: true },
+              orderBy: { createdAt: 'asc' }
+            }
+          }
+        });
+        return res.status(200).json(ticket);
+      }
+      
       const tickets = await prisma.ticket.findMany({
         include: {
-          sender: { select: { id: true, name: true, email: true, role: true } },
-          recipient: { select: { id: true, name: true, email: true, role: true } }
+          sender: true,
+          recipient: true,
+          respuestas: {
+            include: { usuario: true },
+            orderBy: { createdAt: 'asc' }
+          }
         },
         orderBy: { createdAt: 'desc' }
       });
       return res.status(200).json(tickets);
     }
 
-    // POST - Crear un nuevo ticket
+    // POST - Crear ticket
     if (req.method === 'POST') {
       const { title, description, priority, senderId, recipientId } = req.body;
       
@@ -28,13 +58,15 @@ export default async function handler(req: any, res: any) {
           title,
           description: description || null,
           priority: priority || 'MEDIUM',
+          status: 'OPEN',
           senderId,
           recipientId: recipientId || null,
-          readBy: [senderId] // El remitente ya lo ha "leído"
+          readBy: [senderId]
         },
         include: {
-          sender: { select: { id: true, name: true, email: true, role: true } },
-          recipient: { select: { id: true, name: true, email: true, role: true } }
+          sender: true,
+          recipient: true,
+          respuestas: true
         }
       });
 
@@ -43,59 +75,29 @@ export default async function handler(req: any, res: any) {
 
     // PUT - Actualizar ticket
     if (req.method === 'PUT') {
-      const { id, title, description, status, priority, recipientId, markReadBy } = req.body;
+      const { id, title, description, status, priority, recipientId, readBy } = req.body;
       
       if (!id) {
         return res.status(400).json({ error: 'ID es obligatorio' });
       }
 
-      // Si solo queremos marcar como leído
-      if (markReadBy) {
-        const ticket = await prisma.ticket.findUnique({ where: { id } });
-        if (!ticket) {
-          return res.status(404).json({ error: 'Ticket no encontrado' });
-        }
-
-        const readByArray = ticket.readBy || [];
-        if (!readByArray.includes(markReadBy)) {
-          const ticketActualizado = await prisma.ticket.update({
-            where: { id },
-            data: {
-              readBy: [...readByArray, markReadBy]
-            },
-            include: {
-              sender: { select: { id: true, name: true, email: true, role: true } },
-              recipient: { select: { id: true, name: true, email: true, role: true } }
-            }
-          });
-          return res.status(200).json(ticketActualizado);
-        }
-        
-        // Ya estaba leído, devolver sin cambios
-        const ticketSinCambios = await prisma.ticket.findUnique({
-          where: { id },
-          include: {
-            sender: { select: { id: true, name: true, email: true, role: true } },
-            recipient: { select: { id: true, name: true, email: true, role: true } }
-          }
-        });
-        return res.status(200).json(ticketSinCambios);
-      }
-
-      // Actualización normal
-      const dataToUpdate: any = {};
-      if (title !== undefined) dataToUpdate.title = title;
-      if (description !== undefined) dataToUpdate.description = description;
-      if (status !== undefined) dataToUpdate.status = status;
-      if (priority !== undefined) dataToUpdate.priority = priority;
-      if (recipientId !== undefined) dataToUpdate.recipientId = recipientId;
-
       const ticketActualizado = await prisma.ticket.update({
         where: { id },
-        data: dataToUpdate,
+        data: {
+          title,
+          description,
+          status,
+          priority,
+          recipientId,
+          readBy
+        },
         include: {
-          sender: { select: { id: true, name: true, email: true, role: true } },
-          recipient: { select: { id: true, name: true, email: true, role: true } }
+          sender: true,
+          recipient: true,
+          respuestas: {
+            include: { usuario: true },
+            orderBy: { createdAt: 'asc' }
+          }
         }
       });
 
@@ -122,4 +124,64 @@ export default async function handler(req: any, res: any) {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+// ============ HANDLER RESPUESTAS ============
+async function handleRespuestas(req: any, res: any) {
+  // GET - Obtener respuestas de un ticket
+  if (req.method === 'GET') {
+    const { ticketId } = req.query;
+    
+    if (!ticketId) {
+      return res.status(400).json({ error: 'ticketId es obligatorio' });
+    }
+
+    const respuestas = await prisma.ticketRespuesta.findMany({
+      where: { ticketId },
+      include: { usuario: true },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    return res.status(200).json(respuestas);
+  }
+
+  // POST - Crear respuesta
+  if (req.method === 'POST') {
+    const { ticketId, userId, mensaje } = req.body;
+
+    if (!ticketId || !userId || !mensaje) {
+      return res.status(400).json({ error: 'ticketId, userId y mensaje son obligatorios' });
+    }
+
+    const nuevaRespuesta = await prisma.ticketRespuesta.create({
+      data: {
+        ticketId,
+        userId,
+        mensaje
+      },
+      include: { usuario: true }
+    });
+
+    // Actualizar el ticket para marcarlo como actualizado
+    await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { updatedAt: new Date() }
+    });
+
+    return res.status(201).json(nuevaRespuesta);
+  }
+
+  // DELETE - Eliminar respuesta
+  if (req.method === 'DELETE') {
+    const { id } = req.body;
+
+    if (!id) {
+      return res.status(400).json({ error: 'ID es obligatorio' });
+    }
+
+    await prisma.ticketRespuesta.delete({ where: { id } });
+    return res.status(200).json({ success: true });
+  }
+
+  return res.status(405).json({ error: 'Método no permitido' });
 }

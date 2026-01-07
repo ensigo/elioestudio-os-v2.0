@@ -110,6 +110,7 @@ model Usuario {
   ticketsReceived                           Ticket[]   @relation("TicketRecipient")
   ticketsSent                               Ticket[]   @relation("TicketSender")
   clientesAsignados                         ClienteUsuario[]
+  ticketRespuestas                          TicketRespuesta[]
 
   @@map("usuarios")
 }
@@ -185,6 +186,7 @@ model Ticket {
   
   sender      Usuario  @relation("TicketSender", fields: [senderId], references: [id])
   recipient   Usuario? @relation("TicketRecipient", fields: [recipientId], references: [id])
+  respuestas  TicketRespuesta[]
 
   @@map("tickets")
 }
@@ -572,4 +574,18 @@ model TareaRecurrente {
   proyecto          Proyecto  @relation(fields: [proyectoId], references: [id])
   
   @@map("tareas_recurrentes")
+}
+
+// ============ RESPUESTAS A TICKETS ============
+model TicketRespuesta {
+  id        String   @id @default(cuid())
+  ticketId  String
+  userId    String
+  mensaje   String
+  createdAt DateTime @default(now())
+  
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  usuario   Usuario  @relation(fields: [userId], references: [id])
+  
+  @@map("ticket_respuestas")
 }

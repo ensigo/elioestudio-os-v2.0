@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../context/AuthContext';
-import { Send, Clock, Search, Filter, Inbox, Trash2, Loader2 } from 'lucide-react';
+import { Send, Clock, Search, Filter, Inbox, Trash2, Loader2, MessageCircle, X } from 'lucide-react';
 
 interface Usuario {
   id: string;
   name: string;
   role: string;
+}
+
+interface Respuesta {
+  id: string;
+  mensaje: string;
+  createdAt: string;
+  usuario: Usuario;
 }
 
 interface Ticket {
@@ -20,6 +28,7 @@ interface Ticket {
   readBy?: string[];
   sender: Usuario;
   recipient: Usuario | null;
+  respuestas?: Respuesta[];
 }
 
 export const TicketsPage = () => {
@@ -36,18 +45,20 @@ export const TicketsPage = () => {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
 
+  // Estado para ver ticket y responder
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [respuestaTexto, setRespuestaTexto] = useState('');
+  const [isSendingRespuesta, setIsSendingRespuesta] = useState(false);
+
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN';
 
-  // Cargar datos y marcar como leídos
   useEffect(() => {
     const loadAndMarkAsRead = async () => {
       await fetchData();
-      
       if (currentUser?.id) {
         markTicketsAsRead();
       }
     };
-    
     if (currentUser) {
       loadAndMarkAsRead();
     }
@@ -59,12 +70,10 @@ export const TicketsPage = () => {
         fetch('/api/tickets'),
         fetch('/api/usuarios')
       ]);
-
       if (ticketsRes.ok) {
         const ticketsData = await ticketsRes.json();
         setTickets(ticketsData);
       }
-
       if (usuariosRes.ok) {
         const usuariosData = await usuariosRes.json();
         setUsuarios(usuariosData);
@@ -76,32 +85,23 @@ export const TicketsPage = () => {
     }
   };
 
-  // Marcar tickets como leídos
   const markTicketsAsRead = async () => {
     if (!currentUser?.id) return;
-    
     try {
       const response = await fetch('/api/tickets');
       if (response.ok) {
         const allTickets = await response.json();
-        
-        // Filtrar tickets que este usuario debería ver y no ha leído
         const ticketsToMark = allTickets.filter((t: Ticket) => {
           const isForMe = t.recipient?.id === currentUser.id || t.recipient === null;
           const notSentByMe = t.sender.id !== currentUser.id;
           const notReadByMe = !t.readBy?.includes(currentUser.id);
           return isForMe && notSentByMe && notReadByMe;
         });
-        
-        // Marcar cada ticket como leído
         for (const ticket of ticketsToMark) {
           await fetch('/api/tickets', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: ticket.id,
-              markReadBy: currentUser.id
-            })
+            body: JSON.stringify({ id: ticket.id, markReadBy: currentUser.id })
           });
         }
       }
@@ -110,20 +110,15 @@ export const TicketsPage = () => {
     }
   };
 
-  // Filtrar tickets según rol del usuario
   const getFilteredTickets = () => {
     let filtered = tickets;
-
-    // Si NO es admin, filtrar tickets
     if (!isAdmin && currentUser) {
       filtered = tickets.filter(t => 
-        t.sender.id === currentUser.id || // Enviados por mí
-        t.recipient?.id === currentUser.id || // Recibidos directamente
-        t.recipient === null // Para todo el equipo
+        t.sender.id === currentUser.id ||
+        t.recipient?.id === currentUser.id ||
+        t.recipient === null
       );
     }
-
-    // Aplicar búsqueda
     if (searchTerm) {
       filtered = filtered.filter(t => 
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -131,17 +126,13 @@ export const TicketsPage = () => {
         t.sender.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
     return filtered;
   };
 
-  // Enviar ticket
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !message || !currentUser) return;
-
     setIsSending(true);
-
     try {
       const response = await fetch('/api/tickets', {
         method: 'POST',
@@ -154,11 +145,9 @@ export const TicketsPage = () => {
           recipientId: recipientId || null
         })
       });
-
       if (response.ok) {
         const nuevoTicket = await response.json();
         setTickets([nuevoTicket, ...tickets]);
-        
         setRecipientId('');
         setTitle('');
         setPriority('MEDIUM');
@@ -171,7 +160,6 @@ export const TicketsPage = () => {
     }
   };
 
-  // Cambiar estado del ticket
   const handleChangeStatus = async (ticketId: string, newStatus: string) => {
     try {
       const response = await fetch('/api/tickets', {
@@ -179,32 +167,66 @@ export const TicketsPage = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ticketId, status: newStatus })
       });
-
       if (response.ok) {
         const ticketActualizado = await response.json();
         setTickets(tickets.map(t => t.id === ticketActualizado.id ? ticketActualizado : t));
+        if (selectedTicket?.id === ticketActualizado.id) {
+          setSelectedTicket(ticketActualizado);
+        }
       }
     } catch (err) {
       console.error('Error actualizando ticket:', err);
     }
   };
 
-  // Eliminar ticket
   const handleDelete = async (ticketId: string) => {
     if (!confirm('¿Eliminar este ticket?')) return;
-
     try {
       const response = await fetch('/api/tickets', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ticketId })
       });
-
       if (response.ok) {
         setTickets(tickets.filter(t => t.id !== ticketId));
+        if (selectedTicket?.id === ticketId) {
+          setSelectedTicket(null);
+        }
       }
     } catch (err) {
       console.error('Error eliminando ticket:', err);
+    }
+  };
+
+  // Enviar respuesta
+  const handleSendRespuesta = async () => {
+    if (!respuestaTexto.trim() || !selectedTicket || !currentUser) return;
+    setIsSendingRespuesta(true);
+    try {
+      const response = await fetch('/api/tickets?resource=respuestas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ticketId: selectedTicket.id,
+          userId: currentUser.id,
+          mensaje: respuestaTexto
+        })
+      });
+      if (response.ok) {
+        const nuevaRespuesta = await response.json();
+        // Actualizar el ticket con la nueva respuesta
+        const ticketActualizado = {
+          ...selectedTicket,
+          respuestas: [...(selectedTicket.respuestas || []), nuevaRespuesta]
+        };
+        setSelectedTicket(ticketActualizado);
+        setTickets(tickets.map(t => t.id === ticketActualizado.id ? ticketActualizado : t));
+        setRespuestaTexto('');
+      }
+    } catch (err) {
+      console.error('Error enviando respuesta:', err);
+    } finally {
+      setIsSendingRespuesta(false);
     }
   };
 
@@ -234,12 +256,20 @@ export const TicketsPage = () => {
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
-
     if (diffMins < 1) return 'Ahora';
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours}h`;
     if (diffDays === 1) return 'Ayer';
     return `Hace ${diffDays} días`;
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const filteredTickets = getFilteredTickets();
@@ -265,7 +295,6 @@ export const TicketsPage = () => {
         <div className="w-full lg:w-[35%] flex flex-col">
           <Card title="Nuevo Mensaje" className="flex-1 overflow-y-auto">
             <form onSubmit={handleSend} className="space-y-4">
-              
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">De (Remitente) *</label>
                 <select 
@@ -276,7 +305,6 @@ export const TicketsPage = () => {
                   <option>{currentUser?.name} ({currentUser?.role})</option>
                 </select>
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Para (Destinatario) *</label>
                 <select 
@@ -290,7 +318,6 @@ export const TicketsPage = () => {
                   ))}
                 </select>
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asunto *</label>
                 <input 
@@ -302,7 +329,6 @@ export const TicketsPage = () => {
                   required
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridad</label>
                 <div className="grid grid-cols-4 gap-2">
@@ -322,7 +348,6 @@ export const TicketsPage = () => {
                   ))}
                 </div>
               </div>
-
               <div className="flex-1">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mensaje *</label>
                 <textarea 
@@ -333,7 +358,6 @@ export const TicketsPage = () => {
                   required
                 />
               </div>
-
               <button 
                 type="submit"
                 disabled={isSending}
@@ -354,7 +378,6 @@ export const TicketsPage = () => {
         {/* COLUMNA DERECHA: BANDEJA */}
         <div className="w-full lg:w-[65%] flex flex-col">
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden">
-             
             {/* Toolbar */}
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <h3 className="font-bold text-gray-700 flex items-center">
@@ -386,7 +409,11 @@ export const TicketsPage = () => {
                 </div>
               ) : (
                 filteredTickets.map(ticket => (
-                  <div key={ticket.id} className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-md transition-all">
+                  <div 
+                    key={ticket.id} 
+                    className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => setSelectedTicket(ticket)}
+                  >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-full bg-elio-yellow text-white flex items-center justify-center font-bold border border-white shadow-sm">
@@ -408,38 +435,19 @@ export const TicketsPage = () => {
                         </div>
                         <div className="flex items-center text-[10px] text-gray-400">
                           <Clock size={10} className="mr-1" /> {formatTime(ticket.createdAt)}
+                          {(ticket.respuestas?.length || 0) > 0 && (
+                            <span className="ml-2 flex items-center text-blue-500">
+                              <MessageCircle size={10} className="mr-1" /> {ticket.respuestas?.length}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="ml-13 bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed mb-3">
-                      {ticket.description}
-                    </div>
-
-                    {/* Acciones */}
-                    <div className="ml-13 flex items-center gap-2 text-xs">
-                      <span className="text-gray-400">Estado:</span>
-                      {['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map(status => (
-                        <button
-                          key={status}
-                          onClick={() => handleChangeStatus(ticket.id, status)}
-                          className={`px-2 py-1 rounded border transition-all ${
-                            ticket.status === status
-                              ? 'bg-elio-yellow text-white border-elio-yellow'
-                              : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          {status === 'OPEN' ? 'Abierto' : 
-                           status === 'IN_PROGRESS' ? 'En Progreso' : 
-                           status === 'RESOLVED' ? 'Resuelto' : 'Cerrado'}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => handleDelete(ticket.id)}
-                        className="ml-auto p-1 text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                    <div className="ml-13 bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed">
+                      {ticket.description.length > 150 
+                        ? ticket.description.substring(0, 150) + '...' 
+                        : ticket.description}
                     </div>
                   </div>
                 ))
@@ -447,8 +455,154 @@ export const TicketsPage = () => {
             </div>
           </div>
         </div>
-
       </div>
+
+      {/* MODAL: Detalle del Ticket con Respuestas */}
+      <Modal 
+        isOpen={!!selectedTicket} 
+        onClose={() => setSelectedTicket(null)} 
+        title=""
+        size="lg"
+      >
+        {selectedTicket && (
+          <div className="flex flex-col h-[70vh]">
+            {/* Header del Ticket */}
+            <div className="pb-4 border-b border-gray-200">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedTicket.title}</h2>
+                  <div className="flex items-center text-sm text-gray-500 mt-1">
+                    <span className="font-medium text-gray-700">{selectedTicket.sender.name}</span>
+                    <span className="mx-2">→</span>
+                    <span>{selectedTicket.recipient?.name || 'Todo el equipo'}</span>
+                    <span className="mx-2">•</span>
+                    <span>{formatDateTime(selectedTicket.createdAt)}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {getPriorityBadge(selectedTicket.priority)}
+                  {getStatusBadge(selectedTicket.status)}
+                </div>
+              </div>
+              
+              {/* Cambiar Estado */}
+              <div className="flex items-center gap-2 mt-4">
+                <span className="text-xs text-gray-500">Estado:</span>
+                {['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => handleChangeStatus(selectedTicket.id, status)}
+                    className={`px-2 py-1 text-xs rounded border transition-all ${
+                      selectedTicket.status === status
+                        ? 'bg-elio-yellow text-white border-elio-yellow'
+                        : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {status === 'OPEN' ? 'Abierto' : 
+                     status === 'IN_PROGRESS' ? 'En Progreso' : 
+                     status === 'RESOLVED' ? 'Resuelto' : 'Cerrado'}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handleDelete(selectedTicket.id)}
+                  className="ml-auto p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Conversación */}
+            <div className="flex-1 overflow-y-auto py-4 space-y-4">
+              {/* Mensaje Original */}
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-elio-yellow text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  {selectedTicket.sender.name.charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium text-sm">{selectedTicket.sender.name}</span>
+                    <span className="text-xs text-gray-400">{formatDateTime(selectedTicket.createdAt)}</span>
+                  </div>
+                  <div className="bg-gray-100 p-3 rounded-lg rounded-tl-none text-sm text-gray-700 whitespace-pre-wrap">
+                    {selectedTicket.description}
+                  </div>
+                </div>
+              </div>
+
+              {/* Respuestas */}
+              {selectedTicket.respuestas?.map((respuesta) => (
+                <div key={respuesta.id} className="flex gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
+                    respuesta.usuario.id === selectedTicket.sender.id 
+                      ? 'bg-elio-yellow text-white' 
+                      : 'bg-blue-500 text-white'
+                  }`}>
+                    {respuesta.usuario.name.charAt(0)}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-sm">{respuesta.usuario.name}</span>
+                      <span className="text-xs text-gray-400">{formatDateTime(respuesta.createdAt)}</span>
+                    </div>
+                    <div className={`p-3 rounded-lg rounded-tl-none text-sm whitespace-pre-wrap ${
+                      respuesta.usuario.id === currentUser?.id 
+                        ? 'bg-blue-100 text-blue-900' 
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      {respuesta.mensaje}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Input para Responder */}
+            {selectedTicket.status !== 'CLOSED' && (
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    {currentUser?.name?.charAt(0) || '?'}
+                  </div>
+                  <div className="flex-1 flex gap-2">
+                    <textarea
+                      value={respuestaTexto}
+                      onChange={(e) => setRespuestaTexto(e.target.value)}
+                      placeholder="Escribe tu respuesta..."
+                      className="flex-1 px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50 resize-none text-sm"
+                      rows={2}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendRespuesta();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={handleSendRespuesta}
+                      disabled={!respuestaTexto.trim() || isSendingRespuesta}
+                      className="px-4 bg-elio-yellow text-white rounded-lg hover:bg-elio-yellow-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      {isSendingRespuesta ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Send size={18} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-2 ml-11">Presiona Enter para enviar, Shift+Enter para nueva línea</p>
+              </div>
+            )}
+
+            {selectedTicket.status === 'CLOSED' && (
+              <div className="pt-4 border-t border-gray-200 text-center text-sm text-gray-500">
+                Este ticket está cerrado. Cambia el estado para poder responder.
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

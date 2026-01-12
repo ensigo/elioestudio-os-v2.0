@@ -288,6 +288,7 @@ model Hosting {
   clienteId             String
   proveedorId           String
   nombre                String
+  webAsociada           String?
   tipoHosting           String
   especificaciones      String?
   ipServidor            String?

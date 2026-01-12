@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {
@@ -22,6 +23,7 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(200).json(proveedores);
       }
+
       if (req.method === 'POST') {
         const { nombre, tipo, website, notas } = req.body;
         const proveedor = await prisma.proveedor.create({
@@ -29,11 +31,13 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(201).json(proveedor);
       }
+
       if (req.method === 'PUT') {
         const { id, ...data } = req.body;
         const proveedor = await prisma.proveedor.update({ where: { id }, data });
         return res.status(200).json(proveedor);
       }
+
       if (req.method === 'DELETE') {
         const { id } = req.body;
         await prisma.proveedor.delete({ where: { id } });
@@ -45,6 +49,7 @@ export default async function handler(req: any, res: any) {
     if (entity === 'hostings') {
       if (req.method === 'GET') {
         const { id, clienteId, estado, proximosVencer } = req.query;
+
         if (id) {
           const hosting = await prisma.hosting.findUnique({
             where: { id },
@@ -52,9 +57,11 @@ export default async function handler(req: any, res: any) {
           });
           return res.status(200).json(hosting);
         }
+
         const where: any = {};
         if (clienteId) where.clienteId = clienteId;
         if (estado) where.estado = estado;
+
         if (proximosVencer === 'true') {
           const hoy = new Date();
           const en30Dias = new Date();
@@ -62,6 +69,7 @@ export default async function handler(req: any, res: any) {
           where.fechaVencimiento = { gte: hoy, lte: en30Dias };
           where.estado = 'ACTIVO';
         }
+
         const hostings = await prisma.hosting.findMany({
           where,
           include: {
@@ -73,6 +81,7 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(200).json(hostings);
       }
+
       if (req.method === 'POST') {
         const data = req.body;
         const hosting = await prisma.hosting.create({
@@ -80,6 +89,7 @@ export default async function handler(req: any, res: any) {
             clienteId: data.clienteId,
             proveedorId: data.proveedorId,
             nombre: data.nombre,
+            webAsociada: data.webAsociada || null,
             tipoHosting: data.tipoHosting,
             especificaciones: data.especificaciones,
             ipServidor: data.ipServidor,
@@ -99,6 +109,7 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(201).json(hosting);
       }
+
       if (req.method === 'PUT') {
         const { id, ...data } = req.body;
         if (data.fechaContratacion) data.fechaContratacion = new Date(data.fechaContratacion);
@@ -106,6 +117,7 @@ export default async function handler(req: any, res: any) {
         if (data.fechaUltimaRenovacion) data.fechaUltimaRenovacion = new Date(data.fechaUltimaRenovacion);
         if (data.importeCoste) data.importeCoste = parseFloat(data.importeCoste);
         if (data.importeVenta) data.importeVenta = parseFloat(data.importeVenta);
+
         const hosting = await prisma.hosting.update({
           where: { id },
           data,
@@ -113,6 +125,7 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(200).json(hosting);
       }
+
       if (req.method === 'DELETE') {
         const { id } = req.body;
         await prisma.hosting.delete({ where: { id } });
@@ -124,6 +137,7 @@ export default async function handler(req: any, res: any) {
     if (entity === 'dominios') {
       if (req.method === 'GET') {
         const { id, clienteId, hostingId, estado, proximosVencer, sslProximoVencer } = req.query;
+
         if (id) {
           const dominio = await prisma.dominio.findUnique({
             where: { id },
@@ -131,10 +145,12 @@ export default async function handler(req: any, res: any) {
           });
           return res.status(200).json(dominio);
         }
+
         const where: any = {};
         if (clienteId) where.clienteId = clienteId;
         if (hostingId) where.hostingId = hostingId;
         if (estado) where.estado = estado;
+
         if (proximosVencer === 'true') {
           const hoy = new Date();
           const en30Dias = new Date();
@@ -142,6 +158,7 @@ export default async function handler(req: any, res: any) {
           where.fechaVencimiento = { gte: hoy, lte: en30Dias };
           where.estado = 'ACTIVO';
         }
+
         if (sslProximoVencer === 'true') {
           const hoy = new Date();
           const en30Dias = new Date();
@@ -149,6 +166,7 @@ export default async function handler(req: any, res: any) {
           where.tieneSSL = true;
           where.fechaVencimientoSSL = { gte: hoy, lte: en30Dias };
         }
+
         const dominios = await prisma.dominio.findMany({
           where,
           include: {
@@ -160,6 +178,7 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(200).json(dominios);
       }
+
       if (req.method === 'POST') {
         const data = req.body;
         const dominio = await prisma.dominio.create({
@@ -186,6 +205,7 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(201).json(dominio);
       }
+
       if (req.method === 'PUT') {
         const { id, ...data } = req.body;
         if (data.fechaRegistro) data.fechaRegistro = new Date(data.fechaRegistro);
@@ -194,6 +214,7 @@ export default async function handler(req: any, res: any) {
         if (data.fechaVencimientoSSL) data.fechaVencimientoSSL = new Date(data.fechaVencimientoSSL);
         if (data.importeCoste) data.importeCoste = parseFloat(data.importeCoste);
         if (data.importeVenta) data.importeVenta = parseFloat(data.importeVenta);
+
         const dominio = await prisma.dominio.update({
           where: { id },
           data,
@@ -201,10 +222,139 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(200).json(dominio);
       }
+
       if (req.method === 'DELETE') {
         const { id } = req.body;
         await prisma.dominio.delete({ where: { id } });
         return res.status(200).json({ message: 'Dominio eliminado' });
+      }
+    }
+
+    // ============ EMAILS (NUEVO) ============
+    if (entity === 'emails') {
+      if (req.method === 'GET') {
+        const { clienteId } = req.query;
+        
+        const where: any = {
+          category: 'EMAIL',
+          isActive: true
+        };
+        if (clienteId) where.clienteId = clienteId;
+
+        const emailCredentials = await prisma.credential.findMany({
+          where,
+          include: {
+            cliente: { select: { id: true, name: true } }
+          },
+          orderBy: [
+            { cliente: { name: 'asc' } },
+            { username: 'asc' }
+          ]
+        });
+
+        const emails = emailCredentials.map(cred => ({
+          id: cred.id,
+          clienteId: cred.clienteId,
+          cliente: cred.cliente,
+          platform: cred.platform,
+          username: cred.username,
+          passwordEncrypted: cred.passwordEncrypted,
+          email: cred.email,
+          url: cred.url,
+          notes: cred.notes,
+          dominioAsociado: cred.emailProvider || (cred.username.includes('@') ? cred.username.split('@')[1] : null),
+          isActive: cred.isActive,
+          createdAt: cred.createdAt,
+          updatedAt: cred.updatedAt
+        }));
+
+        return res.status(200).json(emails);
+      }
+
+      if (req.method === 'POST') {
+        const data = req.body;
+        
+        const newEmailCredential = await prisma.credential.create({
+          data: {
+            clienteId: data.clienteId,
+            category: 'EMAIL',
+            platform: data.platform || 'cPanel Email',
+            username: data.username,
+            passwordEncrypted: data.passwordEncrypted,
+            url: data.url || null,
+            email: data.username,
+            emailProvider: data.dominioAsociado || null,
+            isEmailAccount: true,
+            notes: data.notes || null,
+            isActive: true,
+            createdById: data.createdById || null,
+            createdByName: data.createdByName || 'Sistema'
+          },
+          include: {
+            cliente: { select: { id: true, name: true } }
+          }
+        });
+
+        return res.status(201).json({
+          id: newEmailCredential.id,
+          clienteId: newEmailCredential.clienteId,
+          cliente: newEmailCredential.cliente,
+          platform: newEmailCredential.platform,
+          username: newEmailCredential.username,
+          passwordEncrypted: newEmailCredential.passwordEncrypted,
+          url: newEmailCredential.url,
+          notes: newEmailCredential.notes,
+          dominioAsociado: newEmailCredential.emailProvider,
+          isActive: newEmailCredential.isActive,
+          createdAt: newEmailCredential.createdAt,
+          updatedAt: newEmailCredential.updatedAt
+        });
+      }
+
+      if (req.method === 'PUT') {
+        const { id, ...data } = req.body;
+        
+        const updatedEmailCredential = await prisma.credential.update({
+          where: { id },
+          data: {
+            platform: data.platform,
+            username: data.username,
+            passwordEncrypted: data.passwordEncrypted,
+            url: data.url || null,
+            email: data.username,
+            emailProvider: data.dominioAsociado || null,
+            notes: data.notes || null,
+            lastModifiedById: data.modifiedById || null,
+            lastModifiedByName: data.modifiedByName || 'Sistema'
+          },
+          include: {
+            cliente: { select: { id: true, name: true } }
+          }
+        });
+
+        return res.status(200).json({
+          id: updatedEmailCredential.id,
+          clienteId: updatedEmailCredential.clienteId,
+          cliente: updatedEmailCredential.cliente,
+          platform: updatedEmailCredential.platform,
+          username: updatedEmailCredential.username,
+          passwordEncrypted: updatedEmailCredential.passwordEncrypted,
+          url: updatedEmailCredential.url,
+          notes: updatedEmailCredential.notes,
+          dominioAsociado: updatedEmailCredential.emailProvider,
+          isActive: updatedEmailCredential.isActive,
+          createdAt: updatedEmailCredential.createdAt,
+          updatedAt: updatedEmailCredential.updatedAt
+        });
+      }
+
+      if (req.method === 'DELETE') {
+        const { id } = req.body;
+        await prisma.credential.update({
+          where: { id },
+          data: { isActive: false }
+        });
+        return res.status(200).json({ message: 'Email desactivado' });
       }
     }
 
@@ -216,12 +366,16 @@ export default async function handler(req: any, res: any) {
 
       const hostings = await prisma.hosting.findMany({
         where: { estado: 'ACTIVO' },
-        select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true }
+        select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true, webAsociada: true }
       });
 
       const dominios = await prisma.dominio.findMany({
         where: { estado: 'ACTIVO' },
         select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true, tieneSSL: true, fechaVencimientoSSL: true }
+      });
+
+      const totalEmails = await prisma.credential.count({
+        where: { category: 'EMAIL', isActive: true }
       });
 
       const anualizar = (importe: number, periodicidad: string) => {
@@ -269,6 +423,7 @@ export default async function handler(req: any, res: any) {
       return res.status(200).json({
         totalHostings: hostings.length,
         totalDominios: dominios.length,
+        totalEmails,
         ingresoAnualHostings: totalVentaHostings,
         costeAnualHostings: totalCosteHostings,
         margenHostings: totalVentaHostings - totalCosteHostings,
@@ -293,12 +448,14 @@ export default async function handler(req: any, res: any) {
         const where: any = {};
         if (tipo) where.tipo = tipo;
         if (activo !== undefined) where.activo = activo === 'true';
+
         const planes = await prisma.planHosting.findMany({
           where,
           orderBy: [{ tipo: 'asc' }, { orden: 'asc' }, { precioCoste: 'asc' }]
         });
         return res.status(200).json(planes);
       }
+
       if (req.method === 'POST') {
         const data = req.body;
         const plan = await prisma.planHosting.create({
@@ -317,17 +474,20 @@ export default async function handler(req: any, res: any) {
         });
         return res.status(201).json(plan);
       }
+
       if (req.method === 'PUT') {
-  const { id, ...data } = req.body;
-  if (data.emails !== undefined) data.emails = data.emails ? parseInt(data.emails) : null;
-  if (data.precioCoste !== undefined) data.precioCoste = parseFloat(data.precioCoste);
-  if (data.precioSugerido !== undefined) data.precioSugerido = data.precioSugerido ? parseFloat(data.precioSugerido) : null;
-  if (data.orden !== undefined) data.orden = parseInt(data.orden);
-  if (data.incluyeDominio !== undefined) data.incluyeDominio = Boolean(data.incluyeDominio);
-  if (data.activo !== undefined) data.activo = Boolean(data.activo);
-  const plan = await prisma.planHosting.update({ where: { id }, data });
-  return res.status(200).json(plan);
-}
+        const { id, ...data } = req.body;
+        if (data.emails !== undefined) data.emails = data.emails ? parseInt(data.emails) : null;
+        if (data.precioCoste !== undefined) data.precioCoste = parseFloat(data.precioCoste);
+        if (data.precioSugerido !== undefined) data.precioSugerido = data.precioSugerido ? parseFloat(data.precioSugerido) : null;
+        if (data.orden !== undefined) data.orden = parseInt(data.orden);
+        if (data.incluyeDominio !== undefined) data.incluyeDominio = Boolean(data.incluyeDominio);
+        if (data.activo !== undefined) data.activo = Boolean(data.activo);
+
+        const plan = await prisma.planHosting.update({ where: { id }, data });
+        return res.status(200).json(plan);
+      }
+
       if (req.method === 'DELETE') {
         const { id } = req.body;
         await prisma.planHosting.delete({ where: { id } });
@@ -335,7 +495,8 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    return res.status(400).json({ error: 'Entity no válida. Usa: proveedores, hostings, dominios, dashboard, planes' });
+    return res.status(400).json({ error: 'Entity no válida. Usa: proveedores, hostings, dominios, emails, dashboard, planes' });
+
   } catch (error: any) {
     console.error('Error en API hosting:', error);
     return res.status(500).json({ error: 'Error en la API', details: error.message });

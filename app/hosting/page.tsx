@@ -3,10 +3,11 @@ import React, { useState, useEffect } from 'react';
 import {
   Server, Globe, Shield, Search, AlertTriangle,
   TrendingUp, TrendingDown, DollarSign, Building2,
-  ExternalLink, Edit, Package
+  ExternalLink, Edit, Package, Mail, Plus, Trash2, Eye, EyeOff, Link2
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 
 interface Proveedor {
@@ -37,6 +38,7 @@ interface Hosting {
   clienteId: string;
   proveedorId: string;
   nombre: string;
+  webAsociada?: string;
   tipoHosting: string;
   importeCoste: number;
   importeVenta: number;
@@ -64,9 +66,26 @@ interface Dominio {
   proveedor: { id: string; nombre: string };
 }
 
+interface EmailAccount {
+  id: string;
+  clienteId: string;
+  cliente: { id: string; name: string };
+  platform: string;
+  username: string;
+  passwordEncrypted: string;
+  email?: string;
+  url?: string;
+  notes?: string;
+  dominioAsociado?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Dashboard {
   totalHostings: number;
   totalDominios: number;
+  totalEmails?: number;
   ingresoAnualTotal: number;
   costeAnualTotal: number;
   margenTotal: number;
@@ -78,21 +97,25 @@ interface Cliente { id: string; name: string; }
 
 export default function HostingPage() {
   const { usuario } = useAuth();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'hostings' | 'dominios' | 'proveedores' | 'planes'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'hostings' | 'dominios' | 'emails' | 'proveedores' | 'planes'>('dashboard');
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [hostings, setHostings] = useState<Hosting[]>([]);
   const [dominios, setDominios] = useState<Dominio[]>([]);
+  const [emails, setEmails] = useState<EmailAccount[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [planes, setPlanes] = useState<PlanHosting[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCliente, setFilterCliente] = useState('todos');
+  
   const [showModalHosting, setShowModalHosting] = useState(false);
   const [showModalDominio, setShowModalDominio] = useState(false);
   const [showModalProveedor, setShowModalProveedor] = useState(false);
   const [showModalPlan, setShowModalPlan] = useState(false);
+  const [showModalEmail, setShowModalEmail] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
+  const [visiblePasswords, setVisiblePasswords] = useState<Record<string, boolean>>({});
 
   const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
 
@@ -101,14 +124,16 @@ export default function HostingPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [dashRes, hostRes, domRes, provRes, cliRes, planRes] = await Promise.all([
+      const [dashRes, hostRes, domRes, provRes, cliRes, planRes, emailRes] = await Promise.all([
         fetch('/api/hosting?entity=dashboard'),
         fetch('/api/hosting?entity=hostings'),
         fetch('/api/hosting?entity=dominios'),
         fetch('/api/hosting?entity=proveedores'),
         fetch('/api/clientes'),
-        fetch('/api/hosting?entity=planes')
+        fetch('/api/hosting?entity=planes'),
+        fetch('/api/hosting?entity=emails')
       ]);
+
       if (dashRes.ok) setDashboard(await dashRes.json());
       if (hostRes.ok) {
         const data = await hostRes.json();
@@ -121,6 +146,10 @@ export default function HostingPage() {
       if (provRes.ok) setProveedores(await provRes.json());
       if (cliRes.ok) setClientes(await cliRes.json());
       if (planRes.ok) setPlanes(await planRes.json());
+      if (emailRes.ok) {
+        const data = await emailRes.json();
+        setEmails(Array.isArray(data) ? data : []);
+      }
     } catch (error) {
       console.error('Error cargando datos:', error);
     } finally {
@@ -144,7 +173,9 @@ export default function HostingPage() {
   };
 
   const filteredHostings = hostings.filter(h => {
-    const matchSearch = h.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || h.cliente.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSearch = h.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                       h.cliente.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       (h.webAsociada && h.webAsociada.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchCliente = filterCliente === 'todos' || h.clienteId === filterCliente;
     return matchSearch && matchCliente;
   });
@@ -154,6 +185,21 @@ export default function HostingPage() {
     const matchCliente = filterCliente === 'todos' || d.clienteId === filterCliente;
     return matchSearch && matchCliente;
   });
+
+  const filteredEmails = emails.filter(e => {
+    const matchSearch = e.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                       e.cliente.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       (e.dominioAsociado && e.dominioAsociado.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchCliente = filterCliente === 'todos' || e.clienteId === filterCliente;
+    return matchSearch && matchCliente;
+  });
+
+  const emailsByCliente = filteredEmails.reduce((acc, email) => {
+    const clienteName = email.cliente.name;
+    if (!acc[clienteName]) acc[clienteName] = [];
+    acc[clienteName].push(email);
+    return acc;
+  }, {} as Record<string, EmailAccount[]>);
 
   const planesHosting = planes.filter(p => p.tipo === 'HOSTING' && p.activo);
   const planesDominio = planes.filter(p => p.tipo === 'DOMINIO' && p.activo);
@@ -183,20 +229,24 @@ export default function HostingPage() {
             <button onClick={() => { setEditingItem(null); setShowModalDominio(true); }} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
               <Globe size={18} /> Dominio
             </button>
+            <button onClick={() => { setEditingItem(null); setShowModalEmail(true); }} className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
+              <Mail size={18} /> Email
+            </button>
           </div>
         )}
       </div>
 
-      <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-fit">
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-fit overflow-x-auto">
         {[
           { id: 'dashboard', label: 'Dashboard', icon: TrendingUp },
           { id: 'hostings', label: 'Hostings', icon: Server },
           { id: 'dominios', label: 'Dominios', icon: Globe },
+          { id: 'emails', label: 'Emails', icon: Mail },
           { id: 'proveedores', label: 'Proveedores', icon: Building2 },
           { id: 'planes', label: 'Planes', icon: Package }
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
             <tab.icon size={16} /> {tab.label}
           </button>
         ))}
@@ -205,7 +255,7 @@ export default function HostingPage() {
       {/* DASHBOARD */}
       {activeTab === 'dashboard' && dashboard && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <Card>
               <div className="flex items-center justify-between">
                 <div>
@@ -239,6 +289,16 @@ export default function HostingPage() {
             <Card>
               <div className="flex items-center justify-between">
                 <div>
+                  <p className="text-xs font-bold text-slate-500 uppercase">Cuentas Email</p>
+                  <p className="text-2xl font-bold text-orange-600 mt-1">{emails.length}</p>
+                  <p className="text-xs text-slate-400">Emails activos</p>
+                </div>
+                <div className="p-3 bg-orange-100 rounded-xl"><Mail size={24} className="text-orange-600" /></div>
+              </div>
+            </Card>
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
                   <p className="text-xs font-bold text-slate-500 uppercase">Alertas</p>
                   <p className={`text-2xl font-bold mt-1 ${dashboard.totalAlertas > 0 ? 'text-orange-600' : 'text-green-600'}`}>{dashboard.totalAlertas}</p>
                   <p className="text-xs text-slate-400">Vencimientos próx. 30 días</p>
@@ -249,6 +309,7 @@ export default function HostingPage() {
               </div>
             </Card>
           </div>
+
           {dashboard.totalAlertas > 0 && (
             <Card title="⚠️ Próximos Vencimientos (30 días)" className="border-l-4 border-orange-500">
               <div className="space-y-4">
@@ -257,7 +318,7 @@ export default function HostingPage() {
                     <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Server size={16} /> Hostings</h4>
                     {dashboard.alertas.hostings.map((h: any) => (
                       <div key={h.id} className="flex justify-between items-center bg-orange-50 p-3 rounded-lg mb-2">
-                        <span className="font-medium">{h.nombre} <span className="text-slate-500">({h.cliente.name})</span></span>
+                        <span className="font-medium">{h.nombre} {h.webAsociada && <span className="text-blue-600">({h.webAsociada})</span>} <span className="text-slate-500">- {h.cliente.name}</span></span>
                         <span className="text-orange-600 text-sm">{formatDate(h.fechaVencimiento)} - {getDaysUntil(h.fechaVencimiento)} días</span>
                       </div>
                     ))}
@@ -297,13 +358,14 @@ export default function HostingPage() {
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
+              <input type="text" placeholder="Buscar por cliente, hosting o web..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
             </div>
             <select value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
               <option value="todos">Todos los clientes</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -311,6 +373,7 @@ export default function HostingPage() {
                   <tr>
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Cliente</th>
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Hosting</th>
+                    <th className="px-4 py-3 text-left font-bold text-slate-600">Web Asociada</th>
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Tipo</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Vencimiento</th>
                     <th className="px-4 py-3 text-right font-bold text-slate-600">Coste</th>
@@ -321,11 +384,24 @@ export default function HostingPage() {
                 </thead>
                 <tbody className="divide-y">
                   {filteredHostings.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400"><Server size={32} className="mx-auto mb-2 opacity-30" />No hay hostings</td></tr>
+                    <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400"><Server size={32} className="mx-auto mb-2 opacity-30" />No hay hostings</td></tr>
                   ) : filteredHostings.map(h => (
                     <tr key={h.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium">{h.cliente.name}</td>
                       <td className="px-4 py-3">{h.nombre}</td>
+                      <td className="px-4 py-3">
+                        {h.webAsociada ? (
+                          <a href={h.webAsociada.startsWith('http') ? h.webAsociada : `https://${h.webAsociada}`} 
+                             target="_blank" 
+                             rel="noopener noreferrer"
+                             className="text-blue-600 hover:underline flex items-center gap-1">
+                            <Link2 size={14} />
+                            {h.webAsociada}
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 text-xs">Sin asignar</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3"><Badge variant="blue">{h.tipoHosting}</Badge></td>
                       <td className="px-4 py-3 text-center">{formatDate(h.fechaVencimiento)}</td>
                       <td className="px-4 py-3 text-right text-red-600">{formatCurrency(h.importeCoste)}</td>
@@ -356,6 +432,7 @@ export default function HostingPage() {
               {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -392,6 +469,122 @@ export default function HostingPage() {
               </table>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* EMAILS */}
+      {activeTab === 'emails' && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-3 items-center justify-between">
+            <div className="flex flex-wrap gap-3 flex-1">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input type="text" placeholder="Buscar por email, cliente o dominio..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
+              </div>
+              <select value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+                <option value="todos">Todos los clientes</option>
+                {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <button onClick={() => { setEditingItem(null); setShowModalEmail(true); }} className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
+              <Plus size={18} /> Nueva Cuenta
+            </button>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-3">
+            <Shield size={20} className="text-blue-600 mt-0.5" />
+            <div className="text-sm">
+              <p className="font-medium text-blue-800">Sincronizado con Bóveda de Claves</p>
+              <p className="text-blue-600">Las cuentas de email mostradas aquí están vinculadas a la sección "Accesos y Claves" de cada cliente.</p>
+            </div>
+          </div>
+
+          {filteredEmails.length === 0 ? (
+            <Card className="text-center py-12">
+              <Mail size={48} className="mx-auto mb-4 text-slate-300" />
+              <p className="text-slate-500 mb-2">No hay cuentas de email registradas</p>
+              <p className="text-sm text-slate-400">Las cuentas de email se sincronizan desde la bóveda de claves de cada cliente</p>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(emailsByCliente).map(([clienteName, clienteEmails]) => (
+                <Card key={clienteName} className="overflow-hidden">
+                  <div className="bg-slate-50 px-4 py-3 border-b flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Building2 size={18} className="text-slate-500" />
+                      <h3 className="font-bold text-slate-800">{clienteName}</h3>
+                      <Badge variant="neutral">{clienteEmails.length} {clienteEmails.length === 1 ? 'cuenta' : 'cuentas'}</Badge>
+                    </div>
+                  </div>
+                  <div className="divide-y">
+                    {clienteEmails.map(email => (
+                      <div key={email.id} className="p-4 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Mail size={16} className="text-orange-500" />
+                              <span className="font-bold text-slate-800">{email.username}</span>
+                              {email.dominioAsociado && (
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                                  @{email.dominioAsociado}
+                                </span>
+                              )}
+                              {!email.isActive && <Badge variant="error">Inactivo</Badge>}
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
+                              <div>
+                                <span className="text-xs text-slate-500 block">Proveedor</span>
+                                <span className="font-medium">{email.platform}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-slate-500 block">Contraseña</span>
+                                <div className="flex items-center gap-2">
+                                  <code className="bg-slate-100 px-2 py-1 rounded text-xs">
+                                    {visiblePasswords[email.id] ? email.passwordEncrypted : '••••••••'}
+                                  </code>
+                                  <button 
+                                    onClick={() => setVisiblePasswords(prev => ({...prev, [email.id]: !prev[email.id]}))}
+                                    className="text-slate-400 hover:text-slate-600"
+                                  >
+                                    {visiblePasswords[email.id] ? <EyeOff size={14} /> : <Eye size={14} />}
+                                  </button>
+                                </div>
+                              </div>
+                              {email.url && (
+                                <div>
+                                  <span className="text-xs text-slate-500 block">Webmail</span>
+                                  <a href={email.url.startsWith('http') ? email.url : `https://${email.url}`} 
+                                     target="_blank" 
+                                     rel="noopener noreferrer"
+                                     className="text-blue-600 hover:underline flex items-center gap-1 text-xs">
+                                    <ExternalLink size={12} /> Acceder
+                                  </a>
+                                </div>
+                              )}
+                              {email.notes && (
+                                <div className="col-span-2 md:col-span-4">
+                                  <span className="text-xs text-slate-500 block">Notas</span>
+                                  <p className="text-xs bg-yellow-50 p-2 rounded mt-1 italic">{email.notes}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1 ml-4">
+                            <button 
+                              onClick={() => { setEditingItem(email); setShowModalEmail(true); }} 
+                              className="p-2 hover:bg-blue-50 rounded text-slate-400 hover:text-blue-600"
+                            >
+                              <Edit size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -479,6 +672,7 @@ export default function HostingPage() {
       {showModalPlan && <ModalPlan plan={editingItem} onClose={() => setShowModalPlan(false)} onSave={() => { fetchData(); setShowModalPlan(false); }} />}
       {showModalHosting && <ModalHosting hosting={editingItem} clientes={clientes} proveedores={proveedores.filter(p => p.tipo !== 'DOMINIOS')} planes={planesHosting} onClose={() => setShowModalHosting(false)} onSave={() => { fetchData(); setShowModalHosting(false); }} />}
       {showModalDominio && <ModalDominio dominio={editingItem} clientes={clientes} proveedores={proveedores.filter(p => p.tipo !== 'HOSTING')} planes={planesDominio} onClose={() => setShowModalDominio(false)} onSave={() => { fetchData(); setShowModalDominio(false); }} />}
+      {showModalEmail && <ModalEmail email={editingItem} clientes={clientes} dominios={dominios} onClose={() => setShowModalEmail(false)} onSave={() => { fetchData(); setShowModalEmail(false); }} />}
     </div>
   );
 }
@@ -487,6 +681,7 @@ export default function HostingPage() {
 function ModalProveedor({ proveedor, onClose, onSave }: { proveedor: any; onClose: () => void; onSave: () => void }) {
   const [form, setForm] = useState({ nombre: proveedor?.nombre || '', tipo: proveedor?.tipo || 'AMBOS', website: proveedor?.website || '' });
   const [saving, setSaving] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -494,6 +689,7 @@ function ModalProveedor({ proveedor, onClose, onSave }: { proveedor: any; onClos
     setSaving(false);
     onSave();
   };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
@@ -521,6 +717,7 @@ function ModalPlan({ plan, onClose, onSave }: { plan: any; onClose: () => void; 
     activo: plan?.activo ?? true, orden: plan?.orden?.toString() || '0'
   });
   const [saving, setSaving] = useState(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -528,6 +725,7 @@ function ModalPlan({ plan, onClose, onSave }: { plan: any; onClose: () => void; 
     setSaving(false);
     onSave();
   };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg">
@@ -560,13 +758,19 @@ function ModalPlan({ plan, onClose, onSave }: { plan: any; onClose: () => void; 
 }
 
 // MODAL HOSTING
-function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave }: { hosting: any; clientes: Cliente[]; proveedores: Proveedor[]; planes: PlanHosting[]; onClose: () => void; onSave: () => void }) {
+function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave }: { hosting: any; clientes: { id: string; name: string }[]; proveedores: Proveedor[]; planes: PlanHosting[]; onClose: () => void; onSave: () => void }) {
   const [form, setForm] = useState({
-    clienteId: hosting?.clienteId || '', proveedorId: hosting?.proveedorId || '', nombre: hosting?.nombre || '',
-    tipoHosting: hosting?.tipoHosting || 'COMPARTIDO', importeCoste: hosting?.importeCoste?.toString() || '',
-    importeVenta: hosting?.importeVenta?.toString() || '', periodicidad: hosting?.periodicidad || 'ANUAL',
+    clienteId: hosting?.clienteId || '', 
+    proveedorId: hosting?.proveedorId || '', 
+    nombre: hosting?.nombre || '',
+    webAsociada: hosting?.webAsociada || '',
+    tipoHosting: hosting?.tipoHosting || 'COMPARTIDO', 
+    importeCoste: hosting?.importeCoste?.toString() || '',
+    importeVenta: hosting?.importeVenta?.toString() || '', 
+    periodicidad: hosting?.periodicidad || 'ANUAL',
     fechaContratacion: hosting?.fechaContratacion?.split('T')[0] || new Date().toISOString().split('T')[0],
-    fechaVencimiento: hosting?.fechaVencimiento?.split('T')[0] || '', estado: hosting?.estado || 'ACTIVO'
+    fechaVencimiento: hosting?.fechaVencimiento?.split('T')[0] || '', 
+    estado: hosting?.estado || 'ACTIVO'
   });
   const [saving, setSaving] = useState(false);
 
@@ -607,6 +811,13 @@ function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave 
             <div><label className="block text-sm font-medium mb-1">Nombre *</label><input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required /></div>
             <div><label className="block text-sm font-medium mb-1">Tipo</label><select value={form.tipoHosting} onChange={e => setForm({ ...form, tipoHosting: e.target.value })} className="w-full px-3 py-2 border rounded-lg"><option value="COMPARTIDO">Compartido</option><option value="VPS">VPS</option><option value="DEDICADO">Dedicado</option><option value="CLOUD">Cloud</option></select></div>
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              <span className="flex items-center gap-1"><Link2 size={14} /> Web Asociada</span>
+            </label>
+            <input type="text" value={form.webAsociada} onChange={e => setForm({ ...form, webAsociada: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="www.ejemplo.com" />
+            <p className="text-xs text-slate-500 mt-1">URL de la web que usa este hosting</p>
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <div><label className="block text-sm font-medium mb-1">Coste € *</label><input type="number" step="0.01" value={form.importeCoste} onChange={e => setForm({ ...form, importeCoste: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required /></div>
             <div><label className="block text-sm font-medium mb-1">Venta € *</label><input type="number" step="0.01" value={form.importeVenta} onChange={e => setForm({ ...form, importeVenta: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required /></div>
@@ -627,7 +838,7 @@ function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave 
 }
 
 // MODAL DOMINIO
-function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave }: { dominio: any; clientes: Cliente[]; proveedores: Proveedor[]; planes: PlanHosting[]; onClose: () => void; onSave: () => void }) {
+function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave }: { dominio: any; clientes: { id: string; name: string }[]; proveedores: Proveedor[]; planes: PlanHosting[]; onClose: () => void; onSave: () => void }) {
   const [form, setForm] = useState({
     clienteId: dominio?.clienteId || '', proveedorId: dominio?.proveedorId || '',
     nombre: dominio?.nombre || '', extension: dominio?.extension || '.com', tieneSSL: dominio?.tieneSSL || false,
@@ -687,6 +898,113 @@ function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave 
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
             <button type="submit" disabled={saving} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">{saving ? 'Guardando...' : 'Guardar'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// MODAL EMAIL
+function ModalEmail({ email, clientes, dominios, onClose, onSave }: { email: any; clientes: { id: string; name: string }[]; dominios: Dominio[]; onClose: () => void; onSave: () => void }) {
+  const [form, setForm] = useState({
+    clienteId: email?.clienteId || '',
+    platform: email?.platform || 'cPanel Email',
+    username: email?.username || '',
+    passwordEncrypted: email?.passwordEncrypted || '',
+    url: email?.url || '',
+    notes: email?.notes || '',
+    dominioAsociado: email?.dominioAsociado || ''
+  });
+  const [saving, setSaving] = useState(false);
+
+  const clienteDominios = dominios.filter(d => d.clienteId === form.clienteId);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.clienteId || !form.username || !form.passwordEncrypted) {
+      alert('Cliente, email y contraseña son obligatorios');
+      return;
+    }
+    setSaving(true);
+    await fetch('/api/hosting?entity=emails', { 
+      method: email ? 'PUT' : 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify(email ? { id: email.id, ...form } : form) 
+    });
+    setSaving(false);
+    onSave();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-lg my-8">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Mail className="text-orange-500" size={24} />
+            {email ? 'Editar' : 'Nueva'} Cuenta de Email
+          </h2>
+        </div>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+            <strong>Sincronizado:</strong> Esta cuenta se guardará también en la bóveda de claves del cliente.
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium mb-1">Cliente *</label>
+            <select value={form.clienteId} onChange={e => setForm({ ...form, clienteId: e.target.value, dominioAsociado: '' })} className="w-full px-3 py-2 border rounded-lg" required>
+              <option value="">Seleccionar cliente...</option>
+              {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Proveedor Email</label>
+              <select value={form.platform} onChange={e => setForm({ ...form, platform: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
+                <option value="cPanel Email">cPanel Email</option>
+                <option value="Gmail">Gmail</option>
+                <option value="Outlook">Outlook</option>
+                <option value="Zoho Mail">Zoho Mail</option>
+                <option value="Otro">Otro</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Dominio Asociado</label>
+              <select value={form.dominioAsociado} onChange={e => setForm({ ...form, dominioAsociado: e.target.value })} className="w-full px-3 py-2 border rounded-lg" disabled={!form.clienteId}>
+                <option value="">Sin dominio específico</option>
+                {clienteDominios.map(d => (
+                  <option key={d.id} value={`${d.nombre}${d.extension}`}>{d.nombre}{d.extension}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Email / Usuario *</label>
+            <input type="text" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="info@ejemplo.com" required />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Contraseña *</label>
+            <input type="text" value={form.passwordEncrypted} onChange={e => setForm({ ...form, passwordEncrypted: e.target.value })} className="w-full px-3 py-2 border rounded-lg font-mono" placeholder="Contraseña" required />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">URL Webmail</label>
+            <input type="text" value={form.url} onChange={e => setForm({ ...form, url: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="https://mail.ejemplo.com" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Notas</label>
+            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="w-full px-3 py-2 border rounded-lg" rows={2} placeholder="Información adicional..." />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50">
+              {saving ? 'Guardando...' : 'Guardar'}
+            </button>
           </div>
         </form>
       </div>

@@ -9,29 +9,29 @@ datasource db {
 }
 
 model Cliente {
-  id            String     @id @default(cuid())
-  name          String
-  nombreComercial String?
-  email         String?    @unique
-  phone         String?
-  taxId         String?
-  address       String?
-  contactPerson String?
-  status        String     @default("ACTIVE")
-  responsibleId String?
-  metricoolBrandId String?
-  lastActivity  String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  
-  proyectos         Proyecto[]
-  credentials       Credential[]
-  usuariosAsignados ClienteUsuario[]
-  hostings          Hosting[]
-  dominios          Dominio[]
-  contratos         Contrato[]
-  campanasSEM       CampanaSEM[]
+  id                String           @id @default(cuid())
+  name              String
+  email             String?          @unique
+  phone             String?
+  taxId             String?
+  status            String           @default("ACTIVE")
+  responsibleId     String?
+  lastActivity      String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  address           String?
+  contactPerson     String?
+  metricoolBrandId  String?
+  nombreComercial   String?
   campanasMailing   CampanaMailing[]
+  campanasSEM       CampanaSEM[]
+  usuariosAsignados ClienteUsuario[]
+  contratos         Contrato[]
+  credentials       Credential[]
+  dominios          Dominio[]
+  hostings          Hosting[]
+  proyectos         Proyecto[]
+
   @@map("clientes")
 }
 
@@ -55,7 +55,6 @@ model Credential {
   lastModifiedByName String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
-  
   cliente            Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
 
   @@map("credentials")
@@ -67,7 +66,6 @@ model ClienteUsuario {
   usuarioId String
   role      String   @default("MEMBER")
   createdAt DateTime @default(now())
-
   cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
@@ -76,63 +74,61 @@ model ClienteUsuario {
 }
 
 model Usuario {
-  id                 String     @id @default(cuid())
-  name               String
-  email              String?    
-  password           String?
-  role               String     @default("DEV")
-  position           String?
-  avatarUrl          String?
-  joinDate           DateTime   @default(now())
-  tipoContrato       String     @default("COMPLETA")
-  ciudad             String?
-  codigoPostal       String?
-  direccion          String?
-  dni                String?
-  fechaNacimiento    DateTime?
-  iban               String?
-  telefono           String?
-  telefonoEmergencia String?
-  titularCuenta      String?
-  fechaAltaSS        DateTime?
-  numSeguridadSocial String?
-  tipoContratacion   String?
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
-
-  eventos                                   eventos[]
-  jornadas                                  jornadas[]
-  timeEntries         TimeEntry[]
-  permisos_aprobador                        permisos[] @relation("permisos_aprobadorIdTousuarios")
-  permisos_solicitante                      permisos[] @relation("permisos_solicitanteIdTousuarios")
-  proyectos                                 Proyecto[]
-  tareasAsignadas                           Tarea[]    @relation("TareaAssignee")
-  ticketsReceived                           Ticket[]   @relation("TicketRecipient")
-  ticketsSent                               Ticket[]   @relation("TicketSender")
-  clientesAsignados                         ClienteUsuario[]
-  ticketRespuestas                          TicketRespuesta[]
+  id                   String              @id @default(cuid())
+  name                 String
+  email                String?
+  role                 String              @default("DEV")
+  position             String?
+  avatarUrl            String?
+  joinDate             DateTime            @default(now())
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  password             String?
+  tipoContrato         String              @default("COMPLETA")
+  ciudad               String?
+  codigoPostal         String?
+  direccion            String?
+  dni                  String?
+  fechaNacimiento      DateTime?
+  iban                 String?
+  telefono             String?
+  telefonoEmergencia   String?
+  titularCuenta        String?
+  fechaAltaSS          DateTime?
+  numSeguridadSocial   String?
+  tipoContratacion     String?
+  clientesAsignados    ClienteUsuario[]
+  eventos              eventos[]
+  jornadas             jornadas[]
+  permisos_aprobador   permisos[]          @relation("permisos_aprobadorIdTousuarios")
+  permisos_solicitante permisos[]          @relation("permisos_solicitanteIdTousuarios")
+  proyectos            Proyecto[]
+  tareasAsignadas      Tarea[]             @relation("TareaAssignee")
+  ticket_respuestas    ticket_respuestas[]
+  ticketsReceived      Ticket[]            @relation("TicketRecipient")
+  ticketsSent          Ticket[]            @relation("TicketSender")
+  timeEntries          TimeEntry[]
 
   @@map("usuarios")
 }
 
 model Proyecto {
-  id            String    @id @default(cuid())
-  title         String
-  clienteId     String
-  responsibleId String?
-  status        String    @default("ACTIVE")
-  budget        Float?
-  deadline      DateTime?
-  isArchived    Boolean   @default(false)
-  tags          String[]  @default([])
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  cliente       Cliente   @relation(fields: [clienteId], references: [id])
-  responsable   Usuario?  @relation(fields: [responsibleId], references: [id])
-  tareas        Tarea[]
-  campanasSEM   CampanaSEM[]
-  tareasRecurrentes TareaRecurrente[]
+  id                 String               @id @default(cuid())
+  title              String
+  clienteId          String
+  responsibleId      String?
+  status             String               @default("ACTIVE")
+  budget             Float?
+  deadline           DateTime?
+  isArchived         Boolean              @default(false)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  tags               String[]             @default([])
+  campanasSEM        CampanaSEM[]
+  cliente            Cliente              @relation(fields: [clienteId], references: [id])
+  responsable        Usuario?             @relation(fields: [responsibleId], references: [id])
+  tareas             Tarea[]
+  tareas_recurrentes tareas_recurrentes[]
 
   @@map("proyectos")
 }
@@ -150,7 +146,6 @@ model Tarea {
   dueDate        DateTime?
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
-  
   assignee       Usuario?    @relation("TareaAssignee", fields: [assigneeId], references: [id])
   proyecto       Proyecto    @relation(fields: [proyectoId], references: [id])
   timeEntries    TimeEntry[]
@@ -166,27 +161,26 @@ model TimeEntry {
   endTime     DateTime?
   description String?
   createdAt   DateTime  @default(now())
-  
-  usuario     Usuario   @relation(fields: [userId], references: [id])
   tarea       Tarea?    @relation(fields: [tareaId], references: [id])
+  usuario     Usuario   @relation(fields: [userId], references: [id])
+
   @@map("time_entries")
 }
 
 model Ticket {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  status      String   @default("OPEN")
-  priority    String   @default("MEDIUM")
-  senderId    String
-  recipientId String?
-  readBy      String[] @default([])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  sender      Usuario  @relation("TicketSender", fields: [senderId], references: [id])
-  recipient   Usuario? @relation("TicketRecipient", fields: [recipientId], references: [id])
-  respuestas  TicketRespuesta[]
+  id                String              @id @default(cuid())
+  title             String
+  description       String?
+  status            String              @default("OPEN")
+  priority          String              @default("MEDIUM")
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  recipientId       String?
+  senderId          String
+  readBy            String[]            @default([])
+  ticket_respuestas ticket_respuestas[]
+  recipient         Usuario?            @relation("TicketRecipient", fields: [recipientId], references: [id])
+  sender            Usuario             @relation("TicketSender", fields: [senderId], references: [id])
 
   @@map("tickets")
 }
@@ -202,7 +196,6 @@ model categorias_servicio {
   activo           Boolean            @default(true)
   createdAt        DateTime           @default(now())
   updatedAt        DateTime
-  
   plantillas_tarea plantillas_tarea[]
 }
 
@@ -220,7 +213,6 @@ model eventos {
   createdById String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime
-  
   createdBy   Usuario?  @relation(fields: [createdById], references: [id])
 }
 
@@ -236,29 +228,27 @@ model jornadas {
   estado               String    @default("EN_CURSO")
   createdAt            DateTime  @default(now())
   updatedAt            DateTime
-  
   usuario              Usuario   @relation(fields: [usuarioId], references: [id])
 
   @@unique([usuarioId, fecha])
 }
 
 model permisos {
-  id                String    @id
-  tipo              String
-  motivo            String?
-  fechaInicio       DateTime
-  fechaFin          DateTime
-  estado            String    @default("PENDIENTE")
-  fechaSolicitud    DateTime  @default(now())
-  fechaResolucion   DateTime?
-  comentarioAdmin   String?
-  solicitanteId     String
-  aprobadorId       String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime
-  
-  aprobador         Usuario?  @relation("permisos_aprobadorIdTousuarios", fields: [aprobadorId], references: [id])
-  solicitante       Usuario   @relation("permisos_solicitanteIdTousuarios", fields: [solicitanteId], references: [id])
+  id              String    @id
+  tipo            String
+  motivo          String?
+  fechaInicio     DateTime
+  fechaFin        DateTime
+  estado          String    @default("PENDIENTE")
+  fechaSolicitud  DateTime  @default(now())
+  fechaResolucion DateTime?
+  comentarioAdmin String?
+  solicitanteId   String
+  aprobadorId     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime
+  aprobador       Usuario?  @relation("permisos_aprobadorIdTousuarios", fields: [aprobadorId], references: [id])
+  solicitante     Usuario   @relation("permisos_solicitanteIdTousuarios", fields: [solicitanteId], references: [id])
 }
 
 model plantillas_tarea {
@@ -275,281 +265,245 @@ model plantillas_tarea {
   orden           Int                 @default(0)
   createdAt       DateTime            @default(now())
   updatedAt       DateTime
-  
   categoria       categorias_servicio @relation(fields: [categoriaId], references: [id])
 }
-// ==========================================
-// MÓDULO DE HOSTING Y DOMINIOS
-// ==========================================
 
 model Proveedor {
-  id          String   @id @default(cuid())
-  nombre      String   @unique
-  tipo        String   // HOSTING, DOMINIOS, AMBOS
-  website     String?
-  notas       String?
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  hostings    Hosting[]
-  dominios    Dominio[]
+  id        String    @id @default(cuid())
+  nombre    String    @unique
+  tipo      String
+  website   String?
+  notas     String?
+  activo    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  dominios  Dominio[]
+  hostings  Hosting[]
 
   @@map("proveedores")
 }
 
 model Hosting {
-  id                  String    @id @default(cuid())
-  clienteId           String
-  proveedorId         String
-  nombre              String    // Nombre identificativo del hosting
-  tipoHosting         String    // COMPARTIDO, VPS, DEDICADO, CLOUD, RESELLER
-  especificaciones    String?   // RAM, CPU, espacio, etc.
-  ipServidor          String?
-  panelControl        String?   // cPanel, Plesk, DirectAdmin, etc.
-  urlPanel            String?
-  usuarioPanel        String?
-  passwordPanel       String?
-  
-  // Facturación
-  importeCoste        Float     // Lo que pagamos al proveedor
-  importeVenta        Float     // Lo que cobramos al cliente
-  periodicidad        String    @default("ANUAL") // MENSUAL, TRIMESTRAL, SEMESTRAL, ANUAL
-  
-  // Fechas
-  fechaContratacion   DateTime
-  fechaVencimiento    DateTime
+  id                    String    @id @default(cuid())
+  clienteId             String
+  proveedorId           String
+  nombre                String
+  tipoHosting           String
+  especificaciones      String?
+  ipServidor            String?
+  panelControl          String?
+  urlPanel              String?
+  usuarioPanel          String?
+  passwordPanel         String?
+  importeCoste          Float
+  importeVenta          Float
+  periodicidad          String    @default("ANUAL")
+  fechaContratacion     DateTime
+  fechaVencimiento      DateTime
   fechaUltimaRenovacion DateTime?
-  
-  // Estado
-  estado              String    @default("ACTIVO") // ACTIVO, SUSPENDIDO, CANCELADO, PENDIENTE_RENOVACION
-  autoRenovar         Boolean   @default(true)
-  notificado30Dias    Boolean   @default(false)
-  
-  notas               String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  cliente             Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
-  proveedor           Proveedor @relation(fields: [proveedorId], references: [id])
-  dominios            Dominio[]
+  estado                String    @default("ACTIVO")
+  autoRenovar           Boolean   @default(true)
+  notificado30Dias      Boolean   @default(false)
+  notas                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  dominios              Dominio[]
+  cliente               Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  proveedor             Proveedor @relation(fields: [proveedorId], references: [id])
 
   @@map("hostings")
 }
 
 model Dominio {
-  id                  String    @id @default(cuid())
-  clienteId           String
-  hostingId           String?   // Puede estar asociado a un hosting o ser independiente
-  proveedorId         String
-  
-  nombre              String    // ejemplo.com
-  extension           String    // .com, .es, .net, etc.
-  
-  // SSL
-  tieneSSL            Boolean   @default(false)
-  tipoSSL             String?   // LETS_ENCRYPT, COMODO, GEOTRUST, etc.
-  fechaVencimientoSSL DateTime?
-  
-  // DNS
-  nameservers         String?   // NS1, NS2 separados por coma
-  registroDNS         String?   // Notas sobre configuración DNS
-  
-  // Facturación
-  importeCoste        Float     // Lo que pagamos al proveedor
-  importeVenta        Float     // Lo que cobramos al cliente
-  periodicidad        String    @default("ANUAL")
-  
-  // Fechas
-  fechaRegistro       DateTime
-  fechaVencimiento    DateTime
+  id                    String    @id @default(cuid())
+  clienteId             String
+  hostingId             String?
+  proveedorId           String
+  nombre                String
+  extension             String
+  tieneSSL              Boolean   @default(false)
+  tipoSSL               String?
+  fechaVencimientoSSL   DateTime?
+  nameservers           String?
+  registroDNS           String?
+  importeCoste          Float
+  importeVenta          Float
+  periodicidad          String    @default("ANUAL")
+  fechaRegistro         DateTime
+  fechaVencimiento      DateTime
   fechaUltimaRenovacion DateTime?
-  
-  // Estado
-  estado              String    @default("ACTIVO") // ACTIVO, SUSPENDIDO, TRANSFERIDO, EXPIRADO, PENDIENTE_RENOVACION
-  autoRenovar         Boolean   @default(true)
-  notificado30Dias    Boolean   @default(false)
-  
-  notas               String?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  cliente             Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
-  hosting             Hosting?  @relation(fields: [hostingId], references: [id])
-  proveedor           Proveedor @relation(fields: [proveedorId], references: [id])
+  estado                String    @default("ACTIVO")
+  autoRenovar           Boolean   @default(true)
+  notificado30Dias      Boolean   @default(false)
+  notas                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  cliente               Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  hosting               Hosting?  @relation(fields: [hostingId], references: [id])
+  proveedor             Proveedor @relation(fields: [proveedorId], references: [id])
 
   @@map("dominios")
 }
 
 model PlanHosting {
-  id              String   @id @default(cuid())
-  nombre          String
-  tipo            String   // HOSTING, DOMINIO
-  descripcion     String?
-  espacio         String?  // 1GB, 2+16GB, etc.
-  emails          Int?     // Número de emails incluidos
-  incluyeDominio  Boolean  @default(false)
-  precioCoste     Float    // Lo que pagamos al proveedor
-  precioSugerido  Float?   // Precio sugerido de venta
-  activo          Boolean  @default(true)
-  orden           Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  nombre         String
+  tipo           String
+  descripcion    String?
+  espacio        String?
+  emails         Int?
+  incluyeDominio Boolean  @default(false)
+  precioCoste    Float
+  precioSugerido Float?
+  activo         Boolean  @default(true)
+  orden          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@map("planes_hosting")
 }
 
 model ServicioRecurrente {
-  id                 String   @id @default(cuid())
-  codigo             String   @unique
+  id                 String     @id @default(cuid())
+  codigo             String     @unique
   nombre             String
   descripcion        String?
   categoria          String
-  tipo               String   @default("INDIVIDUAL") // PACK, INDIVIDUAL
-  serviciosIncluidos String?  // Descripción de servicios incluidos en packs
   precioBase         Float?
-  cuotaActivacion    Float?   // Cuota de activación para packs
-  activo             Boolean  @default(true)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-  
+  activo             Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  cuotaActivacion    Float?
+  serviciosIncluidos String?
+  tipo               String     @default("INDIVIDUAL")
   contratos          Contrato[]
-  
+
   @@map("servicios_recurrentes")
 }
 
 model Contrato {
-  id                String    @id @default(cuid())
-  clienteId         String
-  servicioId        String
-  nombre            String?   // Nombre personalizado del contrato
-  descripcion       String?
-  importeMensual    Float
-  periodicidad      String    @default("MENSUAL") // MENSUAL, TRIMESTRAL, SEMESTRAL, ANUAL
-  fechaInicio       DateTime
-  fechaFin          DateTime?
-  fechaRenovacion   DateTime?
-  autoRenovar       Boolean   @default(true)
-  estado            String    @default("ACTIVO") // ACTIVO, PAUSADO, CANCELADO, FINALIZADO
-  notas             String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  cuotaActivacion    Float?
-  activacionPagada   Boolean   @default(false)
-  
-  cliente           Cliente   @relation(fields: [clienteId], references: [id])
-  servicio          ServicioRecurrente @relation(fields: [servicioId], references: [id])
-  historial         HistorialContrato[]
-  
+  id               String              @id @default(cuid())
+  clienteId        String
+  servicioId       String
+  nombre           String?
+  descripcion      String?
+  importeMensual   Float
+  periodicidad     String              @default("MENSUAL")
+  fechaInicio      DateTime
+  fechaFin         DateTime?
+  fechaRenovacion  DateTime?
+  autoRenovar      Boolean             @default(true)
+  estado           String              @default("ACTIVO")
+  notas            String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  activacionPagada Boolean             @default(false)
+  cuotaActivacion  Float?
+  cliente          Cliente             @relation(fields: [clienteId], references: [id])
+  servicio         ServicioRecurrente  @relation(fields: [servicioId], references: [id])
+  historial        HistorialContrato[]
+
   @@map("contratos")
 }
 
 model HistorialContrato {
-  id          String   @id @default(cuid())
-  contratoId  String
-  tipo        String   // CREACION, RENOVACION, CAMBIO_PRECIO, PAUSA, CANCELACION, REACTIVACION
-  descripcion String?
+  id            String   @id @default(cuid())
+  contratoId    String
+  tipo          String
+  descripcion   String?
   valorAnterior Float?
   valorNuevo    Float?
-  fecha       DateTime @default(now())
-  
-  contrato    Contrato @relation(fields: [contratoId], references: [id])
-  
+  fecha         DateTime @default(now())
+  contrato      Contrato @relation(fields: [contratoId], references: [id])
+
   @@map("historial_contratos")
 }
 
-// ============ SEM & SOCIAL ADS ============
 model CampanaSEM {
-  id              String   @id @default(cuid())
+  id              String       @id @default(cuid())
   clienteId       String
   proyectoId      String?
   nombre          String
-  plataforma      String   // GOOGLE, META, TIKTOK, LINKEDIN
-  estado          String   @default("PLANIFICADA") // ACTIVA, PAUSADA, FINALIZADA, PLANIFICADA
+  plataforma      String
+  estado          String       @default("PLANIFICADA")
   fechaInicio     DateTime
   fechaFin        DateTime?
   presupuesto     Float
-  objetivo        String?  // CONVERSIONES, TRAFICO, RECONOCIMIENTO, LEADS
+  objetivo        String?
   notas           String?
-  urlPlataforma   String?  // Link al dashboard de la plataforma
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  cliente         Cliente  @relation(fields: [clienteId], references: [id])
-  proyecto        Proyecto? @relation(fields: [proyectoId], references: [id])
+  urlPlataforma   String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  cliente         Cliente      @relation(fields: [clienteId], references: [id])
+  proyecto        Proyecto?    @relation(fields: [proyectoId], references: [id])
   reportesDiarios ReporteSEM[]
-  
+
   @@map("campanas_sem")
 }
 
 model ReporteSEM {
-  id            String   @id @default(cuid())
-  campanaId     String
-  fecha         DateTime
-  impresiones   Int      @default(0)
-  clics         Int      @default(0)
-  ctr           Float    @default(0)
-  conversiones  Int      @default(0)
-  cpa           Float    @default(0)
-  gastoDia      Float    @default(0)
-  roas          Float    @default(0)
-  notas         String?  // Cambios realizados ese día
-  createdAt     DateTime @default(now())
-  
-  campana       CampanaSEM @relation(fields: [campanaId], references: [id])
-  
+  id           String     @id @default(cuid())
+  campanaId    String
+  fecha        DateTime
+  impresiones  Int        @default(0)
+  clics        Int        @default(0)
+  ctr          Float      @default(0)
+  conversiones Int        @default(0)
+  cpa          Float      @default(0)
+  gastoDia     Float      @default(0)
+  roas         Float      @default(0)
+  notas        String?
+  createdAt    DateTime   @default(now())
+  campana      CampanaSEM @relation(fields: [campanaId], references: [id])
+
   @@unique([campanaId, fecha])
   @@map("reportes_sem")
 }
 
-// ============ EMAIL MARKETING ============
 model CampanaMailing {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   clienteId       String
   nombreInterno   String
   asunto          String?
-  plataforma      String   // MAILCHIMP, ACTIVECAMPAIGN, KLAVIYO, BREVO
-  estado          String   @default("BORRADOR") // ENVIADA, PROGRAMADA, BORRADOR
+  plataforma      String
+  estado          String    @default("BORRADOR")
   fechaEnvio      DateTime?
-  tamanoAudiencia Int      @default(0)
-  entregados      Int      @default(0)
-  aperturas       Int      @default(0)
-  clics           Int      @default(0)
-  rebotes         Int      @default(0)
-  bajas           Int      @default(0)
-  spam            Int      @default(0)
+  tamanoAudiencia Int       @default(0)
+  entregados      Int       @default(0)
+  aperturas       Int       @default(0)
+  clics           Int       @default(0)
+  rebotes         Int       @default(0)
+  bajas           Int       @default(0)
+  spam            Int       @default(0)
   notas           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  cliente         Cliente  @relation(fields: [clienteId], references: [id])
-  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  cliente         Cliente   @relation(fields: [clienteId], references: [id])
+
   @@map("campanas_mailing")
 }
 
-// ============ DOCUMENTOS SOPORTE ============
 model DocumentoSoporte {
-  id          String   @id @default(cuid())
-  nombre      String
-  descripcion String?
-  familia     String   // DISENO, SEO, RRHH, ADMINISTRACION, DESARROLLO, LEGAL, MARKETING
-  subfamilia  String?
-  archivoUrl  String?  // URL del archivo subido
-  archivoNombre String?
-  tamano      Int?     // Tamaño en bytes
-  tipo        String?  // pdf, docx, xlsx, etc.
-  creadoPorId String?
+  id              String   @id @default(cuid())
+  nombre          String
+  descripcion     String?
+  familia         String
+  subfamilia      String?
+  archivoUrl      String?
+  archivoNombre   String?
+  tamano          Int?
+  tipo            String?
+  creadoPorId     String?
   creadoPorNombre String?
-  activo      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  activo          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   @@map("documentos_soporte")
 }
 
-// ============ TAREAS RECURRENTES ============
-model TareaRecurrente {
-  id                String    @id @default(cuid())
+model tareas_recurrentes {
+  id                String    @id
   titulo            String
   descripcion       String?
   proyectoId        String
@@ -557,35 +511,23 @@ model TareaRecurrente {
   prioridad         String    @default("MEDIUM")
   tipo              String    @default("OPERATIONAL")
   horasEstimadas    Float?
-  
-  // Configuración de recurrencia
-  frecuencia        String    // DAILY, WEEKLY, MONTHLY, QUARTERLY
+  frecuencia        String
   diasAntelacion    Int       @default(3)
-  diaEjecucion      Int?      // 1-7 para semanal (1=lunes), 1-31 para mensual
+  diaEjecucion      Int?
   activa            Boolean   @default(true)
-  
-  // Control
   ultimaGeneracion  DateTime?
   proximaGeneracion DateTime?
-  
   createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  proyecto          Proyecto  @relation(fields: [proyectoId], references: [id])
-  
-  @@map("tareas_recurrentes")
+  updatedAt         DateTime
+  proyectos         Proyecto  @relation(fields: [proyectoId], references: [id])
 }
 
-// ============ RESPUESTAS A TICKETS ============
-model TicketRespuesta {
-  id        String   @id @default(cuid())
+model ticket_respuestas {
+  id        String   @id
   ticketId  String
   userId    String
   mensaje   String
   createdAt DateTime @default(now())
-  
-  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  usuario   Usuario  @relation(fields: [userId], references: [id])
-  
-  @@map("ticket_respuestas")
+  tickets   Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  usuarios  Usuario  @relation(fields: [userId], references: [id])
 }

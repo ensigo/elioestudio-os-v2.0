@@ -532,3 +532,4 @@ model ticket_respuestas {
   tickets   Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   usuarios  Usuario  @relation(fields: [userId], references: [id])
 }
+// Tue Jan 13 02:14:38 CET 2026

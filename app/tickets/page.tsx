@@ -534,19 +534,19 @@ export const TicketsPage = () => {
               {selectedTicket.respuestas?.map((respuesta) => (
                 <div key={respuesta.id} className="flex gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${
-                    respuesta.usuario.id === selectedTicket.sender.id 
+                    respuesta.usuarios.id === selectedTicket.sender.id 
                       ? 'bg-elio-yellow text-white' 
                       : 'bg-blue-500 text-white'
                   }`}>
-                    {respuesta.usuario.name.charAt(0)}
+                    {respuesta.usuarios.name.charAt(0)}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">{respuesta.usuario.name}</span>
+                      <span className="font-medium text-sm">{respuesta.usuarios.name}</span>
                       <span className="text-xs text-gray-400">{formatDateTime(respuesta.createdAt)}</span>
                     </div>
                     <div className={`p-3 rounded-lg rounded-tl-none text-sm whitespace-pre-wrap ${
-                      respuesta.usuario.id === currentUser?.id 
+                      respuesta.usuarios.id === currentUser?.id 
                         ? 'bg-blue-100 text-blue-900' 
                         : 'bg-gray-100 text-gray-700'
                     }`}>

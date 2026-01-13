@@ -178,7 +178,7 @@ model Ticket {
   recipientId       String?
   senderId          String
   readBy            String[]            @default([])
-  ticket_respuestas ticket_respuestas[]
+  respuestas ticket_respuestas[]
   recipient         Usuario?            @relation("TicketRecipient", fields: [recipientId], references: [id])
   sender            Usuario             @relation("TicketSender", fields: [senderId], references: [id])
 

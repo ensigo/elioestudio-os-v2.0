@@ -136,7 +136,7 @@ async function handleRespuestas(req: any, res: any) {
       return res.status(400).json({ error: 'ticketId es obligatorio' });
     }
 
-    const respuestas = await prisma.ticketRespuesta.findMany({
+    const respuestas = await prisma.ticket_respuestas.findMany({
       where: { ticketId },
       include: { usuarios: true },
       orderBy: { createdAt: 'asc' }
@@ -153,7 +153,7 @@ async function handleRespuestas(req: any, res: any) {
       return res.status(400).json({ error: 'ticketId, userId y mensaje son obligatorios' });
     }
 
-    const nuevaRespuesta = await prisma.ticketRespuesta.create({
+    const nuevaRespuesta = await prisma.ticket_respuestas.create({
       data: {
         ticketId,
         userId,
@@ -179,7 +179,7 @@ async function handleRespuestas(req: any, res: any) {
       return res.status(400).json({ error: 'ID es obligatorio' });
     }
 
-    await prisma.ticketRespuesta.delete({ where: { id } });
+    await prisma.ticket_respuestas.delete({ where: { id } });
     return res.status(200).json({ success: true });
   }
 

@@ -106,9 +106,26 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigate }
     }
   };
 
-  const handleTicketClick = () => {
+  const handleTicketClick = async (ticket: Ticket) => {
+    // Marcar como leído
+    if (usuario && !ticket.readBy?.includes(usuario.id)) {
+      try {
+        await fetch('/api/tickets', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: ticket.id,
+            readBy: [...(ticket.readBy || []), usuario.id]
+          })
+        });
+        // Actualizar lista local
+        setTickets(prev => prev.filter(t => t.id !== ticket.id));
+      } catch (err) {
+        console.error('Error marcando como leído:', err);
+      }
+    }
     setIsOpen(false);
-    onNavigate?.('tickets');
+    onNavigate?.(`tickets?id=${ticket.id}`);
   };
 
   return (
@@ -151,7 +168,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigate }
                 {tickets.map(ticket => (
                   <div 
                     key={ticket.id} 
-                    onClick={handleTicketClick}
+                    onClick={() => handleTicketClick(ticket)}
                     className="p-3 hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <div className="flex items-start gap-3">
@@ -184,7 +201,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigate }
           {tickets.length > 0 && (
             <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
               <button 
-                onClick={handleTicketClick}
+                onClick={() => { onNavigate?.("tickets"); setIsOpen(false); }}
                 className="text-xs text-blue-600 font-medium hover:underline w-full text-center"
               >
                 Ver todos los tickets

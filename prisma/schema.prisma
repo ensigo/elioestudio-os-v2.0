@@ -535,3 +535,5 @@ model ticket_respuestas {
   tickets   Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   usuarios  Usuario  @relation(fields: [userId], references: [id])
 }
+
+// Force rebuild v2

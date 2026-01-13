@@ -23,7 +23,7 @@ export default async function handler(req: any, res: any) {
             sender: true,
             recipient: true,
             respuestas: {
-              include: { usuario: true },
+              include: { usuarios: true },
               orderBy: { createdAt: 'asc' }
             }
           }
@@ -36,7 +36,7 @@ export default async function handler(req: any, res: any) {
           sender: true,
           recipient: true,
           respuestas: {
-            include: { usuario: true },
+            include: { usuarios: true },
             orderBy: { createdAt: 'asc' }
           }
         },
@@ -95,7 +95,7 @@ export default async function handler(req: any, res: any) {
           sender: true,
           recipient: true,
           respuestas: {
-            include: { usuario: true },
+            include: { usuarios: true },
             orderBy: { createdAt: 'asc' }
           }
         }
@@ -138,7 +138,7 @@ async function handleRespuestas(req: any, res: any) {
 
     const respuestas = await prisma.ticketRespuesta.findMany({
       where: { ticketId },
-      include: { usuario: true },
+      include: { usuarios: true },
       orderBy: { createdAt: 'asc' }
     });
 
@@ -159,7 +159,7 @@ async function handleRespuestas(req: any, res: any) {
         userId,
         mensaje
       },
-      include: { usuario: true }
+      include: { usuarios: true }
     });
 
     // Actualizar el ticket para marcarlo como actualizado

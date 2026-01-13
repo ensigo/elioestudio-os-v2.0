@@ -289,6 +289,9 @@ model Hosting {
   proveedorId           String
   nombre                String
   webAsociada           String?
+  tieneSSL              Boolean   @default(false)
+  tipoSSL               String?
+  fechaVencimientoSSL   DateTime?
   tipoHosting           String
   especificaciones      String?
   ipServidor            String?

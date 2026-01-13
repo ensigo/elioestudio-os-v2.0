@@ -90,6 +90,9 @@ export default async function handler(req: any, res: any) {
             proveedorId: data.proveedorId,
             nombre: data.nombre,
             webAsociada: data.webAsociada || null,
+            tieneSSL: data.tieneSSL ?? false,
+            tipoSSL: data.tipoSSL || null,
+            fechaVencimientoSSL: data.fechaVencimientoSSL ? new Date(data.fechaVencimientoSSL) : null,
             tipoHosting: data.tipoHosting,
             especificaciones: data.especificaciones,
             ipServidor: data.ipServidor,
@@ -115,6 +118,7 @@ export default async function handler(req: any, res: any) {
         if (data.fechaContratacion) data.fechaContratacion = new Date(data.fechaContratacion);
         if (data.fechaVencimiento) data.fechaVencimiento = new Date(data.fechaVencimiento);
         if (data.fechaUltimaRenovacion) data.fechaUltimaRenovacion = new Date(data.fechaUltimaRenovacion);
+        if (data.fechaVencimientoSSL) data.fechaVencimientoSSL = new Date(data.fechaVencimientoSSL);
         if (data.importeCoste) data.importeCoste = parseFloat(data.importeCoste);
         if (data.importeVenta) data.importeVenta = parseFloat(data.importeVenta);
 
@@ -230,7 +234,7 @@ export default async function handler(req: any, res: any) {
       }
     }
 
-    // ============ EMAILS (NUEVO) ============
+    // ============ EMAILS ============
     if (entity === 'emails') {
       if (req.method === 'GET') {
         const { clienteId } = req.query;
@@ -366,7 +370,7 @@ export default async function handler(req: any, res: any) {
 
       const hostings = await prisma.hosting.findMany({
         where: { estado: 'ACTIVO' },
-        select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true, webAsociada: true }
+        select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true, webAsociada: true, tieneSSL: true, fechaVencimientoSSL: true }
       });
 
       const dominios = await prisma.dominio.findMany({
@@ -387,19 +391,20 @@ export default async function handler(req: any, res: any) {
         }
       };
 
-      let totalCosteHostings = 0, totalVentaHostings = 0, hostingsProximosVencer = 0;
+      let totalCosteHostings = 0, totalVentaHostings = 0, hostingsProximosVencer = 0, sslHostingsProximosVencer = 0;
       hostings.forEach(h => {
         totalCosteHostings += anualizar(h.importeCoste, h.periodicidad);
         totalVentaHostings += anualizar(h.importeVenta, h.periodicidad);
         if (h.fechaVencimiento >= hoy && h.fechaVencimiento <= en30Dias) hostingsProximosVencer++;
+        if (h.tieneSSL && h.fechaVencimientoSSL && h.fechaVencimientoSSL >= hoy && h.fechaVencimientoSSL <= en30Dias) sslHostingsProximosVencer++;
       });
 
-      let totalCosteDominios = 0, totalVentaDominios = 0, dominiosProximosVencer = 0, sslProximosVencer = 0;
+      let totalCosteDominios = 0, totalVentaDominios = 0, dominiosProximosVencer = 0, sslDominiosProximosVencer = 0;
       dominios.forEach(d => {
         totalCosteDominios += anualizar(d.importeCoste, d.periodicidad);
         totalVentaDominios += anualizar(d.importeVenta, d.periodicidad);
         if (d.fechaVencimiento >= hoy && d.fechaVencimiento <= en30Dias) dominiosProximosVencer++;
-        if (d.tieneSSL && d.fechaVencimientoSSL && d.fechaVencimientoSSL >= hoy && d.fechaVencimientoSSL <= en30Dias) sslProximosVencer++;
+        if (d.tieneSSL && d.fechaVencimientoSSL && d.fechaVencimientoSSL >= hoy && d.fechaVencimientoSSL <= en30Dias) sslDominiosProximosVencer++;
       });
 
       const alertasHostings = await prisma.hosting.findMany({
@@ -414,7 +419,13 @@ export default async function handler(req: any, res: any) {
         orderBy: { fechaVencimiento: 'asc' }
       });
 
-      const alertasSSL = await prisma.dominio.findMany({
+      const alertasSSLDominios = await prisma.dominio.findMany({
+        where: { tieneSSL: true, fechaVencimientoSSL: { gte: hoy, lte: en30Dias } },
+        include: { cliente: { select: { name: true } } },
+        orderBy: { fechaVencimientoSSL: 'asc' }
+      });
+
+      const alertasSSLHostings = await prisma.hosting.findMany({
         where: { tieneSSL: true, fechaVencimientoSSL: { gte: hoy, lte: en30Dias } },
         include: { cliente: { select: { name: true } } },
         orderBy: { fechaVencimientoSSL: 'asc' }
@@ -435,9 +446,16 @@ export default async function handler(req: any, res: any) {
         margenTotal: (totalVentaHostings + totalVentaDominios) - (totalCosteHostings + totalCosteDominios),
         hostingsProximosVencer,
         dominiosProximosVencer,
-        sslProximosVencer,
-        totalAlertas: hostingsProximosVencer + dominiosProximosVencer + sslProximosVencer,
-        alertas: { hostings: alertasHostings, dominios: alertasDominios, ssl: alertasSSL }
+        sslProximosVencer: sslDominiosProximosVencer + sslHostingsProximosVencer,
+        totalAlertas: hostingsProximosVencer + dominiosProximosVencer + sslDominiosProximosVencer + sslHostingsProximosVencer,
+        alertas: { 
+          hostings: alertasHostings, 
+          dominios: alertasDominios, 
+          ssl: [
+            ...alertasSSLDominios.map(d => ({...d, _tipo: 'dominio'})), 
+            ...alertasSSLHostings.map(h => ({...h, _tipo: 'hosting'}))
+          ]
+        }
       });
     }
 

@@ -3,11 +3,10 @@ import React, { useState, useEffect } from 'react';
 import {
   Server, Globe, Shield, Search, AlertTriangle,
   TrendingUp, TrendingDown, DollarSign, Building2,
-  ExternalLink, Edit, Package, Mail, Plus, Trash2, Eye, EyeOff, Link2
+  ExternalLink, Edit, Package, Mail, Plus, Eye, EyeOff, Link2
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 
 interface Proveedor {
@@ -39,6 +38,9 @@ interface Hosting {
   proveedorId: string;
   nombre: string;
   webAsociada?: string;
+  tieneSSL?: boolean;
+  tipoSSL?: string;
+  fechaVencimientoSSL?: string;
   tipoHosting: string;
   importeCoste: number;
   importeVenta: number;
@@ -58,6 +60,8 @@ interface Dominio {
   nombre: string;
   extension: string;
   tieneSSL: boolean;
+  tipoSSL?: string;
+  fechaVencimientoSSL?: string;
   importeCoste: number;
   importeVenta: number;
   fechaVencimiento: string;
@@ -337,10 +341,13 @@ export default function HostingPage() {
                 )}
                 {dashboard.alertas.ssl.length > 0 && (
                   <div>
-                    <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Shield size={16} /> SSL</h4>
-                    {dashboard.alertas.ssl.map((s: any) => (
-                      <div key={s.id} className="flex justify-between items-center bg-red-50 p-3 rounded-lg mb-2">
-                        <span className="font-medium">{s.nombre}{s.extension}</span>
+                    <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Shield size={16} /> Certificados SSL</h4>
+                    {dashboard.alertas.ssl.map((s: any, idx: number) => (
+                      <div key={s.id + idx} className="flex justify-between items-center bg-red-50 p-3 rounded-lg mb-2">
+                        <span className="font-medium">
+                          {s._tipo === 'hosting' ? s.nombre : `${s.nombre}${s.extension}`}
+                          <span className="text-xs ml-2 bg-slate-200 px-2 py-0.5 rounded">{s._tipo === 'hosting' ? 'Hosting' : 'Dominio'}</span>
+                        </span>
                         <span className="text-red-600 text-sm">SSL: {formatDate(s.fechaVencimientoSSL)}</span>
                       </div>
                     ))}
@@ -374,6 +381,7 @@ export default function HostingPage() {
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Cliente</th>
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Hosting</th>
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Web Asociada</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-600">SSL</th>
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Tipo</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Vencimiento</th>
                     <th className="px-4 py-3 text-right font-bold text-slate-600">Coste</th>
@@ -384,7 +392,7 @@ export default function HostingPage() {
                 </thead>
                 <tbody className="divide-y">
                   {filteredHostings.length === 0 ? (
-                    <tr><td colSpan={9} className="px-4 py-12 text-center text-slate-400"><Server size={32} className="mx-auto mb-2 opacity-30" />No hay hostings</td></tr>
+                    <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400"><Server size={32} className="mx-auto mb-2 opacity-30" />No hay hostings</td></tr>
                   ) : filteredHostings.map(h => (
                     <tr key={h.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium">{h.cliente.name}</td>
@@ -401,6 +409,16 @@ export default function HostingPage() {
                         ) : (
                           <span className="text-slate-400 text-xs">Sin asignar</span>
                         )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        {h.tieneSSL ? (
+                          <div className="flex flex-col items-center">
+                            <Shield size={16} className="text-green-500" />
+                            {h.fechaVencimientoSSL && (
+                              <span className="text-xs text-slate-400">{formatDate(h.fechaVencimientoSSL)}</span>
+                            )}
+                          </div>
+                        ) : '-'}
                       </td>
                       <td className="px-4 py-3"><Badge variant="blue">{h.tipoHosting}</Badge></td>
                       <td className="px-4 py-3 text-center">{formatDate(h.fechaVencimiento)}</td>
@@ -455,7 +473,16 @@ export default function HostingPage() {
                     <tr key={d.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium">{d.cliente.name}</td>
                       <td className="px-4 py-3">{d.nombre}<span className="text-blue-600">{d.extension}</span></td>
-                      <td className="px-4 py-3 text-center">{d.tieneSSL ? <Shield size={16} className="mx-auto text-green-500" /> : '-'}</td>
+                      <td className="px-4 py-3 text-center">
+                        {d.tieneSSL ? (
+                          <div className="flex flex-col items-center">
+                            <Shield size={16} className="text-green-500" />
+                            {d.fechaVencimientoSSL && (
+                              <span className="text-xs text-slate-400">{formatDate(d.fechaVencimientoSSL)}</span>
+                            )}
+                          </div>
+                        ) : '-'}
+                      </td>
                       <td className="px-4 py-3 text-center">{formatDate(d.fechaVencimiento)}</td>
                       <td className="px-4 py-3 text-right text-red-600">{formatCurrency(d.importeCoste)}</td>
                       <td className="px-4 py-3 text-right text-green-600">{formatCurrency(d.importeVenta)}</td>
@@ -764,6 +791,9 @@ function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave 
     proveedorId: hosting?.proveedorId || '', 
     nombre: hosting?.nombre || '',
     webAsociada: hosting?.webAsociada || '',
+    tieneSSL: hosting?.tieneSSL || false,
+    tipoSSL: hosting?.tipoSSL || '',
+    fechaVencimientoSSL: hosting?.fechaVencimientoSSL?.split('T')[0] || '',
     tipoHosting: hosting?.tipoHosting || 'COMPARTIDO', 
     importeCoste: hosting?.importeCoste?.toString() || '',
     importeVenta: hosting?.importeVenta?.toString() || '', 
@@ -784,7 +814,12 @@ function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/hosting?entity=hostings', { method: hosting ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(hosting ? { id: hosting.id, ...form } : form) });
+    const dataToSend = {
+      ...form,
+      fechaVencimientoSSL: form.tieneSSL && form.fechaVencimientoSSL ? form.fechaVencimientoSSL : null,
+      tipoSSL: form.tieneSSL ? form.tipoSSL : null
+    };
+    await fetch('/api/hosting?entity=hostings', { method: hosting ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(hosting ? { id: hosting.id, ...dataToSend } : dataToSend) });
     setSaving(false);
     onSave();
   };
@@ -818,6 +853,43 @@ function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave 
             <input type="text" value={form.webAsociada} onChange={e => setForm({ ...form, webAsociada: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="www.ejemplo.com" />
             <p className="text-xs text-slate-500 mt-1">URL de la web que usa este hosting</p>
           </div>
+          
+          {/* SSL SECTION */}
+          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center gap-3 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={form.tieneSSL} 
+                  onChange={e => setForm({ ...form, tieneSSL: e.target.checked })}
+                  className="w-4 h-4 text-green-600 rounded"
+                />
+                <Shield size={18} className="text-green-600" />
+                <span className="font-medium text-green-800">Tiene Certificado SSL</span>
+              </label>
+            </div>
+            {form.tieneSSL && (
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-green-700">Tipo de SSL</label>
+                  <select value={form.tipoSSL} onChange={e => setForm({ ...form, tipoSSL: e.target.value })} className="w-full px-3 py-2 border border-green-200 rounded-lg">
+                    <option value="">Seleccionar...</option>
+                    <option value="LETS_ENCRYPT">Let's Encrypt</option>
+                    <option value="COMODO">Comodo</option>
+                    <option value="GEOTRUST">GeoTrust</option>
+                    <option value="DIGICERT">DigiCert</option>
+                    <option value="CLOUDFLARE">Cloudflare</option>
+                    <option value="OTRO">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-green-700">Fecha Vencimiento SSL</label>
+                  <input type="date" value={form.fechaVencimientoSSL} onChange={e => setForm({ ...form, fechaVencimientoSSL: e.target.value })} className="w-full px-3 py-2 border border-green-200 rounded-lg" />
+                </div>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-3 gap-4">
             <div><label className="block text-sm font-medium mb-1">Coste € *</label><input type="number" step="0.01" value={form.importeCoste} onChange={e => setForm({ ...form, importeCoste: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required /></div>
             <div><label className="block text-sm font-medium mb-1">Venta € *</label><input type="number" step="0.01" value={form.importeVenta} onChange={e => setForm({ ...form, importeVenta: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required /></div>
@@ -842,6 +914,8 @@ function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave 
   const [form, setForm] = useState({
     clienteId: dominio?.clienteId || '', proveedorId: dominio?.proveedorId || '',
     nombre: dominio?.nombre || '', extension: dominio?.extension || '.com', tieneSSL: dominio?.tieneSSL || false,
+    tipoSSL: dominio?.tipoSSL || '',
+    fechaVencimientoSSL: dominio?.fechaVencimientoSSL?.split('T')[0] || '',
     importeCoste: dominio?.importeCoste?.toString() || '', importeVenta: dominio?.importeVenta?.toString() || '',
     periodicidad: dominio?.periodicidad || 'ANUAL',
     fechaRegistro: dominio?.fechaRegistro?.split('T')[0] || new Date().toISOString().split('T')[0],
@@ -859,7 +933,12 @@ function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/hosting?entity=dominios', { method: dominio ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dominio ? { id: dominio.id, ...form } : form) });
+    const dataToSend = {
+      ...form,
+      fechaVencimientoSSL: form.tieneSSL && form.fechaVencimientoSSL ? form.fechaVencimientoSSL : null,
+      tipoSSL: form.tieneSSL ? form.tipoSSL : null
+    };
+    await fetch('/api/hosting?entity=dominios', { method: dominio ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dominio ? { id: dominio.id, ...dataToSend } : dataToSend) });
     setSaving(false);
     onSave();
   };
@@ -886,10 +965,46 @@ function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave 
             <div className="col-span-2"><label className="block text-sm font-medium mb-1">Nombre *</label><input type="text" value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} className="w-full px-3 py-2 border rounded-lg" placeholder="ejemplo" required /></div>
             <div><label className="block text-sm font-medium mb-1">Extensión</label><select value={form.extension} onChange={e => setForm({ ...form, extension: e.target.value })} className="w-full px-3 py-2 border rounded-lg"><option value=".com">.com</option><option value=".es">.es</option><option value=".net">.net</option><option value=".org">.org</option></select></div>
           </div>
-          <div className="grid grid-cols-3 gap-4">
+
+          {/* SSL SECTION */}
+          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="flex items-center gap-3 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={form.tieneSSL} 
+                  onChange={e => setForm({ ...form, tieneSSL: e.target.checked })}
+                  className="w-4 h-4 text-green-600 rounded"
+                />
+                <Shield size={18} className="text-green-600" />
+                <span className="font-medium text-green-800">Tiene Certificado SSL</span>
+              </label>
+            </div>
+            {form.tieneSSL && (
+              <div className="grid grid-cols-2 gap-4 mt-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-green-700">Tipo de SSL</label>
+                  <select value={form.tipoSSL} onChange={e => setForm({ ...form, tipoSSL: e.target.value })} className="w-full px-3 py-2 border border-green-200 rounded-lg">
+                    <option value="">Seleccionar...</option>
+                    <option value="LETS_ENCRYPT">Let's Encrypt</option>
+                    <option value="COMODO">Comodo</option>
+                    <option value="GEOTRUST">GeoTrust</option>
+                    <option value="DIGICERT">DigiCert</option>
+                    <option value="CLOUDFLARE">Cloudflare</option>
+                    <option value="OTRO">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-green-700">Fecha Vencimiento SSL</label>
+                  <input type="date" value={form.fechaVencimientoSSL} onChange={e => setForm({ ...form, fechaVencimientoSSL: e.target.value })} className="w-full px-3 py-2 border border-green-200 rounded-lg" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium mb-1">Coste € *</label><input type="number" step="0.01" value={form.importeCoste} onChange={e => setForm({ ...form, importeCoste: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required /></div>
             <div><label className="block text-sm font-medium mb-1">Venta € *</label><input type="number" step="0.01" value={form.importeVenta} onChange={e => setForm({ ...form, importeVenta: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required /></div>
-            <div className="flex items-center pt-6"><label className="flex items-center gap-2"><input type="checkbox" checked={form.tieneSSL} onChange={e => setForm({ ...form, tieneSSL: e.target.checked })} /> Tiene SSL</label></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium mb-1">Fecha Registro *</label><input type="date" value={form.fechaRegistro} onChange={e => setForm({ ...form, fechaRegistro: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required /></div>

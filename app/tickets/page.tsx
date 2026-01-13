@@ -54,6 +54,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [respuestaTexto, setRespuestaTexto] = useState('');
   const [isSendingRespuesta, setIsSendingRespuesta] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
 
   const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.role === 'SUPERADMIN';
 
@@ -134,6 +135,12 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         t.recipient?.id === currentUser.id ||
         t.recipient === null
       );
+    }
+    // Filtrar por archivados o activos
+    if (showArchived) {
+      filtered = filtered.filter(t => t.status === 'CLOSED');
+    } else {
+      filtered = filtered.filter(t => t.status !== 'CLOSED');
     }
     if (searchTerm) {
       filtered = filtered.filter(t => 
@@ -396,9 +403,20 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden">
             {/* Toolbar */}
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-              <h3 className="font-bold text-gray-700 flex items-center">
-                <Inbox size={18} className="mr-2" /> Bandeja ({filteredTickets.length})
-              </h3>
+              <div className="flex items-center space-x-4">
+              <button 
+               onClick={() => setShowArchived(false)}
+               className={`font-bold flex items-center px-3 py-1 rounded-lg transition-colors ${!showArchived ? 'bg-elio-yellow text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+               >
+              <Inbox size={16} className="mr-2" /> Activos ({tickets.filter(t => t.status !== 'CLOSED').length})
+              </button>
+              <button 
+              onClick={() => setShowArchived(true)}
+              className={`font-bold flex items-center px-3 py-1 rounded-lg transition-colors ${showArchived ? 'bg-gray-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+               >
+              <Clock size={16} className="mr-2" /> Archivados ({tickets.filter(t => t.status === 'CLOSED').length})
+              </button>
+              </div>
               <div className="flex space-x-2">
                 <div className="relative">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />

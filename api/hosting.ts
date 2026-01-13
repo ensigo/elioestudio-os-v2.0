@@ -114,13 +114,24 @@ export default async function handler(req: any, res: any) {
       }
 
       if (req.method === 'PUT') {
-        const { id, ...data } = req.body;
+        const { id, clienteId, proveedorId, tieneSSL, tipoSSL, fechaVencimientoSSL, ...restData } = req.body;
+        
+        // Preparar datos básicos
+        const data: any = { ...restData };
+        
+        // Convertir fechas
         if (data.fechaContratacion) data.fechaContratacion = new Date(data.fechaContratacion);
         if (data.fechaVencimiento) data.fechaVencimiento = new Date(data.fechaVencimiento);
         if (data.fechaUltimaRenovacion) data.fechaUltimaRenovacion = new Date(data.fechaUltimaRenovacion);
-        if (data.fechaVencimientoSSL) data.fechaVencimientoSSL = new Date(data.fechaVencimientoSSL);
         if (data.importeCoste) data.importeCoste = parseFloat(data.importeCoste);
         if (data.importeVenta) data.importeVenta = parseFloat(data.importeVenta);
+        
+        // Eliminar campos que no se pueden actualizar directamente
+        delete data.cliente;
+        delete data.proveedor;
+        delete data.dominios;
+        delete data.createdAt;
+        delete data.updatedAt;
 
         const hosting = await prisma.hosting.update({
           where: { id },

@@ -155,6 +155,7 @@ async function handleRespuestas(req: any, res: any) {
 
     const nuevaRespuesta = await prisma.ticket_respuestas.create({
       data: {
+        id: `resp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ticketId,
         userId,
         mensaje

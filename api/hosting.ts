@@ -370,16 +370,16 @@ export default async function handler(req: any, res: any) {
 
       const hostings = await prisma.hosting.findMany({
         where: { estado: 'ACTIVO' },
-        select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true, webAsociada: true, tieneSSL: true, fechaVencimientoSSL: true }
+        select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true }
       });
 
       const dominios = await prisma.dominio.findMany({
         where: { estado: 'ACTIVO' },
-        select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true, tieneSSL: true, fechaVencimientoSSL: true }
+        select: { importeCoste: true, importeVenta: true, periodicidad: true, fechaVencimiento: true }
       });
 
       const totalEmails = await prisma.credential.count({
-        where: { category: 'EMAIL', isActive: true }
+        where: { platform: 'cPanel Email', isActive: true }
       });
 
       const anualizar = (importe: number, periodicidad: string) => {
@@ -391,20 +391,18 @@ export default async function handler(req: any, res: any) {
         }
       };
 
-      let totalCosteHostings = 0, totalVentaHostings = 0, hostingsProximosVencer = 0, sslHostingsProximosVencer = 0;
+      let totalCosteHostings = 0, totalVentaHostings = 0, hostingsProximosVencer = 0;
       hostings.forEach(h => {
         totalCosteHostings += anualizar(h.importeCoste, h.periodicidad);
         totalVentaHostings += anualizar(h.importeVenta, h.periodicidad);
         if (h.fechaVencimiento >= hoy && h.fechaVencimiento <= en30Dias) hostingsProximosVencer++;
-        if (h.tieneSSL && h.fechaVencimientoSSL && h.fechaVencimientoSSL >= hoy && h.fechaVencimientoSSL <= en30Dias) sslHostingsProximosVencer++;
       });
 
-      let totalCosteDominios = 0, totalVentaDominios = 0, dominiosProximosVencer = 0, sslDominiosProximosVencer = 0;
+      let totalCosteDominios = 0, totalVentaDominios = 0, dominiosProximosVencer = 0;
       dominios.forEach(d => {
         totalCosteDominios += anualizar(d.importeCoste, d.periodicidad);
         totalVentaDominios += anualizar(d.importeVenta, d.periodicidad);
         if (d.fechaVencimiento >= hoy && d.fechaVencimiento <= en30Dias) dominiosProximosVencer++;
-        if (d.tieneSSL && d.fechaVencimientoSSL && d.fechaVencimientoSSL >= hoy && d.fechaVencimientoSSL <= en30Dias) sslDominiosProximosVencer++;
       });
 
       const alertasHostings = await prisma.hosting.findMany({
@@ -417,18 +415,6 @@ export default async function handler(req: any, res: any) {
         where: { estado: 'ACTIVO', fechaVencimiento: { gte: hoy, lte: en30Dias } },
         include: { cliente: { select: { name: true } } },
         orderBy: { fechaVencimiento: 'asc' }
-      });
-
-      const alertasSSLDominios = await prisma.dominio.findMany({
-        where: { tieneSSL: true, fechaVencimientoSSL: { gte: hoy, lte: en30Dias } },
-        include: { cliente: { select: { name: true } } },
-        orderBy: { fechaVencimientoSSL: 'asc' }
-      });
-
-      const alertasSSLHostings = await prisma.hosting.findMany({
-        where: { tieneSSL: true, fechaVencimientoSSL: { gte: hoy, lte: en30Dias } },
-        include: { cliente: { select: { name: true } } },
-        orderBy: { fechaVencimientoSSL: 'asc' }
       });
 
       return res.status(200).json({
@@ -446,15 +432,12 @@ export default async function handler(req: any, res: any) {
         margenTotal: (totalVentaHostings + totalVentaDominios) - (totalCosteHostings + totalCosteDominios),
         hostingsProximosVencer,
         dominiosProximosVencer,
-        sslProximosVencer: sslDominiosProximosVencer + sslHostingsProximosVencer,
-        totalAlertas: hostingsProximosVencer + dominiosProximosVencer + sslDominiosProximosVencer + sslHostingsProximosVencer,
+        sslProximosVencer: 0,
+        totalAlertas: hostingsProximosVencer + dominiosProximosVencer,
         alertas: { 
           hostings: alertasHostings, 
           dominios: alertasDominios, 
-          ssl: [
-            ...alertasSSLDominios.map(d => ({...d, _tipo: 'dominio'})), 
-            ...alertasSSLHostings.map(h => ({...h, _tipo: 'hosting'}))
-          ]
+          ssl: []
         }
       });
     }

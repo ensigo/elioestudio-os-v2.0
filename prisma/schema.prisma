@@ -288,10 +288,6 @@ model Hosting {
   clienteId             String
   proveedorId           String
   nombre                String
-  webAsociada           String?
-  tieneSSL              Boolean   @default(false)
-  tipoSSL               String?
-  fechaVencimientoSSL   DateTime?
   tipoHosting           String
   especificaciones      String?
   ipServidor            String?
@@ -311,6 +307,7 @@ model Hosting {
   notas                 String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+  webAsociada           String?
   dominios              Dominio[]
   cliente               Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   proveedor             Proveedor @relation(fields: [proveedorId], references: [id])
@@ -535,5 +532,3 @@ model ticket_respuestas {
   tickets   Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   usuarios  Usuario  @relation(fields: [userId], references: [id])
 }
-
-// Force rebuild v2

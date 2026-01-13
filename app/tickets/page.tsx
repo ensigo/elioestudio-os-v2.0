@@ -31,7 +31,12 @@ interface Ticket {
   respuestas?: Respuesta[];
 }
 
-export const TicketsPage = () => {
+interface TicketsPageProps {
+  ticketIdToOpen?: string | null;
+  onTicketOpened?: () => void;
+}
+
+export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps) => {
   const { usuario: currentUser } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -63,6 +68,17 @@ export const TicketsPage = () => {
       loadAndMarkAsRead();
     }
   }, [currentUser]);
+
+  // Abrir ticket específico si viene de notificación
+  useEffect(() => {
+    if (ticketIdToOpen && tickets.length > 0) {
+      const ticketToOpen = tickets.find(t => t.id === ticketIdToOpen);
+      if (ticketToOpen) {
+        setSelectedTicket(ticketToOpen);
+        onTicketOpened?.();
+      }
+    }
+  }, [ticketIdToOpen, tickets]);
 
   const fetchData = async () => {
     try {

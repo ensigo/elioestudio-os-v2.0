@@ -29,6 +29,7 @@ function AppContent() {
   const { usuario, isLoading, isAuthenticated, login, logout, canAccessReports } = useAuth();
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [ticketIdToOpen, setTicketIdToOpen] = useState<string | null>(null);
 
   // Mostrar loading mientras verifica sesión
   if (isLoading) {
@@ -53,7 +54,20 @@ function AppContent() {
       alert('No tienes permisos para acceder a esta sección');
       return;
     }
-    setCurrentPage(page);
+    
+    // Extraer parámetros de la URL (ej: tickets?id=xxx)
+    if (page.includes('?')) {
+      const [basePage, params] = page.split('?');
+      const urlParams = new URLSearchParams(params);
+      const ticketId = urlParams.get('id');
+      if (ticketId) {
+        setTicketIdToOpen(ticketId);
+      }
+      setCurrentPage(basePage);
+    } else {
+      setTicketIdToOpen(null);
+      setCurrentPage(page);
+    }
   };
 
   const renderPage = () => {
@@ -65,7 +79,7 @@ function AppContent() {
       case 'calendario': return <CalendarioPage />;
       case 'equipo': return <EquipoPage />;
       case 'reportes': return canAccessReports ? <ReportesPage /> : <DashboardPage />;
-      case 'tickets': return <TicketsPage />;
+      case 'tickets': return <TicketsPage ticketIdToOpen={ticketIdToOpen} onTicketOpened={() => setTicketIdToOpen(null)} />;
       case 'sem': return <SemPage />;
       case 'mailing': return <MailingPage />;
       case 'soporte': return <SoportePage />;

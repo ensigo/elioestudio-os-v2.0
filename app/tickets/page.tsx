@@ -479,9 +479,9 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                     </div>
                     
                     <div className="ml-13 bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed">
-                      {ticket.description.length > 150 
+                      {ticket.description && ticket.description.length > 150 
                         ? ticket.description.substring(0, 150) + '...' 
-                        : ticket.description}
+                        : (ticket.description || "Sin descripción")}
                     </div>
                   </div>
                 ))

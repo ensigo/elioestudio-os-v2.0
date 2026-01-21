@@ -163,10 +163,14 @@ async function handleRespuestas(req: any, res: any) {
       include: { usuarios: true }
     });
 
-    // Actualizar el ticket para marcarlo como actualizado
+    // Actualizar el ticket: marcar como actualizado y resetear readBy
+    // para que solo incluya al usuario que acaba de responder
     await prisma.ticket.update({
       where: { id: ticketId },
-      data: { updatedAt: new Date() }
+      data: { 
+        updatedAt: new Date(),
+        readBy: [userId]
+      }
     });
 
     return res.status(201).json(nuevaRespuesta);
@@ -186,3 +190,4 @@ async function handleRespuestas(req: any, res: any) {
 
   return res.status(405).json({ error: 'Método no permitido' });
 }
+

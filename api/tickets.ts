@@ -153,6 +153,7 @@ async function handleRespuestas(req: any, res: any) {
       return res.status(400).json({ error: 'ticketId, userId y mensaje son obligatorios' });
     }
 
+    // Crear la respuesta
     const nuevaRespuesta = await prisma.ticket_respuestas.create({
       data: {
         id: `resp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -163,13 +164,29 @@ async function handleRespuestas(req: any, res: any) {
       include: { usuarios: true }
     });
 
-    // Actualizar el ticket: marcar como actualizado y resetear readBy
-    // para que solo incluya al usuario que acaba de responder
+    // CRÍTICO: Obtener el ticket para saber quién debe ser notificado
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { senderId: true, recipientId: true }
+    });
+
+    if (!ticket) {
+      return res.status(404).json({ error: 'Ticket no encontrado' });
+    }
+
+    // Determinar quién debe VER la notificación (la otra persona)
+    // Si quien responde es el sender, el recipient debe ver la notificación
+    // Si quien responde es el recipient, el sender debe ver la notificación
+    const otherUserId = userId === ticket.senderId ? ticket.recipientId : ticket.senderId;
+
+    // Actualizar el ticket: 
+    // - readBy solo incluye al que acaba de responder
+    // - Esto hace que el OTRO usuario vea la notificación
     await prisma.ticket.update({
       where: { id: ticketId },
       data: { 
         updatedAt: new Date(),
-        readBy: [userId]
+        readBy: [userId] // Solo quien responde lo ha leído
       }
     });
 
@@ -190,4 +207,3 @@ async function handleRespuestas(req: any, res: any) {
 
   return res.status(405).json({ error: 'Método no permitido' });
 }
-

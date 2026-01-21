@@ -49,10 +49,11 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigate }
           
           // Solo mostrar tickets abiertos o en progreso que NO han sido leídos por el usuario
           const ticketsPendientes = ticketsFiltrados.filter((t: Ticket) => {
-          const isOpenOrInProgress = t.status === 'OPEN' || t.status === 'IN_PROGRESS';
-          const notReadByUser = !t.readBy?.includes(usuario?.id || '');
-          return isOpenOrInProgress && notReadByUser;
-        });
+            const isOpenOrInProgress = t.status === 'OPEN' || t.status === 'IN_PROGRESS';
+            const notReadByUser = !t.readBy?.includes(usuario?.id || '');
+            // Removido: const notSentByUser = t.sender.id !== usuario?.id;
+            return isOpenOrInProgress && notReadByUser;
+          });
           
           setTickets(ticketsPendientes);
         }

@@ -136,7 +136,7 @@ const handleStartTimer = async (tareaId: string, e: React.MouseEvent) => {
   }
 };
 
-  // Parar timer
+// Parar timer
 const handleStopTimer = async (e: React.MouseEvent) => {
   e.stopPropagation();
   if (!activeTimer) return;
@@ -146,7 +146,8 @@ const handleStopTimer = async (e: React.MouseEvent) => {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id: activeTimer.id
+        id: activeTimer.id,
+        endTime: new Date().toISOString()
       })
     });
 

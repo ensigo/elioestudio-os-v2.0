@@ -153,6 +153,11 @@ const handleStopTimer = async (e: React.MouseEvent) => {
 
     if (!response.ok) throw new Error('Error al detener timer');
 
+    // Forzar recarga del detalle de tarea si está abierto
+    if (selectedTask && selectedTask.id === activeTimer.tareaId) {
+      setSelectedTask({ ...selectedTask });
+    }
+
     setActiveTimer(null);
     setElapsedTime(0);
   } catch (err) {

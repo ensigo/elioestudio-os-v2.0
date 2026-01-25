@@ -104,69 +104,60 @@ export const TasksPage = () => {
   }, [activeTimer]);
 
   // Iniciar timer
-  const handleStartTimer = async (tareaId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    // Si ya hay un timer activo en otra tarea, pararlo primero
-    if (activeTimer && activeTimer.tareaId !== tareaId) {
-      await handleStopTimer(e);
-    }
+const handleStartTimer = async (tareaId: string, e: React.MouseEvent) => {
+  e.stopPropagation();
+  
+  if (activeTimer && activeTimer.tareaId !== tareaId) {
+    await handleStopTimer(e);
+  }
 
-    try {
-      const response = await fetch('/api/control-horario?entity=time-entries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: data.description || null,
-          isRecurring: data.isRecurring || false,
-          recurrenceFrequency: data.recurrenceFrequency || null,
-          leadTime: data.leadTime || 3,
-          userId: usuario?.id || '',
-          tareaId
-        })
-      });
+  try {
+    const response = await fetch('/api/control-horario?entity=time-entries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: usuario?.id,
+        tareaId
+      })
+    });
 
-      if (!response.ok) throw new Error('Error al iniciar timer');
+    if (!response.ok) throw new Error('Error al iniciar timer');
 
-      const entry = await response.json();
-      setActiveTimer({
-        id: entry.id,
-        tareaId,
-        startTime: new Date(entry.startTime)
-      });
-      setElapsedTime(0);
-    } catch (err) {
-      alert('Error al iniciar timer');
-    }
-  };
+    const entry = await response.json();
+    setActiveTimer({
+      id: entry.id,
+      tareaId,
+      startTime: new Date(entry.startTime)
+    });
+    setElapsedTime(0);
+  } catch (err: any) {
+    console.error('Error timer:', err);
+    alert('Error al iniciar timer: ' + (err.message || err));
+  }
+};
 
   // Parar timer
-  const handleStopTimer = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    
-    if (!activeTimer) return;
+const handleStopTimer = async (e: React.MouseEvent) => {
+  e.stopPropagation();
+  if (!activeTimer) return;
 
-    try {
-      const response = await fetch('/api/control-horario?entity=time-entries', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          description: data.description || null,
-          isRecurring: data.isRecurring || false,
-          recurrenceFrequency: data.recurrenceFrequency || null,
-          leadTime: data.leadTime || 3,
-          id: activeTimer.id
-        })
-      });
+  try {
+    const response = await fetch('/api/control-horario?entity=time-entries', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: activeTimer.id
+      })
+    });
 
-      if (!response.ok) throw new Error('Error al detener timer');
+    if (!response.ok) throw new Error('Error al detener timer');
 
-      setActiveTimer(null);
-      setElapsedTime(0);
-    } catch (err) {
-      alert('Error al detener timer');
-    }
-  };
+    setActiveTimer(null);
+    setElapsedTime(0);
+  } catch (err) {
+    alert('Error al detener timer');
+  }
+};
 
   // Formatear tiempo
   const formatTime = (seconds: number) => {

@@ -6,8 +6,8 @@ import { Modal } from '../../components/ui/Modal';
 import { TaskCreationModal } from '../../components/TaskCreationModal';
 import { TaskDetailSheet } from '../../components/TaskDetailSheet';
 import { 
-  Plus, Search, Filter, Play, Square, Flag, AlertCircle, Clock, AlertTriangle,
-  CheckCircle2, Archive, FolderOpen
+  Plus, Search, Play, Square, Flag, AlertCircle, Clock, AlertTriangle,
+  CheckCircle2, Archive, FolderOpen, ChevronDown, ChevronRight, Building2
 } from 'lucide-react';
 
 interface Proyecto {
@@ -54,6 +54,8 @@ export const TasksPage = () => {
   const [selectedTask, setSelectedTask] = useState<Tarea | null>(null);
   const [viewMode, setViewMode] = useState<'activas' | 'archivadas'>('activas');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set());
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   
   // Timer state
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
@@ -216,6 +218,26 @@ export const TasksPage = () => {
     setSelectedTask(null);
   };
 
+  const toggleClient = (clientName: string) => {
+    const newExpanded = new Set(expandedClients);
+    if (newExpanded.has(clientName)) {
+      newExpanded.delete(clientName);
+    } else {
+      newExpanded.add(clientName);
+    }
+    setExpandedClients(newExpanded);
+  };
+
+  const toggleProject = (projectId: string) => {
+    const newExpanded = new Set(expandedProjects);
+    if (newExpanded.has(projectId)) {
+      newExpanded.delete(projectId);
+    } else {
+      newExpanded.add(projectId);
+    }
+    setExpandedProjects(newExpanded);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -243,6 +265,7 @@ export const TasksPage = () => {
     return taskList.filter(t => 
       t.title.toLowerCase().includes(term) ||
       t.proyecto?.title?.toLowerCase().includes(term) ||
+      t.proyecto?.cliente?.name?.toLowerCase().includes(term) ||
       t.assignee?.name?.toLowerCase().includes(term)
     );
   };
@@ -253,15 +276,29 @@ export const TasksPage = () => {
     return 0;
   });
 
-  // Agrupar tareas archivadas por proyecto
-  const groupedArchivedTasks = filterBySearch(archivedTasks).reduce((acc, task) => {
+  // Agrupar tareas archivadas por Cliente > Proyecto
+  const groupedByClient = filterBySearch(archivedTasks).reduce((acc, task) => {
+    const clientName = task.proyecto?.cliente?.name || 'Sin cliente';
     const projectName = task.proyecto?.title || 'Sin proyecto';
-    if (!acc[projectName]) {
-      acc[projectName] = [];
+    const projectId = task.proyecto?.id || 'no-project';
+    
+    if (!acc[clientName]) {
+      acc[clientName] = {};
     }
-    acc[projectName].push(task);
+    if (!acc[clientName][projectId]) {
+      acc[clientName][projectId] = {
+        name: projectName,
+        tasks: []
+      };
+    }
+    acc[clientName][projectId].tasks.push(task);
     return acc;
-  }, {} as Record<string, Tarea[]>);
+  }, {} as Record<string, Record<string, { name: string; tasks: Tarea[] }>>);
+
+  // Contar tareas por cliente
+  const getClientTaskCount = (clientProjects: Record<string, { name: string; tasks: Tarea[] }>) => {
+    return Object.values(clientProjects).reduce((sum, project) => sum + project.tasks.length, 0);
+  };
 
   const isOverdue = (dateStr: string | null) => {
     if (!dateStr) return false;
@@ -477,48 +514,96 @@ export const TasksPage = () => {
         </Card>
       )}
 
-      {/* Vista Archivadas - Agrupadas por Proyecto */}
+      {/* Vista Archivadas - Agrupadas por Cliente > Proyecto */}
       {viewMode === 'archivadas' && (
-        <div className="space-y-6">
-          {Object.keys(groupedArchivedTasks).length === 0 ? (
+        <div className="space-y-4">
+          {Object.keys(groupedByClient).length === 0 ? (
             <Card className="text-center py-12">
               <Archive size={32} className="mx-auto mb-2 text-gray-300" />
               <p className="text-gray-500">No hay tareas archivadas</p>
             </Card>
           ) : (
-            Object.entries(groupedArchivedTasks).map(([projectName, projectTasks]) => (
-              <Card key={projectName} noPadding className="overflow-hidden">
-                <div className="bg-green-50 px-6 py-3 border-b border-green-100 flex items-center gap-2">
-                  <FolderOpen size={18} className="text-green-600" />
-                  <h3 className="font-bold text-green-800">{projectName}</h3>
-                  <span className="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
-                    {projectTasks.length} tareas
-                  </span>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {projectTasks.map(task => (
-                    <div 
-                      key={task.id}
-                      onClick={() => setSelectedTask(task)}
-                      className="px-6 py-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
-                    >
-                      <div className="flex items-center gap-3">
-                        <CheckCircle2 size={18} className="text-green-500" />
-                        <div>
-                          <p className="font-medium text-gray-700">{task.title}</p>
-                          <p className="text-xs text-gray-400">
-                            {task.assignee?.name || 'Sin asignar'} • Completada
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {task.dueDate ? formatDate(task.dueDate) : ''}
-                      </div>
+            Object.entries(groupedByClient).map(([clientName, projects]) => {
+              const isClientExpanded = expandedClients.has(clientName);
+              const clientTaskCount = getClientTaskCount(projects);
+              
+              return (
+                <Card key={clientName} noPadding className="overflow-hidden">
+                  {/* Cabecera del Cliente */}
+                  <button
+                    onClick={() => toggleClient(clientName)}
+                    className="w-full bg-slate-100 px-6 py-4 border-b border-slate-200 flex items-center gap-3 hover:bg-slate-200 transition-colors"
+                  >
+                    {isClientExpanded ? (
+                      <ChevronDown size={20} className="text-slate-600" />
+                    ) : (
+                      <ChevronRight size={20} className="text-slate-600" />
+                    )}
+                    <Building2 size={20} className="text-slate-600" />
+                    <h3 className="font-bold text-slate-800 flex-1 text-left">{clientName}</h3>
+                    <span className="text-xs bg-slate-600 text-white px-3 py-1 rounded-full">
+                      {clientTaskCount} {clientTaskCount === 1 ? 'tarea' : 'tareas'}
+                    </span>
+                  </button>
+
+                  {/* Proyectos del Cliente */}
+                  {isClientExpanded && (
+                    <div className="divide-y divide-gray-100">
+                      {Object.entries(projects).map(([projectId, projectData]) => {
+                        const isProjectExpanded = expandedProjects.has(projectId);
+                        
+                        return (
+                          <div key={projectId}>
+                            {/* Cabecera del Proyecto */}
+                            <button
+                              onClick={() => toggleProject(projectId)}
+                              className="w-full bg-green-50 px-6 py-3 flex items-center gap-3 hover:bg-green-100 transition-colors"
+                            >
+                              {isProjectExpanded ? (
+                                <ChevronDown size={16} className="text-green-600 ml-4" />
+                              ) : (
+                                <ChevronRight size={16} className="text-green-600 ml-4" />
+                              )}
+                              <FolderOpen size={16} className="text-green-600" />
+                              <span className="font-medium text-green-800 flex-1 text-left">{projectData.name}</span>
+                              <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
+                                {projectData.tasks.length}
+                              </span>
+                            </button>
+
+                            {/* Tareas del Proyecto */}
+                            {isProjectExpanded && (
+                              <div className="bg-white">
+                                {projectData.tasks.map(task => (
+                                  <div 
+                                    key={task.id}
+                                    onClick={() => setSelectedTask(task)}
+                                    className="px-6 py-3 pl-16 hover:bg-gray-50 cursor-pointer flex items-center justify-between border-t border-gray-50"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <CheckCircle2 size={16} className="text-green-500" />
+                                      <div>
+                                        <p className="font-medium text-gray-700 text-sm">{task.title}</p>
+                                        <p className="text-xs text-gray-400">
+                                          {task.assignee?.name || 'Sin asignar'}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                      {task.dueDate ? formatDate(task.dueDate) : ''}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                  ))}
-                </div>
-              </Card>
-            ))
+                  )}
+                </Card>
+              );
+            })
           )}
         </div>
       )}

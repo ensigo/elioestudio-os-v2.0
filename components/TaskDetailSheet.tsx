@@ -369,7 +369,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
                   <span className="font-medium">Timer activo</span>
                 </div>
-                <span className="font-mono text-2xl font-bold">{formatTime(elapsedTime)}</span>
+                <span className="text-2xl font-bold">{formatTime(elapsedTime)}</span>
               </div>
             )}
 

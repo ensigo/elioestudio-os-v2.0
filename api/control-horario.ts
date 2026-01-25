@@ -35,7 +35,7 @@ export default async function handler(req: any, res: any) {
           if (jornadaExistente) return res.status(400).json({ error: 'Ya existe una jornada para hoy' });
           const nuevaJornada = await prisma.jornadas.create({
             data: {
-              id: require('crypto').randomUUID(),
+              id: crypto.randomUUID(),
               usuarioId, fecha: hoy, horaInicio: new Date(), estado: 'EN_CURSO', updatedAt: new Date()
             },
             include: { usuario: { select: { id: true, name: true, email: true, position: true } } }

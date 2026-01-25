@@ -6,12 +6,14 @@ import { Modal } from '../../components/ui/Modal';
 import { TaskCreationModal } from '../../components/TaskCreationModal';
 import { TaskDetailSheet } from '../../components/TaskDetailSheet';
 import { 
-  Plus, Search, Filter, Play, Square, Flag, AlertCircle, Clock, AlertTriangle 
+  Plus, Search, Filter, Play, Square, Flag, AlertCircle, Clock, AlertTriangle,
+  CheckCircle2, Archive, FolderOpen
 } from 'lucide-react';
 
 interface Proyecto {
   id: string;
   title: string;
+  cliente?: { id: string; name: string };
 }
 
 interface Usuario {
@@ -50,6 +52,8 @@ export const TasksPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Tarea | null>(null);
+  const [viewMode, setViewMode] = useState<'activas' | 'archivadas'>('activas');
+  const [searchTerm, setSearchTerm] = useState('');
   
   // Timer state
   const [activeTimer, setActiveTimer] = useState<ActiveTimer | null>(null);
@@ -104,66 +108,65 @@ export const TasksPage = () => {
   }, [activeTimer]);
 
   // Iniciar timer
-const handleStartTimer = async (tareaId: string, e: React.MouseEvent) => {
-  e.stopPropagation();
-  
-  if (activeTimer && activeTimer.tareaId !== tareaId) {
-    await handleStopTimer(e);
-  }
-
-  try {
-    const response = await fetch('/api/control-horario?entity=time-entries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: usuario?.id,
-        tareaId
-      })
-    });
-
-    if (!response.ok) throw new Error('Error al iniciar timer');
-
-    const entry = await response.json();
-    setActiveTimer({
-      id: entry.id,
-      tareaId,
-      startTime: new Date(entry.startTime)
-    });
-    setElapsedTime(0);
-  } catch (err: any) {
-    console.error('Error timer:', err);
-    alert('Error al iniciar timer: ' + (err.message || err));
-  }
-};
-
-// Parar timer
-const handleStopTimer = async (e: React.MouseEvent) => {
-  e.stopPropagation();
-  if (!activeTimer) return;
-
-  try {
-    const response = await fetch('/api/control-horario?entity=time-entries', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: activeTimer.id,
-        endTime: new Date().toISOString()
-      })
-    });
-
-    if (!response.ok) throw new Error('Error al detener timer');
-
-    // Forzar recarga del detalle de tarea si está abierto
-    if (selectedTask && selectedTask.id === activeTimer.tareaId) {
-      setSelectedTask({ ...selectedTask });
+  const handleStartTimer = async (tareaId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (activeTimer && activeTimer.tareaId !== tareaId) {
+      await handleStopTimer(e);
     }
 
-    setActiveTimer(null);
-    setElapsedTime(0);
-  } catch (err) {
-    alert('Error al detener timer');
-  }
-};
+    try {
+      const response = await fetch('/api/control-horario?entity=time-entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: usuario?.id,
+          tareaId
+        })
+      });
+
+      if (!response.ok) throw new Error('Error al iniciar timer');
+
+      const entry = await response.json();
+      setActiveTimer({
+        id: entry.id,
+        tareaId,
+        startTime: new Date(entry.startTime)
+      });
+      setElapsedTime(0);
+    } catch (err: any) {
+      console.error('Error timer:', err);
+      alert('Error al iniciar timer: ' + (err.message || err));
+    }
+  };
+
+  // Parar timer
+  const handleStopTimer = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!activeTimer) return;
+
+    try {
+      const response = await fetch('/api/control-horario?entity=time-entries', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: activeTimer.id,
+          endTime: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) throw new Error('Error al detener timer');
+
+      if (selectedTask && selectedTask.id === activeTimer.tareaId) {
+        setSelectedTask({ ...selectedTask });
+      }
+
+      setActiveTimer(null);
+      setElapsedTime(0);
+    } catch (err) {
+      alert('Error al detener timer');
+    }
+  };
 
   // Formatear tiempo
   const formatTime = (seconds: number) => {
@@ -230,11 +233,35 @@ const handleStopTimer = async (e: React.MouseEvent) => {
     );
   }
 
-  const sortedTasks = [...tasks].sort((a, b) => {
+  // Filtrar tareas según vista y búsqueda
+  const activeTasks = tasks.filter(t => t.status !== 'CLOSED');
+  const archivedTasks = tasks.filter(t => t.status === 'CLOSED');
+
+  const filterBySearch = (taskList: Tarea[]) => {
+    if (!searchTerm) return taskList;
+    const term = searchTerm.toLowerCase();
+    return taskList.filter(t => 
+      t.title.toLowerCase().includes(term) ||
+      t.proyecto?.title?.toLowerCase().includes(term) ||
+      t.assignee?.name?.toLowerCase().includes(term)
+    );
+  };
+
+  const sortedActiveTasks = filterBySearch([...activeTasks]).sort((a, b) => {
     if (a.priority === 'URGENT' && b.priority !== 'URGENT') return -1;
     if (b.priority === 'URGENT' && a.priority !== 'URGENT') return 1;
     return 0;
   });
+
+  // Agrupar tareas archivadas por proyecto
+  const groupedArchivedTasks = filterBySearch(archivedTasks).reduce((acc, task) => {
+    const projectName = task.proyecto?.title || 'Sin proyecto';
+    if (!acc[projectName]) {
+      acc[projectName] = [];
+    }
+    acc[projectName].push(task);
+    return acc;
+  }, {} as Record<string, Tarea[]>);
 
   const isOverdue = (dateStr: string | null) => {
     if (!dateStr) return false;
@@ -272,7 +299,7 @@ const handleStopTimer = async (e: React.MouseEvent) => {
             </span>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="font-mono text-xl font-bold">{formatTime(elapsedTime)}</span>
+            <span className="text-xl font-bold">{formatTime(elapsedTime)}</span>
             <button 
               onClick={handleStopTimer}
               className="bg-white text-elio-yellow px-3 py-1 rounded-lg font-medium flex items-center hover:bg-gray-100"
@@ -291,11 +318,14 @@ const handleStopTimer = async (e: React.MouseEvent) => {
         <div className="flex space-x-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:flex-none">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <input type="text" placeholder="Filtrar..." className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full outline-none focus:border-elio-yellow" />
+            <input 
+              type="text" 
+              placeholder="Filtrar..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm w-full outline-none focus:border-elio-yellow" 
+            />
           </div>
-          <button className="bg-white border border-gray-200 p-2 rounded-lg text-gray-600 hover:bg-gray-50">
-            <Filter size={18} />
-          </button>
           <button 
             onClick={() => setIsCreateModalOpen(true)}
             className="bg-elio-yellow text-white px-4 py-2 rounded-lg hover:bg-elio-yellow-hover transition-colors flex items-center space-x-2 font-medium whitespace-nowrap shadow-sm"
@@ -306,106 +336,192 @@ const handleStopTimer = async (e: React.MouseEvent) => {
         </div>
       </div>
 
-      <Card noPadding className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm whitespace-nowrap">
-            <thead className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-bold tracking-wider">
-              <tr>
-                <th className="px-6 py-4 w-12 text-center">Timer</th>
-                <th className="px-6 py-4">Estado</th>
-                <th className="px-6 py-4 w-1/3">Tarea / Proyecto</th>
-                <th className="px-6 py-4 text-center">Prio</th>
-                <th className="px-6 py-4">Asignado</th>
-                <th className="px-6 py-4">Deadline</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {sortedTasks.length === 0 ? (
+      {/* Tabs Activas / Archivadas */}
+      <div className="flex items-center gap-2 border-b border-gray-200">
+        <button
+          onClick={() => setViewMode('activas')}
+          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+            viewMode === 'activas'
+              ? 'border-elio-yellow text-elio-yellow'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Clock size={16} />
+          Activas
+          <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+            viewMode === 'activas' ? 'bg-elio-yellow text-white' : 'bg-gray-100 text-gray-600'
+          }`}>
+            {activeTasks.length}
+          </span>
+        </button>
+        <button
+          onClick={() => setViewMode('archivadas')}
+          className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+            viewMode === 'archivadas'
+              ? 'border-green-600 text-green-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Archive size={16} />
+          Archivadas
+          <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+            viewMode === 'archivadas' ? 'bg-green-600 text-white' : 'bg-gray-100 text-gray-600'
+          }`}>
+            {archivedTasks.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Vista Activas */}
+      {viewMode === 'activas' && (
+        <Card noPadding className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm whitespace-nowrap">
+              <thead className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-bold tracking-wider">
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                    No hay tareas. ¡Crea la primera!
-                  </td>
+                  <th className="px-6 py-4 w-12 text-center">Timer</th>
+                  <th className="px-6 py-4">Estado</th>
+                  <th className="px-6 py-4 w-1/3">Tarea / Proyecto</th>
+                  <th className="px-6 py-4 text-center">Prio</th>
+                  <th className="px-6 py-4">Asignado</th>
+                  <th className="px-6 py-4">Deadline</th>
                 </tr>
-              ) : (
-                sortedTasks.map(task => {
-                  const overdue = isOverdue(task.dueDate) && task.status !== 'CLOSED';
-                  const today = isToday(task.dueDate) && task.status !== 'CLOSED';
-                  const isTimerActive = activeTimer?.tareaId === task.id;
-                  
-                  return (
-                    <tr 
-                      key={task.id} 
-                      onClick={() => setSelectedTask(task)}
-                      className={`group hover:bg-gray-50 transition-colors cursor-pointer ${isTimerActive ? 'bg-yellow-50' : ''}`}
-                    >
-                      <td className="px-6 py-4 text-center">
-                        {isTimerActive ? (
-                          <button 
-                            onClick={(e) => handleStopTimer(e)}
-                            className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-sm"
-                          >
-                            <Square size={12} className="fill-current" />
-                          </button>
-                        ) : (
-                          <button 
-                            onClick={(e) => handleStartTimer(task.id, e)}
-                            className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm"
-                          >
-                            <Play size={14} className="ml-0.5 fill-current" />
-                          </button>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge variant={
-                          task.status === 'CLOSED' ? 'success' :
-                          task.status === 'IN_PROGRESS' ? 'blue' :
-                          task.status === 'CORRECTION' ? 'warning' : 'neutral'
-                        }>
-                          {task.status.replace('_', ' ')}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors truncate max-w-xs">
-                            {task.title}
-                            {isTimerActive && (
-                              <span className="ml-2 text-xs font-mono text-elio-yellow">
-                                {formatTime(elapsedTime)}
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">
-                            {task.proyecto?.title || 'Sin proyecto'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <div className="flex justify-center">
-                          <PriorityIcon p={task.priority} />
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600">
-                            {task.assignee?.name?.charAt(0) || '?'}
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {sortedActiveTasks.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                      <CheckCircle2 size={32} className="mx-auto mb-2 text-green-400" />
+                      ¡No hay tareas pendientes!
+                    </td>
+                  </tr>
+                ) : (
+                  sortedActiveTasks.map(task => {
+                    const overdue = isOverdue(task.dueDate) && task.status !== 'CLOSED';
+                    const today = isToday(task.dueDate) && task.status !== 'CLOSED';
+                    const isTimerActive = activeTimer?.tareaId === task.id;
+                    
+                    return (
+                      <tr 
+                        key={task.id} 
+                        onClick={() => setSelectedTask(task)}
+                        className={`group hover:bg-gray-50 transition-colors cursor-pointer ${isTimerActive ? 'bg-yellow-50' : ''}`}
+                      >
+                        <td className="px-6 py-4 text-center">
+                          {isTimerActive ? (
+                            <button 
+                              onClick={(e) => handleStopTimer(e)}
+                              className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-all shadow-sm"
+                            >
+                              <Square size={12} className="fill-current" />
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={(e) => handleStartTimer(task.id, e)}
+                              className="w-8 h-8 rounded-full bg-gray-100 hover:bg-elio-yellow hover:text-white flex items-center justify-center text-gray-400 transition-all shadow-sm"
+                            >
+                              <Play size={14} className="ml-0.5 fill-current" />
+                            </button>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <Badge variant={
+                            task.status === 'IN_PROGRESS' ? 'blue' :
+                            task.status === 'CORRECTION' ? 'warning' :
+                            task.status === 'IN_REVIEW' ? 'info' : 'neutral'
+                          }>
+                            {task.status.replace('_', ' ')}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-gray-900 group-hover:text-elio-yellow-hover transition-colors truncate max-w-xs">
+                              {task.title}
+                              {isTimerActive && (
+                                <span className="ml-2 text-xs text-elio-yellow">
+                                  {formatTime(elapsedTime)}
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-[10px] text-gray-500 uppercase tracking-wide mt-1">
+                              {task.proyecto?.title || 'Sin proyecto'}
+                            </span>
                           </div>
-                          <span className="text-gray-600 text-xs">{task.assignee?.name?.split(' ')[0] || 'Sin asignar'}</span>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <div className="flex justify-center">
+                            <PriorityIcon p={task.priority} />
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600">
+                              {task.assignee?.name?.charAt(0) || '?'}
+                            </div>
+                            <span className="text-gray-600 text-xs">{task.assignee?.name?.split(' ')[0] || 'Sin asignar'}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className={`flex items-center ${overdue || today ? 'text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg w-fit' : 'text-gray-500'}`}>
+                            {overdue || today ? <AlertCircle size={14} className="mr-2" /> : <Clock size={14} className="mr-2 text-gray-400" />}
+                            <span className="text-xs">{today ? 'HOY' : formatDate(task.dueDate)}</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      {/* Vista Archivadas - Agrupadas por Proyecto */}
+      {viewMode === 'archivadas' && (
+        <div className="space-y-6">
+          {Object.keys(groupedArchivedTasks).length === 0 ? (
+            <Card className="text-center py-12">
+              <Archive size={32} className="mx-auto mb-2 text-gray-300" />
+              <p className="text-gray-500">No hay tareas archivadas</p>
+            </Card>
+          ) : (
+            Object.entries(groupedArchivedTasks).map(([projectName, projectTasks]) => (
+              <Card key={projectName} noPadding className="overflow-hidden">
+                <div className="bg-green-50 px-6 py-3 border-b border-green-100 flex items-center gap-2">
+                  <FolderOpen size={18} className="text-green-600" />
+                  <h3 className="font-bold text-green-800">{projectName}</h3>
+                  <span className="ml-auto text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">
+                    {projectTasks.length} tareas
+                  </span>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {projectTasks.map(task => (
+                    <div 
+                      key={task.id}
+                      onClick={() => setSelectedTask(task)}
+                      className="px-6 py-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-3">
+                        <CheckCircle2 size={18} className="text-green-500" />
+                        <div>
+                          <p className="font-medium text-gray-700">{task.title}</p>
+                          <p className="text-xs text-gray-400">
+                            {task.assignee?.name || 'Sin asignar'} • Completada
+                          </p>
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className={`flex items-center ${overdue || today ? 'text-red-600 font-bold bg-red-50 px-2 py-1 rounded-lg w-fit' : 'text-gray-500'}`}>
-                          {overdue || today ? <AlertCircle size={14} className="mr-2" /> : <Clock size={14} className="mr-2 text-gray-400" />}
-                          <span className="text-xs">{today ? 'HOY' : formatDate(task.dueDate)}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {task.dueDate ? formatDate(task.dueDate) : ''}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            ))
+          )}
         </div>
-      </Card>
+      )}
 
       <Modal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} title="Nueva Tarea">
         <TaskCreationModal 
@@ -417,17 +533,17 @@ const handleStopTimer = async (e: React.MouseEvent) => {
       </Modal>
 
       <TaskDetailSheet
-          isOpen={!!selectedTask}
-          onClose={() => setSelectedTask(null)}
-          task={selectedTask}
-          onUpdate={handleUpdateTask}
-          onDelete={handleDeleteTask}
-          proyectos={proyectos}
-          usuarios={usuarios}
-          activeTimer={activeTimer}
-          onStartTimer={(tareaId) => handleStartTimer(tareaId, { stopPropagation: () => {} } as React.MouseEvent)}
-          onStopTimer={() => handleStopTimer({ stopPropagation: () => {} } as React.MouseEvent)}
-          elapsedTime={elapsedTime}
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        task={selectedTask}
+        onUpdate={handleUpdateTask}
+        onDelete={handleDeleteTask}
+        proyectos={proyectos}
+        usuarios={usuarios}
+        activeTimer={activeTimer}
+        onStartTimer={(tareaId) => handleStartTimer(tareaId, { stopPropagation: () => {} } as React.MouseEvent)}
+        onStopTimer={() => handleStopTimer({ stopPropagation: () => {} } as React.MouseEvent)}
+        elapsedTime={elapsedTime}
       />
     </div>
   );

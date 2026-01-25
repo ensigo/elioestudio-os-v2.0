@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sheet } from './ui/Sheet';
 import { Badge } from './ui/Badge';
-import { Clock, Calendar, Play, Square, Trash2, Edit3, Save, X } from 'lucide-react';
+import { Clock, Calendar, Play, Square, Trash2, Edit3, Save, X, Timer } from 'lucide-react';
 
 interface Proyecto {
   id: string;
@@ -63,6 +63,8 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   elapsedTime = 0
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [totalTime, setTotalTime] = useState(0);
+  const [loadingTime, setLoadingTime] = useState(false);
   const [editForm, setEditForm] = useState({
     title: '',
     description: '',
@@ -78,6 +80,39 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   useEffect(() => {
     setIsEditing(false);
   }, [task?.id]);
+
+  // Cargar tiempo acumulado de la tarea
+  useEffect(() => {
+    const fetchTotalTime = async () => {
+      if (!task?.id) return;
+      
+      setLoadingTime(true);
+      try {
+        const response = await fetch(`/api/control-horario?entity=time-entries&tareaId=${task.id}`);
+        if (response.ok) {
+          const entries = await response.json();
+          // Calcular tiempo total en segundos
+          const total = entries.reduce((acc: number, entry: any) => {
+            if (entry.startTime && entry.endTime) {
+              const start = new Date(entry.startTime).getTime();
+              const end = new Date(entry.endTime).getTime();
+              return acc + Math.floor((end - start) / 1000);
+            }
+            return acc;
+          }, 0);
+          setTotalTime(total);
+        }
+      } catch (err) {
+        console.error('Error cargando tiempo:', err);
+      } finally {
+        setLoadingTime(false);
+      }
+    };
+
+    if (isOpen && task?.id) {
+      fetchTotalTime();
+    }
+  }, [isOpen, task?.id]);
 
   if (!task) return null;
 
@@ -176,10 +211,16 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const formatHoursMinutes = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h === 0) return `${m}m`;
+    return `${h}h ${m}m`;
+  };
+
   return (
     <Sheet isOpen={isOpen} onClose={onClose} title={`Tarea #${task.id.slice(-6).toUpperCase()}`}>
       <div className="space-y-6">
-        
         {/* Header con acciones */}
         <div className="flex justify-between items-start">
           <div className="flex-1">
@@ -223,7 +264,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-elio-yellow"
               />
             </div>
-
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label>
               <textarea
@@ -233,7 +273,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 rows={2}
               />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Estado</label>
@@ -249,7 +288,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   <option value="CLOSED">Cerrada</option>
                 </select>
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridad</label>
                 <select
@@ -264,7 +302,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 </select>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Proyecto</label>
@@ -278,7 +315,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   ))}
                 </select>
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asignado a</label>
                 <select
@@ -293,7 +329,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                 </select>
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Horas estimadas</label>
@@ -305,7 +340,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none focus:border-elio-yellow"
                 />
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Deadline</label>
                 <input
@@ -336,6 +370,19 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   <span className="font-medium">Timer activo</span>
                 </div>
                 <span className="font-mono text-2xl font-bold">{formatTime(elapsedTime)}</span>
+              </div>
+            )}
+
+            {/* Tiempo acumulado */}
+            {!isTimerActive && (totalTime > 0 || loadingTime) && (
+              <div className="bg-blue-50 text-blue-800 p-4 rounded-xl flex items-center justify-between border border-blue-100">
+                <div className="flex items-center space-x-2">
+                  <Timer size={18} className="text-blue-600" />
+                  <span className="font-medium">Tiempo dedicado</span>
+                </div>
+                <span className="font-mono text-xl font-bold">
+                  {loadingTime ? '...' : formatHoursMinutes(totalTime)}
+                </span>
               </div>
             )}
 
@@ -395,7 +442,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   <p className="text-sm font-medium text-gray-900 truncate">{task.assignee?.name || 'Sin asignar'}</p>
                 </div>
               </div>
-              
               <div className="flex items-center space-x-2">
                 <div className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center text-gray-400">
                   <Clock size={16} />
@@ -405,7 +451,6 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
                   <p className="text-sm font-medium text-gray-900">{task.estimatedHours || '-'}h</p>
                 </div>
               </div>
-
               <div className="flex items-center space-x-2 col-span-2 border-t border-gray-200 pt-3">
                 <Calendar size={16} className="text-gray-400 ml-1" />
                 <div className="flex-1 ml-2">

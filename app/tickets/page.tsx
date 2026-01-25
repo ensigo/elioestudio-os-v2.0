@@ -15,7 +15,7 @@ interface Respuesta {
   id: string;
   mensaje: string;
   createdAt: string;
-  usuario: Usuario;
+  usuarios: Usuario;
 }
 
 interface Ticket {
@@ -42,7 +42,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  
+
   // Form State
   const [recipientId, setRecipientId] = useState('');
   const [title, setTitle] = useState('');
@@ -65,6 +65,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         markTicketsAsRead();
       }
     };
+
     if (currentUser) {
       loadAndMarkAsRead();
     }
@@ -87,10 +88,12 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         fetch('/api/tickets'),
         fetch('/api/usuarios')
       ]);
+
       if (ticketsRes.ok) {
         const ticketsData = await ticketsRes.json();
         setTickets(ticketsData);
       }
+
       if (usuariosRes.ok) {
         const usuariosData = await usuariosRes.json();
         setUsuarios(usuariosData);
@@ -104,6 +107,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
 
   const markTicketsAsRead = async () => {
     if (!currentUser?.id) return;
+
     try {
       const response = await fetch('/api/tickets');
       if (response.ok) {
@@ -114,6 +118,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
           const notReadByMe = !t.readBy?.includes(currentUser.id);
           return isForMe && notSentByMe && notReadByMe;
         });
+
         for (const ticket of ticketsToMark) {
           await fetch('/api/tickets', {
             method: 'PUT',
@@ -129,6 +134,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
 
   const getFilteredTickets = () => {
     let filtered = tickets;
+
     if (!isAdmin && currentUser) {
       filtered = tickets.filter(t => 
         t.sender.id === currentUser.id ||
@@ -136,12 +142,14 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         t.recipient === null
       );
     }
+
     // Filtrar por archivados o activos
     if (showArchived) {
       filtered = filtered.filter(t => t.status === 'CLOSED');
     } else {
       filtered = filtered.filter(t => t.status !== 'CLOSED');
     }
+
     if (searchTerm) {
       filtered = filtered.filter(t => 
         t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -149,12 +157,14 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         t.sender.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
+
     return filtered;
   };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !message || !currentUser) return;
+
     setIsSending(true);
     try {
       const response = await fetch('/api/tickets', {
@@ -168,6 +178,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
           recipientId: recipientId || null
         })
       });
+
       if (response.ok) {
         const nuevoTicket = await response.json();
         setTickets([nuevoTicket, ...tickets]);
@@ -190,6 +201,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ticketId, status: newStatus })
       });
+
       if (response.ok) {
         const ticketActualizado = await response.json();
         setTickets(tickets.map(t => t.id === ticketActualizado.id ? ticketActualizado : t));
@@ -204,12 +216,14 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
 
   const handleDelete = async (ticketId: string) => {
     if (!confirm('¿Eliminar este ticket?')) return;
+
     try {
       const response = await fetch('/api/tickets', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ticketId })
       });
+
       if (response.ok) {
         setTickets(tickets.filter(t => t.id !== ticketId));
         if (selectedTicket?.id === ticketId) {
@@ -224,6 +238,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
   // Enviar respuesta
   const handleSendRespuesta = async () => {
     if (!respuestaTexto.trim() || !selectedTicket || !currentUser) return;
+
     setIsSendingRespuesta(true);
     try {
       const response = await fetch('/api/tickets?resource=respuestas', {
@@ -235,6 +250,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
           mensaje: respuestaTexto
         })
       });
+
       if (response.ok) {
         const nuevaRespuesta = await response.json();
         // Actualizar el ticket con la nueva respuesta
@@ -279,6 +295,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
+
     if (diffMins < 1) return 'Ahora';
     if (diffMins < 60) return `Hace ${diffMins} min`;
     if (diffHours < 24) return `Hace ${diffHours}h`;
@@ -313,7 +330,6 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 h-full min-h-0">
-        
         {/* COLUMNA IZQUIERDA: FORMULARIO */}
         <div className="w-full lg:w-[35%] flex flex-col">
           <Card title="Nuevo Mensaje" className="flex-1 overflow-y-auto">
@@ -328,6 +344,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                   <option>{currentUser?.name} ({currentUser?.role})</option>
                 </select>
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Para (Destinatario) *</label>
                 <select 
@@ -341,6 +358,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                   ))}
                 </select>
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Asunto *</label>
                 <input 
@@ -352,6 +370,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                   required
                 />
               </div>
+
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Prioridad</label>
                 <div className="grid grid-cols-4 gap-2">
@@ -371,6 +390,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                   ))}
                 </div>
               </div>
+
               <div className="flex-1">
                 <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Mensaje *</label>
                 <textarea 
@@ -381,6 +401,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                   required
                 />
               </div>
+
               <button 
                 type="submit"
                 disabled={isSending}
@@ -404,18 +425,18 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
             {/* Toolbar */}
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <div className="flex items-center space-x-4">
-              <button 
-               onClick={() => setShowArchived(false)}
-               className={`font-bold flex items-center px-3 py-1 rounded-lg transition-colors ${!showArchived ? 'bg-elio-yellow text-white' : 'text-gray-500 hover:bg-gray-100'}`}
-               >
-              <Inbox size={16} className="mr-2" /> Activos ({tickets.filter(t => t.status !== 'CLOSED').length})
-              </button>
-              <button 
-              onClick={() => setShowArchived(true)}
-              className={`font-bold flex items-center px-3 py-1 rounded-lg transition-colors ${showArchived ? 'bg-gray-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
-               >
-              <Clock size={16} className="mr-2" /> Archivados ({tickets.filter(t => t.status === 'CLOSED').length})
-              </button>
+                <button 
+                  onClick={() => setShowArchived(false)}
+                  className={`font-bold flex items-center px-3 py-1 rounded-lg transition-colors ${!showArchived ? 'bg-elio-yellow text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                >
+                  <Inbox size={16} className="mr-2" /> Activos ({tickets.filter(t => t.status !== 'CLOSED').length})
+                </button>
+                <button 
+                  onClick={() => setShowArchived(true)}
+                  className={`font-bold flex items-center px-3 py-1 rounded-lg transition-colors ${showArchived ? 'bg-gray-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                >
+                  <Clock size={16} className="mr-2" /> Archivados ({tickets.filter(t => t.status === 'CLOSED').length})
+                </button>
               </div>
               <div className="flex space-x-2">
                 <div className="relative">
@@ -477,7 +498,6 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                         </div>
                       </div>
                     </div>
-                    
                     <div className="ml-13 bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed">
                       {ticket.description && ticket.description.length > 150 
                         ? ticket.description.substring(0, 150) + '...' 
@@ -518,7 +538,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                   {getStatusBadge(selectedTicket.status)}
                 </div>
               </div>
-              
+
               {/* Cambiar Estado */}
               <div className="flex items-center gap-2 mt-4">
                 <span className="text-xs text-gray-500">Estado:</span>

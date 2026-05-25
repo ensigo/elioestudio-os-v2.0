@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useToast } from '../../components/ui/Toast';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { Modal } from '../../components/ui/Modal';
 import { 
   addMonths, 
@@ -67,6 +68,7 @@ export const CalendarPage = () => {
   // Drag state
   const [draggedEvento, setDraggedEvento] = useState<Evento | null>(null);
   const { error: toastError } = useToast();
+  const { confirm } = useConfirm();
 
   const TODAY_ISO = new Date().toISOString().split('T')[0];
 
@@ -210,7 +212,7 @@ export const CalendarPage = () => {
 
   // Eliminar evento
   const handleDelete = async () => {
-    if (!selectedEvento || !confirm('¿Eliminar este evento?')) return;
+    if (!selectedEvento || !await confirm({ message: '¿Eliminar este evento?', title: 'Eliminar evento' })) return;
 
     try {
       const response = await authFetch('/api/eventos', {

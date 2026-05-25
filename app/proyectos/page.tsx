@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { Card } from '../../components/ui/Card';
 import {
   Plus, Search, LayoutGrid, List, ChevronDown, ChevronRight,
@@ -42,6 +43,7 @@ const TARIFA_HORA = 40; // €/h por defecto
 
 export const ProjectsPage = () => {
   const { usuario } = useAuth();
+  const { confirm } = useConfirm();
   const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const [projects, setProjects]     = useState<Proyecto[]>([]);
   const [clientes, setClientes]     = useState<Cliente[]>([]);
@@ -85,7 +87,7 @@ export const ProjectsPage = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Archivar este proyecto?')) return;
+    if (!await confirm({ message: '¿Archivar este proyecto? Se moverá al historial.', title: 'Archivar proyecto', confirmLabel: 'Archivar', danger: false })) return;
     await authFetch('/api/proyectos', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

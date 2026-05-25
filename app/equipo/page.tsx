@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { RendimientoEmpleado } from '../../components/RendimientoEmpleado';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { 
   Users, 
   Clock, 
@@ -70,7 +71,8 @@ interface Permiso {
 
 export const TeamPage = () => {
   const { usuario: currentUser, canAccessReports, canManageUsers } = useAuth();
-  
+  const { confirm } = useConfirm();
+
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [permisos, setPermisos] = useState<Permiso[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -225,7 +227,7 @@ export const TeamPage = () => {
   };
 
   const handleDeleteJornada = async (id: string) => {
-    if (!confirm('¿Eliminar esta jornada?')) return;
+    if (!await confirm({ message: '¿Eliminar esta jornada?', title: 'Eliminar jornada' })) return;
     try {
       const res = await authFetch('/api/control-horario?entity=jornadas', {
         method: 'DELETE',
@@ -306,7 +308,7 @@ export const TeamPage = () => {
 
   // Eliminar usuario
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
+    if (!await confirm({ message: '¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.', title: 'Eliminar usuario' })) return;
 
     try {
       const response = await authFetch('/api/usuarios', {

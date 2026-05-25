@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { authFetch } from '../lib/auth-fetch';
 import { useToast } from './ui/Toast';
 import { useAuth } from '../context/AuthContext';
+import { useConfirm } from './ui/ConfirmDialog';
 import { Sheet } from './ui/Sheet';
 import { Badge } from './ui/Badge';
 import { Clock, Calendar, Play, Square, Trash2, Edit3, Save, X, Timer, ChevronDown, ChevronUp } from 'lucide-react';
@@ -67,6 +68,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 }) => {
   const { error, success } = useToast();
   const { canAdjustSchedules } = useAuth();
+  const { confirm } = useConfirm();
   const [isEditing, setIsEditing] = useState(false);
   const [totalTime, setTotalTime] = useState(0);
   const [loadingTime, setLoadingTime] = useState(false);
@@ -161,7 +163,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   };
 
   const handleDeleteEntry = async (entryId: string) => {
-    if (!confirm('¿Eliminar este registro de tiempo?')) return;
+    if (!await confirm({ message: '¿Eliminar este registro de tiempo?', title: 'Eliminar registro' })) return;
     try {
       const response = await authFetch('/api/control-horario?entity=time-entries', {
         method: 'DELETE',
@@ -228,7 +230,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   };
 
   const handleDelete = async () => {
-    if (!confirm('¿Estás seguro de eliminar esta tarea?')) return;
+    if (!await confirm({ message: '¿Estás seguro de eliminar esta tarea?', title: 'Eliminar tarea' })) return;
 
     try {
       const response = await authFetch('/api/tareas', {

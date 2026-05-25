@@ -24,6 +24,7 @@ import { TimeTrackingProvider } from '../context/TimeTrackingContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { GlobalTimerWidget } from '../components/GlobalTimerWidget';
 import { ToastProvider, useToast } from '../components/ui/Toast';
+import { ConfirmProvider } from '../components/ui/ConfirmDialog';
 
 // Componente interno que usa el contexto de auth
 function AppContent() {
@@ -124,9 +125,11 @@ function AppContent() {
 export default function App() {
   return (
     <ToastProvider>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ConfirmProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </ConfirmProvider>
     </ToastProvider>
   );
 }

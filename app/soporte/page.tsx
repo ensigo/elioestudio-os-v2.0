@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { Search, FileText, Download, Upload, Trash2, FolderOpen, File, X, Eye } from 'lucide-react';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
@@ -42,6 +43,7 @@ const SUBFAMILIAS: Record<string, string[]> = {
 
 export default function SoportePage() {
   const { usuario } = useAuth();
+  const { confirm } = useConfirm();
   const [documentos, setDocumentos] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,7 +70,7 @@ export default function SoportePage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Eliminar este documento?')) return;
+    if (!await confirm({ message: '¿Eliminar este documento?', title: 'Eliminar documento' })) return;
     await authFetch('/api/dashboard?tipo=documentos', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },

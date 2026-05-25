@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useToast } from '../../components/ui/Toast';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { Client } from '../../types';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -73,6 +74,7 @@ const formatDate = (d: string) => new Date(d).toLocaleDateString('es-ES', { day:
 export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBack, usuarios, currentUser, onClientUpdate }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const { error: toastError, warning: toastWarning } = useToast();
+  const { confirm } = useConfirm();
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientForm, setEditClientForm] = useState({
     name: client.name, nombreComercial: (client as any).nombreComercial || "", email: client.email || '', phone: client.phone || '',
@@ -234,7 +236,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   };
 
   const handleDeleteCredential = async (credId: string) => {
-    if (!confirm('¿Eliminar esta credencial?')) return;
+    if (!await confirm({ message: '¿Eliminar esta credencial?', title: 'Eliminar credencial' })) return;
     try {
       const res = await authFetch('/api/clientes?resource=credentials', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
@@ -260,7 +262,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   };
 
   const handleRemoveTeamMember = async (id: string) => {
-    if (!confirm('¿Eliminar?')) return;
+    if (!await confirm({ message: '¿Eliminar este miembro del equipo?', title: 'Eliminar miembro' })) return;
     try {
       const res = await authFetch('/api/clientes?resource=team', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },

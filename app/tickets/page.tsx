@@ -5,6 +5,7 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { Send, Clock, Search, Filter, Inbox, Trash2, Loader2, MessageCircle, X } from 'lucide-react';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 interface Usuario {
   id: string;
@@ -39,6 +40,7 @@ interface TicketsPageProps {
 
 export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps) => {
   const { usuario: currentUser } = useAuth();
+  const { confirm } = useConfirm();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -216,7 +218,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
   };
 
   const handleDelete = async (ticketId: string) => {
-    if (!confirm('¿Eliminar este ticket?')) return;
+    if (!await confirm({ message: '¿Eliminar este ticket?', title: 'Eliminar ticket' })) return;
 
     try {
       const response = await authFetch('/api/tickets', {

@@ -6,6 +6,7 @@ import {
   Clock, Search, ChevronDown, ChevronRight, Save, Loader2
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 // --- INTERFACES ---
 interface CategoriaServicio {
@@ -53,6 +54,7 @@ const ROLES_DISPONIBLES = [
 ];
 
 export default function ConfiguracionPage() {
+  const { confirm } = useConfirm();
   const [activeTab, setActiveTab] = useState<'equipo' | 'servicios'>('equipo');
   
   // Estado Equipo
@@ -169,7 +171,7 @@ export default function ConfiguracionPage() {
   };
 
   const handleDeleteUser = async (id: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este usuario?')) return;
+    if (!await confirm({ message: '¿Estás seguro de eliminar este usuario?', title: 'Eliminar usuario' })) return;
     try {
       await authFetch(`/api/usuarios/${id}`, { method: 'DELETE' });
       await fetchUsers();
@@ -238,7 +240,7 @@ export default function ConfiguracionPage() {
   };
 
   const handleDeletePlantilla = async (id: string) => {
-    if (!window.confirm('¿Desactivar esta plantilla de tarea?')) return;
+    if (!await confirm({ message: '¿Desactivar esta plantilla de tarea?', title: 'Desactivar plantilla' })) return;
     try {
       await authFetch(`/api/catalogo?tipo=plantillas&id=${id}`, { method: 'DELETE' });
       await fetchCatalogo();

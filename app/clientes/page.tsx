@@ -9,9 +9,11 @@ import { ClientDetailPage } from './ClientDetailPage';
 import { Plus, Search, MoreVertical, AlertTriangle, Edit, Trash2, Eye, FolderOpen } from 'lucide-react';
 import { Client } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 export const ClientsPage = () => {
   const { usuario } = useAuth();
+  const { confirm } = useConfirm();
   const [clients, setClients] = useState<Client[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -214,7 +216,7 @@ export const ClientsPage = () => {
   };
 
   const handleDeleteClient = async (clientId: string) => {
-    if (!confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.')) return;
+    if (!await confirm({ message: '¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.', title: 'Eliminar cliente' })) return;
     
     try {
       const response = await authFetch('/api/clientes', {

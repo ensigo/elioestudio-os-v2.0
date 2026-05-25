@@ -133,8 +133,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           const todasTareas: Tarea[] = await tareasRes.json();
           const propias = todasTareas.filter(t =>
             t.assignee?.id === usuario.id &&
-            t.status !== 'DONE' &&
-            t.status !== 'CANCELLED'
+            t.status !== 'CLOSED'
           );
           setMisTareas(propias.slice(0, 8));
         }
@@ -270,9 +269,10 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
   const getStatusLabel = (status: string) => {
     switch(status) {
-      case 'PENDING': return 'Pendiente';
+      case 'PENDING':     return 'Pendiente';
       case 'IN_PROGRESS': return 'En progreso';
-      case 'REVIEW': return 'Revisión';
+      case 'IN_REVIEW':   return 'Revisión';
+      case 'CORRECTION':  return 'Corrección';
       default: return status;
     }
   };
@@ -280,7 +280,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const getStatusDot = (status: string) => {
     switch(status) {
       case 'IN_PROGRESS': return 'bg-blue-500';
-      case 'REVIEW': return 'bg-purple-500';
+      case 'IN_REVIEW':   return 'bg-purple-500';
+      case 'CORRECTION':  return 'bg-orange-500';
       default: return 'bg-gray-300';
     }
   };

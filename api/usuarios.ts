@@ -1,11 +1,35 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+// Public profile fields — safe for all authenticated users
+const PUBLIC_FIELDS = {
+  id: true, name: true, email: true, role: true, position: true,
+  avatarUrl: true, joinDate: true, createdAt: true, tipoContrato: true
+} as const;
+
+// All fields — only for admins or the user themselves
+const ALL_FIELDS = {
+  ...PUBLIC_FIELDS,
+  dni: true, fechaNacimiento: true, telefono: true, telefonoEmergencia: true,
+  direccion: true, ciudad: true, codigoPostal: true,
+  iban: true, titularCuenta: true,
+  numSeguridadSocial: true, tipoContratacion: true, fechaAltaSS: true
+} as const;
+
+
 export default async function handler(req: any, res: any) {
+  const requesterId = req.headers['x-user-id'] as string | undefined;
+
   try {
     // GET - Obtener todos los usuarios
     if (req.method === 'GET') {
+      const requester = requesterId
+        ? await prisma.usuario.findUnique({ where: { id: requesterId }, select: { role: true } })
+        : null;
+      const isAdmin = requester?.role === 'ADMIN' || requester?.role === 'SUPERADMIN';
+
       const usuarios = await prisma.usuario.findMany({
+        select: isAdmin ? ALL_FIELDS : PUBLIC_FIELDS,
         orderBy: { createdAt: 'desc' }
       });
       return res.status(200).json(usuarios);
@@ -14,7 +38,7 @@ export default async function handler(req: any, res: any) {
     // POST - Crear un nuevo usuario
     if (req.method === 'POST') {
       const { name, email, role, position, avatarUrl, tipoContrato } = req.body;
-      
+
       if (!name || !email) {
         return res.status(400).json({ error: 'Nombre y email son obligatorios' });
       }
@@ -28,7 +52,8 @@ export default async function handler(req: any, res: any) {
           avatarUrl: avatarUrl || null,
           tipoContrato: tipoContrato || 'COMPLETA',
           joinDate: new Date()
-        }
+        },
+        select: ALL_FIELDS
       });
 
       return res.status(201).json(nuevoUsuario);
@@ -95,7 +120,8 @@ export default async function handler(req: any, res: any) {
 
       const usuarioActualizado = await prisma.usuario.update({
         where: { id },
-        data: dataToUpdate
+        data: dataToUpdate,
+        select: ALL_FIELDS
       });
 
       return res.status(200).json(usuarioActualizado);

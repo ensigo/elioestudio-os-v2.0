@@ -656,33 +656,53 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
         <div className="col-span-1 md:col-span-4">
           <Card title="Próximos Eventos" className="h-full">
-            {eventos.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Calendar size={32} className="mx-auto mb-2 opacity-30" />
-                <p>No hay eventos próximos</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {eventos.slice(0, 4).map(evt => (
-                  <div
-                    key={evt.id}
-                    className="flex items-start p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors group border border-transparent hover:border-slate-100"
-                    onClick={() => openEventDetail(evt)}
-                  >
-                    <div className="min-w-[50px] text-center border-r border-slate-100 pr-3 mr-3">
-                      <span className="block text-lg font-bold text-slate-900 leading-none">{new Date(evt.startDate).getDate()}</span>
-                      <span className="block text-[10px] uppercase font-bold text-slate-400">{new Intl.DateTimeFormat('es-ES', { month: 'short' }).format(new Date(evt.startDate))}</span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{evt.title}</h4>
-                      <div className="flex items-center mt-1 text-xs text-slate-500">
-                        <Clock size={12} className="mr-1" /> {evt.startTime || 'Todo el día'}
+            {(() => {
+              const todayStr = new Date().toISOString().split('T')[0];
+              const upcoming = eventos
+                .filter(e => e.startDate.split('T')[0] >= todayStr)
+                .sort((a, b) => a.startDate.localeCompare(b.startDate))
+                .slice(0, 5);
+              return upcoming.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar size={32} className="mx-auto mb-2 opacity-30" />
+                  <p>No hay eventos próximos</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {upcoming.map(evt => {
+                    const evtDate = new Date(evt.startDate);
+                    const isToday = evt.startDate.split('T')[0] === todayStr;
+                    return (
+                      <div
+                        key={evt.id}
+                        className={`flex items-start p-3 rounded-xl cursor-pointer transition-colors group border ${
+                          isToday
+                            ? 'bg-blue-50/50 border-blue-100 hover:bg-blue-50'
+                            : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
+                        }`}
+                        onClick={() => openEventDetail(evt)}
+                      >
+                        <div className="min-w-[50px] text-center border-r border-slate-100 pr-3 mr-3">
+                          <span className={`block text-lg font-bold leading-none ${isToday ? 'text-blue-600' : 'text-slate-900'}`}>
+                            {evtDate.getDate()}
+                          </span>
+                          <span className="block text-[10px] uppercase font-bold text-slate-400">
+                            {new Intl.DateTimeFormat('es-ES', { month: 'short' }).format(evtDate)}
+                          </span>
+                          {isToday && <span className="block text-[9px] font-bold text-blue-500 uppercase">Hoy</span>}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{evt.title}</h4>
+                          <div className="flex items-center mt-1 text-xs text-slate-500">
+                            <Clock size={12} className="mr-1" /> {evt.startTime || 'Todo el día'}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </Card>
         </div>
       </div>

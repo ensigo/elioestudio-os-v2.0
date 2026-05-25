@@ -128,7 +128,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const loadCredentials = useCallback(async () => {
     setIsLoadingCredentials(true);
     try {
-      const res = await fetch("/api/clientes?resource=credentials&clienteId=" + client.id);
+      const res = await authFetch("/api/clientes?resource=credentials&clienteId=" + client.id);
       if (res.ok) setCredentials(await res.json());
     } catch (err) { console.error(err); }
     finally { setIsLoadingCredentials(false); }
@@ -137,7 +137,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const loadTeamMembers = useCallback(async () => {
     setIsLoadingTeam(true);
     try {
-      const res = await fetch("/api/clientes?resource=team&clienteId=" + client.id);
+      const res = await authFetch("/api/clientes?resource=team&clienteId=" + client.id);
       if (res.ok) setTeamMembers(await res.json());
     } catch (err) { console.error(err); }
     finally { setIsLoadingTeam(false); }
@@ -146,7 +146,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const loadProjectsAndTasks = useCallback(async () => {
     setIsLoadingProjects(true);
     try {
-      const res = await fetch("/api/clientes?id=" + client.id);
+      const res = await authFetch("/api/clientes?id=" + client.id);
       if (res.ok) {
         const data = await res.json();
         setProyectos(data.proyectos || []);

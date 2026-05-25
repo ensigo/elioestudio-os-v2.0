@@ -176,7 +176,7 @@ export default function SEMPage() {
       </div>
 
       {/* Dashboard Resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-2'}`}>
         <Card>
           <div className="flex items-center justify-between">
             <div>
@@ -186,33 +186,37 @@ export default function SEMPage() {
             <div className="p-3 bg-green-100 rounded-xl"><Target size={24} className="text-green-600" /></div>
           </div>
         </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase">Presupuesto Total</p>
-              <p className="text-2xl font-bold text-blue-600 mt-1">{formatCurrency(presupuestoTotal)}</p>
+        {isAdmin && (
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase">Presupuesto Total</p>
+                <p className="text-2xl font-bold text-blue-600 mt-1">{formatCurrency(presupuestoTotal)}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-xl"><DollarSign size={24} className="text-blue-600" /></div>
             </div>
-            <div className="p-3 bg-blue-100 rounded-xl"><DollarSign size={24} className="text-blue-600" /></div>
-          </div>
-        </Card>
+          </Card>
+        )}
         <Card>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase">Gastado</p>
+              <p className="text-xs font-bold text-slate-500 uppercase">Gasto Acumulado</p>
               <p className="text-2xl font-bold text-orange-600 mt-1">{formatCurrency(gastoTotal)}</p>
             </div>
             <div className="p-3 bg-orange-100 rounded-xl"><TrendingUp size={24} className="text-orange-600" /></div>
           </div>
         </Card>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-slate-500 uppercase">% Consumido</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1">{presupuestoTotal > 0 ? Math.round((gastoTotal / presupuestoTotal) * 100) : 0}%</p>
+        {isAdmin && (
+          <Card>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-bold text-slate-500 uppercase">% Consumido</p>
+                <p className="text-2xl font-bold text-slate-900 mt-1">{presupuestoTotal > 0 ? Math.round((gastoTotal / presupuestoTotal) * 100) : 0}%</p>
+              </div>
+              <div className="p-3 bg-slate-100 rounded-xl"><BarChart2 size={24} className="text-slate-600" /></div>
             </div>
-            <div className="p-3 bg-slate-100 rounded-xl"><BarChart2 size={24} className="text-slate-600" /></div>
-          </div>
-        </Card>
+          </Card>
+        )}
       </div>
 
       {/* Filtros */}
@@ -265,7 +269,7 @@ export default function SEMPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <p className="font-bold text-slate-900">{formatCurrency(c.gastoTotal || 0)}</p>
-                  <p className="text-xs text-slate-400">de {formatCurrency(c.presupuesto)}</p>
+                  {isAdmin && <p className="text-xs text-slate-400">de {formatCurrency(c.presupuesto)}</p>}
                 </td>
                 <td className="px-4 py-3 text-center">
                   <div className="flex justify-center gap-1">
@@ -281,9 +285,10 @@ export default function SEMPage() {
 
       {/* Panel Detalle Campaña */}
       {selectedCampana && (
-        <CampanaDetail 
-          campana={selectedCampana} 
+        <CampanaDetail
+          campana={selectedCampana}
           reportes={reportes}
+          isAdmin={isAdmin}
           onClose={() => setSelectedCampana(null)}
           onAddReporte={() => setShowModalReporte(true)}
           onRefresh={() => fetchReportes(selectedCampana.id)}
@@ -292,12 +297,13 @@ export default function SEMPage() {
 
       {/* Modales */}
       {showModal && (
-        <ModalCampana 
-          campana={editingCampana} 
-          clientes={clientes} 
+        <ModalCampana
+          campana={editingCampana}
+          clientes={clientes}
           proyectos={proyectos}
-          onClose={() => setShowModal(false)} 
-          onSave={() => { fetchData(); setShowModal(false); }} 
+          isAdmin={isAdmin}
+          onClose={() => setShowModal(false)}
+          onSave={() => { fetchData(); setShowModal(false); }}
         />
       )}
       {showModalReporte && selectedCampana && (
@@ -312,9 +318,10 @@ export default function SEMPage() {
 }
 
 // Componente Detalle de Campaña
-function CampanaDetail({ campana, reportes, onClose, onAddReporte, onRefresh }: { 
-  campana: Campana; 
+function CampanaDetail({ campana, reportes, isAdmin, onClose, onAddReporte, onRefresh }: {
+  campana: Campana;
   reportes: ReporteDiario[];
+  isAdmin: boolean;
   onClose: () => void;
   onAddReporte: () => void;
   onRefresh: () => void;
@@ -367,18 +374,20 @@ function CampanaDetail({ campana, reportes, onClose, onAddReporte, onRefresh }: 
 
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6">
           {/* Resumen de Inversión */}
-          <Card title="💰 Inversión & Presupuesto">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm text-slate-500">Gastado / Presupuesto</p>
-                <p className="text-2xl font-bold">{formatCurrency(totales.gasto)} <span className="text-slate-400 font-normal">/ {formatCurrency(campana.presupuesto)}</span></p>
+          {isAdmin && (
+            <Card title="💰 Inversión & Presupuesto">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm text-slate-500">Gastado / Presupuesto</p>
+                  <p className="text-2xl font-bold">{formatCurrency(totales.gasto)} <span className="text-slate-400 font-normal">/ {formatCurrency(campana.presupuesto)}</span></p>
+                </div>
+                <p className="text-lg font-bold">{porcentajeConsumido}% Consumido</p>
               </div>
-              <p className="text-lg font-bold">{porcentajeConsumido}% Consumido</p>
-            </div>
-            <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-              <div className="h-full bg-yellow-500 transition-all" style={{ width: `${Math.min(100, parseFloat(porcentajeConsumido))}%` }} />
-            </div>
-          </Card>
+              <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
+                <div className="h-full bg-yellow-500 transition-all" style={{ width: `${Math.min(100, parseFloat(porcentajeConsumido))}%` }} />
+              </div>
+            </Card>
+          )}
 
           {/* KPIs Totales */}
           <div className="grid grid-cols-4 gap-4">
@@ -456,12 +465,13 @@ function CampanaDetail({ campana, reportes, onClose, onAddReporte, onRefresh }: 
 }
 
 // Modal Campaña
-function ModalCampana({ campana, clientes, proyectos, onClose, onSave }: { 
-  campana: Campana | null; 
-  clientes: Cliente[]; 
+function ModalCampana({ campana, clientes, proyectos, isAdmin, onClose, onSave }: {
+  campana: Campana | null;
+  clientes: Cliente[];
   proyectos: Proyecto[];
-  onClose: () => void; 
-  onSave: () => void; 
+  isAdmin: boolean;
+  onClose: () => void;
+  onSave: () => void;
 }) {
   const [form, setForm] = useState({
     clienteId: campana?.clienteId || '',
@@ -552,11 +562,13 @@ function ModalCampana({ campana, clientes, proyectos, onClose, onSave }: {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Presupuesto € *</label>
-              <input type="number" step="0.01" value={form.presupuesto} onChange={e => setForm({ ...form, presupuesto: e.target.value })} className="w-full px-3 py-2 border rounded-lg" required />
-            </div>
-            <div>
+            {isAdmin && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Presupuesto €</label>
+                <input type="number" step="0.01" value={form.presupuesto} onChange={e => setForm({ ...form, presupuesto: e.target.value })} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+            )}
+            <div className={isAdmin ? '' : 'col-span-2'}>
               <label className="block text-sm font-medium mb-1">Objetivo</label>
               <select value={form.objetivo} onChange={e => setForm({ ...form, objetivo: e.target.value })} className="w-full px-3 py-2 border rounded-lg">
                 <option value="">Seleccionar...</option>

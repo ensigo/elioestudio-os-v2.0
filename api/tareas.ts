@@ -44,8 +44,9 @@ export default async function handler(req: any, res: any) {
       if (isRecurring) {
         const proximaGeneracion = calcularProximaGeneracion(recurrenceFrequency, null);
         
-        const tareaRecurrente = await prisma.tareaRecurrente.create({
+        const tareaRecurrente = await prisma.tareas_recurrentes.create({
           data: {
+            id: `tr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
             titulo: title,
             descripcion: description || null,
             proyectoId,
@@ -56,10 +57,11 @@ export default async function handler(req: any, res: any) {
             frecuencia: recurrenceFrequency || 'WEEKLY',
             diasAntelacion: leadTime || 3,
             proximaGeneracion,
-            activa: true
+            activa: true,
+            updatedAt: new Date()
           },
           include: {
-            proyecto: { include: { cliente: true } }
+            proyectos: { include: { cliente: true } }
           }
         });
 
@@ -163,10 +165,10 @@ export default async function handler(req: any, res: any) {
 async function handleRecurrentes(req: any, res: any) {
   // GET - Listar tareas recurrentes
   if (req.method === 'GET') {
-    const tareasRecurrentes = await prisma.tareaRecurrente.findMany({
+    const tareasRecurrentes = await prisma.tareas_recurrentes.findMany({
       where: { activa: true },
       include: {
-        proyecto: { include: { cliente: true } }
+        proyectos: { include: { cliente: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -182,9 +184,9 @@ async function handleRecurrentes(req: any, res: any) {
       data.proximaGeneracion = calcularProximaGeneracion(data.frecuencia, data.diaEjecucion);
     }
 
-    const actualizada = await prisma.tareaRecurrente.update({
+    const actualizada = await prisma.tareas_recurrentes.update({
       where: { id },
-      data
+      data: { ...data, updatedAt: new Date() }
     });
     return res.status(200).json(actualizada);
   }
@@ -194,9 +196,9 @@ async function handleRecurrentes(req: any, res: any) {
     const { id } = req.body;
     if (!id) return res.status(400).json({ error: 'ID requerido' });
 
-    await prisma.tareaRecurrente.update({
+    await prisma.tareas_recurrentes.update({
       where: { id },
-      data: { activa: false }
+      data: { activa: false, updatedAt: new Date() }
     });
     return res.status(200).json({ success: true });
   }
@@ -214,7 +216,7 @@ async function handleGenerarRecurrentes(req: any, res: any) {
   hoy.setHours(0, 0, 0, 0);
 
   // Buscar tareas recurrentes activas que necesitan generarse
-  const tareasRecurrentes = await prisma.tareaRecurrente.findMany({
+  const tareasRecurrentes = await prisma.tareas_recurrentes.findMany({
     where: {
       activa: true,
       proximaGeneracion: { lte: new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000) } // Próximos 7 días
@@ -259,11 +261,12 @@ async function handleGenerarRecurrentes(req: any, res: any) {
 
         // Actualizar próxima generación
         const siguienteGeneracion = calcularProximaGeneracion(tr.frecuencia, tr.diaEjecucion);
-        await prisma.tareaRecurrente.update({
+        await prisma.tareas_recurrentes.update({
           where: { id: tr.id },
           data: {
             ultimaGeneracion: new Date(),
-            proximaGeneracion: siguienteGeneracion
+            proximaGeneracion: siguienteGeneracion,
+            updatedAt: new Date()
           }
         });
       }

@@ -1,17 +1,10 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { prisma } from '../lib/prisma';
-import { requireAuth } from '../lib/api-middleware';
+import { PrismaClient } from '@prisma/client';
+const prisma = new PrismaClient();
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const authUserId = requireAuth(req, res);
-  if (!authUserId) return;
-
+export default async function handler(req: any, res: any) {
   try {
-    const { tipo } = req.query;
-
-    const dbUser = await prisma.usuario.findUnique({ where: { id: authUserId }, select: { id: true, role: true } });
-    const userId = authUserId;
-    const isAdmin = dbUser?.role === 'ADMIN' || dbUser?.role === 'SUPERADMIN';
+    const { userId, userRole, tipo } = req.query;
+    const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
     // ============ SEM & SOCIAL ADS ============
     if (tipo === 'sem-campanas') {
@@ -30,9 +23,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(200).json(campana);
         }
         
-        const where: Record<string, unknown> = {};
+        const where: any = {};
         if (clienteId) where.clienteId = clienteId;
-
+        
         const campanas = await prisma.campanaSEM.findMany({
           where,
           include: {
@@ -163,9 +156,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(200).json(campana);
         }
         
-        const where: Record<string, unknown> = {};
+        const where: any = {};
         if (clienteId) where.clienteId = clienteId;
-
+        
         const campanas = await prisma.campanaMailing.findMany({
           where,
           include: { cliente: { select: { id: true, name: true } } },
@@ -224,7 +217,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (tipo === 'documentos') {
       if (req.method === 'GET') {
         const { familia } = req.query;
-        const where: Record<string, unknown> = { activo: true };
+        const where: any = { activo: true };
         if (familia) where.familia = familia;
         
         const documentos = await prisma.documentoSoporte.findMany({
@@ -289,15 +282,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       
       const hoy = new Date();
       let fechaLimite: Date | null = null;
-
+      let horasDivisor = 37.5;
+      
       if (periodo === 'semana') {
         fechaLimite = new Date(hoy);
         fechaLimite.setDate(hoy.getDate() + 7);
+        horasDivisor = 37.5;
       } else if (periodo === 'mes') {
         fechaLimite = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+        horasDivisor = 150;
       }
-
-      const whereClause: Record<string, unknown> = { status: { notIn: ['CLOSED', 'CANCELLED'] } };
+      
+      const whereClause: any = { status: { notIn: ['CLOSED', 'CANCELLED'] } };
       if (fechaLimite) {
         whereClause.dueDate = { gte: hoy, lte: fechaLimite };
       }
@@ -556,8 +552,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tareasRecientes
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error en API dashboard:', error);
-    return res.status(500).json({ error: 'Error interno del servidor' });
+    return res.status(500).json({ error: 'Error en la API', details: error.message });
+  } finally {
+    await prisma.$disconnect();
   }
 }

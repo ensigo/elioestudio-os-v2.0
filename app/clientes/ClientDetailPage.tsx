@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
+import { useToast } from '../../components/ui/Toast';
 import { Client } from '../../types';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -70,6 +72,7 @@ const formatDate = (d: string) => new Date(d).toLocaleDateString('es-ES', { day:
 
 export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBack, usuarios, currentUser, onClientUpdate }) => {
   const [activeTab, setActiveTab] = useState('overview');
+  const { error: toastError, warning: toastWarning } = useToast();
   const [isEditingClient, setIsEditingClient] = useState(false);
   const [editClientForm, setEditClientForm] = useState({
     name: client.name, nombreComercial: (client as any).nombreComercial || "", email: client.email || '', phone: client.phone || '',
@@ -108,7 +111,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
   const loadMetricoolBrands = async () => {
     setLoadingBrands(true);
     try {
-      const res = await fetch('/api/clientes?resource=metricool&action=brands');
+      const res = await authFetch('/api/clientes?resource=metricool&action=brands');
       if (res.ok) {
         const data = await res.json();
         // Metricool puede devolver diferentes estructuras
@@ -168,7 +171,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
 
   const handleSaveClientEdit = async () => {
     try {
-      const res = await fetch('/api/clientes', {
+      const res = await authFetch('/api/clientes', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: client.id, name: editClientForm.name, nombreComercial: (editClientForm as any).nombreComercial || null, email: editClientForm.email, phone: editClientForm.phone, address: editClientForm.address, contactPerson: editClientForm.contactPerson, taxId: editClientForm.taxId, status: editClientForm.status, metricoolBrandId: editClientForm.metricoolBrandId })
       });
@@ -187,16 +190,16 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
         } as any);
         setIsEditingClient(false);
       }
-    } catch (err) { alert('Error al guardar'); }
+    } catch (err) { toastError('Error al guardar'); }
   };
 
   const handleAddCredential = async () => {
     const platformToSave = newCredential.platform === 'custom' ? newCredential.customPlatform : newCredential.platform;
     if (!newCredential.category || !platformToSave || !newCredential.username || !newCredential.passwordEncrypted) {
-      alert('Categoría, plataforma, usuario y contraseña son obligatorios'); return;
+      toastWarning('Categoría, plataforma, usuario y contraseña son obligatorios'); return;
     }
     try {
-      const res = await fetch('/api/clientes?resource=credentials', {
+      const res = await authFetch('/api/clientes?resource=credentials', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clienteId: client.id, category: newCredential.category, platform: platformToSave,
@@ -211,15 +214,15 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
         setShowAddCredential(false);
         setNewCredential({ category: 'WEB_CMS', platform: '', customPlatform: '', url: '', username: '', passwordEncrypted: '', email: '', notes: '' });
       }
-    } catch (err) { alert('Error al crear'); }
+    } catch (err) { toastError('Error al crear'); }
   };
 
   const handleUpdateCredential = async () => {
     if (!editingCredential) return;
     try {
-      const res = await fetch('/api/clientes?resource=credentials', {
+      const res = await authFetch('/api/clientes?resource=credentials', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingCredential.id, ...editingCredential,
+        body: JSON.stringify({ ...editingCredential,
           modifiedById: currentUser.id, modifiedByName: currentUser.name })
       });
       if (res.ok) {
@@ -227,24 +230,24 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
         setCredentials(prev => prev.map(c => c.id === updated.id ? updated : c));
         setEditingCredential(null);
       }
-    } catch (err) { alert('Error al actualizar'); }
+    } catch (err) { toastError('Error al actualizar'); }
   };
 
   const handleDeleteCredential = async (credId: string) => {
     if (!confirm('¿Eliminar esta credencial?')) return;
     try {
-      const res = await fetch('/api/clientes?resource=credentials', {
+      const res = await authFetch('/api/clientes?resource=credentials', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: credId })
       });
       if (res.ok) setCredentials(prev => prev.filter(c => c.id !== credId));
-    } catch (err) { alert('Error'); }
+    } catch (err) { toastError('Error al procesar'); }
   };
 
   const handleAddTeamMember = async () => {
-    if (!selectedUserId) { alert('Selecciona un usuario'); return; }
+    if (!selectedUserId) { toastWarning('Selecciona un usuario'); return; }
     try {
-      const res = await fetch('/api/clientes?resource=team', {
+      const res = await authFetch('/api/clientes?resource=team', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clienteId: client.id, usuarioId: selectedUserId, role: selectedRole })
       });
@@ -252,19 +255,19 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
         const newMember = await res.json();
         setTeamMembers(prev => [...prev, newMember]);
         setShowAddTeamMember(false); setSelectedUserId(''); setSelectedRole('MEMBER');
-      } else { const e = await res.json(); alert(e.error || 'Error'); }
-    } catch (err) { alert('Error'); }
+      } else { const e = await res.json(); toastError(e.error || 'Error'); }
+    } catch (err) { toastError('Error al procesar'); }
   };
 
   const handleRemoveTeamMember = async (id: string) => {
     if (!confirm('¿Eliminar?')) return;
     try {
-      const res = await fetch('/api/clientes?resource=team', {
+      const res = await authFetch('/api/clientes?resource=team', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id })
       });
       if (res.ok) setTeamMembers(prev => prev.filter(m => m.id !== id));
-    } catch (err) { alert('Error'); }
+    } catch (err) { toastError('Error al procesar'); }
   };
 
   const getStatusBadge = (s: string) => {
@@ -328,7 +331,7 @@ export const ClientDetailPage: React.FC<ClientDetailPageProps> = ({ client, onBa
                     <input value={editClientForm.phone} onChange={e => setEditClientForm({...editClientForm, phone: e.target.value})} placeholder="Teléfono" className="px-3 py-2 border rounded-lg text-sm" />
                   </div>
                   <input value={editClientForm.contactPerson} onChange={e => setEditClientForm({...editClientForm, contactPerson: e.target.value})} placeholder="Contacto" className="w-full px-3 py-2 border rounded-lg text-sm" />
-                  <select value={editClientForm.status} onChange={e => setEditClientForm({...editClientForm, status: e.target.value})} className="w-full px-3 py-2 border rounded-lg text-sm">
+                  <select value={editClientForm.status} onChange={e => setEditClientForm({...editClientForm, status: e.target.value as import('../../types').ClientStatus})} className="w-full px-3 py-2 border rounded-lg text-sm">
                     <option value="ACTIVE">Activo</option><option value="RISK">Riesgo</option><option value="PAUSED">Pausa</option><option value="CHURNED">Baja</option>
                   </select>
                   <div>

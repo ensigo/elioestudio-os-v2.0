@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { useToast } from '../../components/ui/Toast';
 import { 
   Clock, TrendingUp, Calendar, ChevronLeft, ChevronRight,
   ArrowUpRight, ArrowDownRight, FileDown, FileSpreadsheet
@@ -66,6 +67,7 @@ export default function ReportesPage() {
   const [mesActual, setMesActual] = useState(new Date());
   const [resumenSemanal, setResumenSemanal] = useState<ResumenSemanal | null>(null);
   const [exportando, setExportando] = useState<'pdf' | 'excel' | null>(null);
+  const { error: toastError } = useToast();
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [loadingTimeEntries, setLoadingTimeEntries] = useState(false);
   const [vistaParteTrabajo, setVistaParteTrabajo] = useState<'semana' | 'mes'>('semana');
@@ -279,7 +281,7 @@ export default function ReportesPage() {
       });
     } catch (error) {
       console.error('Error exportando PDF:', error);
-      alert('Error al exportar PDF. Por favor, inténtalo de nuevo.');
+      toastError('Error al exportar PDF. Por favor, inténtalo de nuevo.');
     } finally {
       setExportando(null);
     }
@@ -336,7 +338,7 @@ export default function ReportesPage() {
       });
     } catch (error) {
       console.error('Error exportando Excel:', error);
-      alert('Error al exportar Excel. Por favor, inténtalo de nuevo.');
+      toastError('Error al exportar Excel. Por favor, inténtalo de nuevo.');
     } finally {
       setExportando(null);
     }

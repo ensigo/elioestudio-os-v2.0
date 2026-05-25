@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sidebar } from '../components/Sidebar';
 import { Header } from '../components/Header';
 
@@ -23,10 +23,12 @@ import { LoginPage } from './login/page';
 import { TimeTrackingProvider } from '../context/TimeTrackingContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { GlobalTimerWidget } from '../components/GlobalTimerWidget';
+import { ToastProvider, useToast } from '../components/ui/Toast';
 
 // Componente interno que usa el contexto de auth
 function AppContent() {
   const { usuario, isLoading, isAuthenticated, login, logout, canAccessReports } = useAuth();
+  const { warning } = useToast();
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [ticketIdToOpen, setTicketIdToOpen] = useState<string | null>(null);
@@ -51,7 +53,7 @@ function AppContent() {
   // Proteger reportes
   const handleNavigate = (page: string) => {
     if (page === 'reportes' && !canAccessReports) {
-      alert('No tienes permisos para acceder a esta sección');
+      warning('No tienes permisos para acceder a esta sección');
       return;
     }
     
@@ -121,8 +123,10 @@ function AppContent() {
 // Componente principal con Provider
 export default function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ToastProvider>
   );
 }

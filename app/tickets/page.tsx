@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
@@ -109,7 +110,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
     if (!currentUser?.id) return;
 
     try {
-      const response = await fetch('/api/tickets');
+      const response = await authFetch('/api/tickets');
       if (response.ok) {
         const allTickets = await response.json();
         const ticketsToMark = allTickets.filter((t: Ticket) => {
@@ -120,7 +121,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         });
 
         for (const ticket of ticketsToMark) {
-          await fetch('/api/tickets', {
+          await authFetch('/api/tickets', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: ticket.id, markReadBy: currentUser.id })
@@ -167,7 +168,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
 
     setIsSending(true);
     try {
-      const response = await fetch('/api/tickets', {
+      const response = await authFetch('/api/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -196,7 +197,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
 
   const handleChangeStatus = async (ticketId: string, newStatus: string) => {
     try {
-      const response = await fetch('/api/tickets', {
+      const response = await authFetch('/api/tickets', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ticketId, status: newStatus })
@@ -218,7 +219,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
     if (!confirm('¿Eliminar este ticket?')) return;
 
     try {
-      const response = await fetch('/api/tickets', {
+      const response = await authFetch('/api/tickets', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: ticketId })
@@ -241,7 +242,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
 
     setIsSendingRespuesta(true);
     try {
-      const response = await fetch('/api/tickets?resource=respuestas', {
+      const response = await authFetch('/api/tickets?resource=respuestas', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

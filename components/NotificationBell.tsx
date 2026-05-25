@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { authFetch } from '../lib/auth-fetch';
 import { Bell, MessageSquare, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -34,7 +35,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigate }
       if (!usuario) return;
       
       try {
-        const response = await fetch('/api/tickets');
+        const response = await authFetch('/api/tickets');
         if (response.ok) {
           const data = await response.json();
           
@@ -110,7 +111,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onNavigate }
     // Marcar como leído
     if (usuario && !ticket.readBy?.includes(usuario.id)) {
       try {
-        await fetch('/api/tickets', {
+        await authFetch('/api/tickets', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

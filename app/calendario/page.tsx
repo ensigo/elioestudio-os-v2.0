@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
+import { useToast } from '../../components/ui/Toast';
 import { Modal } from '../../components/ui/Modal';
 import { 
   addMonths, 
@@ -64,6 +66,7 @@ export const CalendarPage = () => {
 
   // Drag state
   const [draggedEvento, setDraggedEvento] = useState<Evento | null>(null);
+  const { error: toastError } = useToast();
 
   const TODAY_ISO = new Date().toISOString().split('T')[0];
 
@@ -71,7 +74,7 @@ export const CalendarPage = () => {
   useEffect(() => {
     const fetchEventos = async () => {
       try {
-        const response = await fetch('/api/eventos');
+        const response = await authFetch('/api/eventos');
         if (!response.ok) throw new Error('Error al cargar eventos');
         const data = await response.json();
         setEventos(data);
@@ -147,7 +150,7 @@ export const CalendarPage = () => {
     if (!formData.title || !formData.startDate) return;
 
     try {
-      const response = await fetch('/api/eventos', {
+      const response = await authFetch('/api/eventos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +171,7 @@ export const CalendarPage = () => {
       setEventos([...eventos, nuevoEvento]);
       setIsCreateModalOpen(false);
     } catch (err) {
-      alert('Error al crear evento');
+      toastError('Error al crear evento');
     }
   };
 
@@ -178,7 +181,7 @@ export const CalendarPage = () => {
     if (!selectedEvento || !formData.title) return;
 
     try {
-      const response = await fetch('/api/eventos', {
+      const response = await authFetch('/api/eventos', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -201,7 +204,7 @@ export const CalendarPage = () => {
       setIsEditModalOpen(false);
       setSelectedEvento(null);
     } catch (err) {
-      alert('Error al actualizar evento');
+      toastError('Error al actualizar evento');
     }
   };
 
@@ -210,7 +213,7 @@ export const CalendarPage = () => {
     if (!selectedEvento || !confirm('¿Eliminar este evento?')) return;
 
     try {
-      const response = await fetch('/api/eventos', {
+      const response = await authFetch('/api/eventos', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: selectedEvento.id })
@@ -222,7 +225,7 @@ export const CalendarPage = () => {
       setIsEditModalOpen(false);
       setSelectedEvento(null);
     } catch (err) {
-      alert('Error al eliminar evento');
+      toastError('Error al eliminar evento');
     }
   };
 
@@ -242,7 +245,7 @@ export const CalendarPage = () => {
     if (!draggedEvento) return;
 
     try {
-      const response = await fetch('/api/eventos', {
+      const response = await authFetch('/api/eventos', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -256,7 +259,7 @@ export const CalendarPage = () => {
       const eventoActualizado = await response.json();
       setEventos(eventos.map(ev => ev.id === eventoActualizado.id ? eventoActualizado : ev));
     } catch (err) {
-      alert('Error al mover evento');
+      toastError('Error al mover evento');
     }
 
     setDraggedEvento(null);

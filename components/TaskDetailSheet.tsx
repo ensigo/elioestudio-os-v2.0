@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../lib/auth-fetch';
+import { useToast } from './ui/Toast';
 import { Sheet } from './ui/Sheet';
 import { Badge } from './ui/Badge';
 import { Clock, Calendar, Play, Square, Trash2, Edit3, Save, X, Timer } from 'lucide-react';
@@ -62,6 +64,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   onStopTimer,
   elapsedTime = 0
 }) => {
+  const { error } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [totalTime, setTotalTime] = useState(0);
   const [loadingTime, setLoadingTime] = useState(false);
@@ -134,7 +137,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
 
   const handleSaveEdit = async () => {
     try {
-      const response = await fetch('/api/tareas', {
+      const response = await authFetch('/api/tareas', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -156,7 +159,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
       onUpdate(tareaActualizada);
       setIsEditing(false);
     } catch (err) {
-      alert('Error al guardar cambios');
+      error('Error al guardar cambios');
     }
   };
 
@@ -164,7 +167,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     if (!confirm('¿Estás seguro de eliminar esta tarea?')) return;
 
     try {
-      const response = await fetch('/api/tareas', {
+      const response = await authFetch('/api/tareas', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: task.id })
@@ -175,13 +178,13 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
       onDelete(task.id);
       onClose();
     } catch (err) {
-      alert('Error al eliminar tarea');
+      error('Error al eliminar tarea');
     }
   };
 
   const handleChangeStatus = async (newStatus: string) => {
     try {
-      const response = await fetch('/api/tareas', {
+      const response = await authFetch('/api/tareas', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -195,7 +198,7 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
       const tareaActualizada = await response.json();
       onUpdate(tareaActualizada);
     } catch (err) {
-      alert('Error al cambiar estado');
+      error('Error al cambiar estado');
     }
   };
 

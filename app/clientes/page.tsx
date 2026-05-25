@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
+import { useToast } from '../../components/ui/Toast';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
@@ -18,6 +20,7 @@ export const ClientsPage = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const { error: toastError } = useToast();
   const menuRef = useRef<HTMLDivElement>(null);
   
   const getResponsibleName = (responsibleId: string | null) => {
@@ -109,7 +112,7 @@ export const ClientsPage = () => {
 
   const handleCreateClient = async (data: any) => {
     try {
-      const response = await fetch('/api/clientes', {
+      const response = await authFetch('/api/clientes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -151,7 +154,7 @@ export const ClientsPage = () => {
       setIsModalOpen(false);
     } catch (err: any) {
       console.error('Error al crear cliente:', err);
-      alert('Error al crear cliente: ' + err.message);
+      toastError('Error al crear cliente');
     }
   };
 
@@ -159,7 +162,7 @@ export const ClientsPage = () => {
     if (!clientToEdit) return;
     
     try {
-      const response = await fetch('/api/clientes', {
+      const response = await authFetch('/api/clientes', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -203,7 +206,7 @@ export const ClientsPage = () => {
       setClientToEdit(null);
     } catch (err: any) {
       console.error('Error al editar cliente:', err);
-      alert('Error al editar cliente: ' + err.message);
+      toastError('Error al editar cliente');
     }
   };
 
@@ -211,7 +214,7 @@ export const ClientsPage = () => {
     if (!confirm('¿Estás seguro de eliminar este cliente? Esta acción no se puede deshacer.')) return;
     
     try {
-      const response = await fetch('/api/clientes', {
+      const response = await authFetch('/api/clientes', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: clientId }),
@@ -225,7 +228,7 @@ export const ClientsPage = () => {
       setOpenMenuId(null);
     } catch (err: any) {
       console.error('Error al eliminar cliente:', err);
-      alert('Error al eliminar cliente: ' + err.message);
+      toastError('Error al eliminar cliente');
     }
   };
 

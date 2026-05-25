@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import {
   Users, TrendingUp, TrendingDown, Clock, AlertTriangle,
   BarChart3, DollarSign, Target, CheckCircle2,
@@ -55,7 +56,7 @@ export default function AnalisisPage() {
         const res = await fetch(`/api/dashboard?tipo=carga-trabajo&periodo=${periodoCarga}`);
         if (res.ok) setCargaData(await res.json());
       } else {
-        const res = await fetch('/api/dashboard?tipo=rentabilidad');
+        const res = await authFetch('/api/dashboard?tipo=rentabilidad');
         if (res.ok) setRentabilidadData(await res.json());
       }
     } catch (error) {
@@ -242,7 +243,7 @@ export default function AnalisisPage() {
                         {/* Indicadores rápidos */}
                         {(user.tareas.urgentes > 0 || user.tareas.enProgreso > 0 || user.tareas.pendientes > 0) && (
                           <div className="mt-3 flex gap-2">
-                            {user.tareas.urgentes > 0 && <Badge variant="error">{user.tareas.urgentes} urgentes</Badge>}
+                            {user.tareas.urgentes > 0 && <Badge variant="danger">{user.tareas.urgentes} urgentes</Badge>}
                             {user.tareas.enProgreso > 0 && <Badge variant="warning">{user.tareas.enProgreso} en progreso</Badge>}
                             {user.tareas.pendientes > 0 && <Badge variant="neutral">{user.tareas.pendientes} pendientes</Badge>}
                           </div>
@@ -266,7 +267,7 @@ export default function AnalisisPage() {
                                     </span>
                                   )}
                                   {t.estimatedHours && <span className="text-xs text-slate-500">{t.estimatedHours}h</span>}
-                                  <Badge variant={t.priority === 'URGENT' ? 'error' : t.priority === 'HIGH' ? 'warning' : 'neutral'}>
+                                  <Badge variant={t.priority === 'URGENT' ? 'danger' : t.priority === 'HIGH' ? 'warning' : 'neutral'}>
                                     {t.priority}
                                   </Badge>
                                 </div>
@@ -298,7 +299,7 @@ export default function AnalisisPage() {
                           {new Date(t.dueDate).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
                         </span>
                       )}
-                      <Badge variant={t.priority === 'URGENT' ? 'error' : t.priority === 'HIGH' ? 'warning' : 'neutral'}>
+                      <Badge variant={t.priority === 'URGENT' ? 'danger' : t.priority === 'HIGH' ? 'warning' : 'neutral'}>
                         {t.priority}
                       </Badge>
                     </div>

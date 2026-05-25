@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { authFetch } from '../lib/auth-fetch';
 import { Search, Plus, Menu, LogOut, User, Key, X, Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 import { TicketModal } from './TicketModal';
@@ -58,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({ usuario, onLogout, onNavigate, o
     setIsChangingPassword(true);
 
     try {
-      const response = await fetch('/api/auth', {
+      const response = await authFetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

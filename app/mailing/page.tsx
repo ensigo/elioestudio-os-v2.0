@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { 
@@ -390,7 +391,7 @@ function ModalCampana({ campana, clientes, onClose, onSave }: {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/dashboard?tipo=mailing', {
+    await authFetch('/api/dashboard?tipo=mailing', {
       method: campana ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(campana ? { id: campana.id, ...form } : form)

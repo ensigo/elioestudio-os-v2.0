@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { 
@@ -78,7 +79,7 @@ export const ProjectsPage = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Archivar este proyecto?')) return;
-    await fetch('/api/proyectos', {
+    await authFetch('/api/proyectos', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, isArchived: true })
@@ -436,7 +437,7 @@ function ModalProyecto({ proyecto, clientes, usuarios, onClose, onSave }: {
     if (!form.title || !form.clienteId) return;
     
     setSaving(true);
-    await fetch('/api/proyectos', {
+    await authFetch('/api/proyectos', {
       method: proyecto ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(proyecto ? { id: proyecto.id, ...form } : form)

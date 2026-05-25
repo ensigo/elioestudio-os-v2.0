@@ -1,5 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
+import { useToast } from '../../components/ui/Toast';
 import {
   Server, Globe, Shield, Search, AlertTriangle,
   TrendingUp, TrendingDown, DollarSign, Building2,
@@ -169,9 +171,9 @@ export default function HostingPage() {
     const badges: Record<string, JSX.Element> = {
       'ACTIVO': <Badge variant="success">Activo</Badge>,
       'PENDIENTE_RENOVACION': <Badge variant="warning">Pendiente</Badge>,
-      'SUSPENDIDO': <Badge variant="error">Suspendido</Badge>,
+      'SUSPENDIDO': <Badge variant="danger">Suspendido</Badge>,
       'CANCELADO': <Badge variant="neutral">Cancelado</Badge>,
-      'EXPIRADO': <Badge variant="error">Expirado</Badge>
+      'EXPIRADO': <Badge variant="danger">Expirado</Badge>
     };
     return badges[estado] || <Badge variant="neutral">{estado}</Badge>;
   };
@@ -556,7 +558,7 @@ export default function HostingPage() {
                                   @{email.dominioAsociado}
                                 </span>
                               )}
-                              {!email.isActive && <Badge variant="error">Inactivo</Badge>}
+                              {!email.isActive && <Badge variant="danger">Inactivo</Badge>}
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3 text-sm">
                               <div>
@@ -664,7 +666,7 @@ export default function HostingPage() {
                   <div className="mt-2 flex flex-wrap gap-1">
                     {plan.emails && <Badge variant="neutral">{plan.emails} emails</Badge>}
                     {plan.incluyeDominio && <Badge variant="success">+Dominio</Badge>}
-                    {!plan.activo && <Badge variant="error">Inactivo</Badge>}
+                    {!plan.activo && <Badge variant="danger">Inactivo</Badge>}
                   </div>
                 </Card>
               ))}
@@ -686,7 +688,7 @@ export default function HostingPage() {
                     <span className="text-sm text-slate-400">/año</span>
                   </div>
                   {plan.precioSugerido && <p className="text-sm text-green-600">Sugerido: {formatCurrency(plan.precioSugerido)}</p>}
-                  {!plan.activo && <Badge variant="error">Inactivo</Badge>}
+                  {!plan.activo && <Badge variant="danger">Inactivo</Badge>}
                 </Card>
               ))}
             </div>
@@ -712,7 +714,7 @@ function ModalProveedor({ proveedor, onClose, onSave }: { proveedor: any; onClos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/hosting?entity=proveedores', { method: proveedor ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(proveedor ? { id: proveedor.id, ...form } : form) });
+    await authFetch('/api/hosting?entity=proveedores', { method: proveedor ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(proveedor ? { id: proveedor.id, ...form } : form) });
     setSaving(false);
     onSave();
   };
@@ -748,7 +750,7 @@ function ModalPlan({ plan, onClose, onSave }: { plan: any; onClose: () => void; 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/hosting?entity=planes', { method: plan ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(plan ? { id: plan.id, ...form } : form) });
+    await authFetch('/api/hosting?entity=planes', { method: plan ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(plan ? { id: plan.id, ...form } : form) });
     setSaving(false);
     onSave();
   };
@@ -819,7 +821,7 @@ function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave 
       fechaVencimientoSSL: form.tieneSSL && form.fechaVencimientoSSL ? form.fechaVencimientoSSL : null,
       tipoSSL: form.tieneSSL ? form.tipoSSL : null
     };
-    await fetch('/api/hosting?entity=hostings', { method: hosting ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(hosting ? { id: hosting.id, ...dataToSend } : dataToSend) });
+    await authFetch('/api/hosting?entity=hostings', { method: hosting ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(hosting ? { id: hosting.id, ...dataToSend } : dataToSend) });
     setSaving(false);
     onSave();
   };
@@ -938,7 +940,7 @@ function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave 
       fechaVencimientoSSL: form.tieneSSL && form.fechaVencimientoSSL ? form.fechaVencimientoSSL : null,
       tipoSSL: form.tieneSSL ? form.tipoSSL : null
     };
-    await fetch('/api/hosting?entity=dominios', { method: dominio ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dominio ? { id: dominio.id, ...dataToSend } : dataToSend) });
+    await authFetch('/api/hosting?entity=dominios', { method: dominio ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dominio ? { id: dominio.id, ...dataToSend } : dataToSend) });
     setSaving(false);
     onSave();
   };
@@ -1022,6 +1024,7 @@ function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave 
 
 // MODAL EMAIL
 function ModalEmail({ email, clientes, dominios, onClose, onSave }: { email: any; clientes: { id: string; name: string }[]; dominios: Dominio[]; onClose: () => void; onSave: () => void }) {
+  const { warning: toastWarning } = useToast();
   const [form, setForm] = useState({
     clienteId: email?.clienteId || '',
     platform: email?.platform || 'cPanel Email',
@@ -1038,11 +1041,11 @@ function ModalEmail({ email, clientes, dominios, onClose, onSave }: { email: any
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.clienteId || !form.username || !form.passwordEncrypted) {
-      alert('Cliente, email y contraseña son obligatorios');
+      toastWarning('Cliente, email y contraseña son obligatorios');
       return;
     }
     setSaving(true);
-    await fetch('/api/hosting?entity=emails', { 
+    await authFetch('/api/hosting?entity=emails', { 
       method: email ? 'PUT' : 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
       body: JSON.stringify(email ? { id: email.id, ...form } : form) 

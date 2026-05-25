@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { setAuthUserId } from '../lib/auth-fetch';
 
 interface Usuario {
   id: string;
@@ -7,6 +8,7 @@ interface Usuario {
   role: string;
   position: string | null;
   avatarUrl: string | null;
+  tipoContrato: string | null;
 }
 
 interface AuthContextType {
@@ -36,12 +38,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (response.ok) {
             const data = await response.json();
             setUsuario(data.usuario);
+            setAuthUserId(data.usuario.id);
           } else {
             localStorage.removeItem('elioUserId');
+            setAuthUserId(null);
           }
         } catch (err) {
           console.error('Error verificando sesión:', err);
           localStorage.removeItem('elioUserId');
+          setAuthUserId(null);
         }
       }
       
@@ -67,6 +72,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
       setUsuario(data.usuario);
       localStorage.setItem('elioUserId', data.usuario.id);
+      setAuthUserId(data.usuario.id);
       return { success: true };
     } catch (err) {
       return { success: false, error: 'Error de conexión' };
@@ -76,6 +82,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = () => {
     setUsuario(null);
     localStorage.removeItem('elioUserId');
+    setAuthUserId(null);
   };
 
   const canAccessReports = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';

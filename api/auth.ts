@@ -1,23 +1,34 @@
-import { PrismaClient } from '@prisma/client';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
+import { prisma } from '../lib/prisma';
 
-const prisma = new PrismaClient();
+const BCRYPT_ROUNDS = 12;
 
-// Función para hashear contraseñas
-function hashPassword(password: string): string {
+function sha256Hash(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// Función para verificar contraseña
-function verifyPassword(password: string, hash: string): boolean {
-  return hashPassword(password) === hash;
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, BCRYPT_ROUNDS);
 }
 
-export default async function handler(req: any, res: any) {
+async function verifyPassword(password: string, stored: string): Promise<{ valid: boolean; needsRehash: boolean }> {
+  // Try bcrypt first
+  const isBcrypt = stored.startsWith('$2');
+  if (isBcrypt) {
+    const valid = await bcrypt.compare(password, stored);
+    return { valid, needsRehash: false };
+  }
+  // Fallback: legacy SHA-256 — migrate to bcrypt on success
+  const valid = sha256Hash(password) === stored;
+  return { valid, needsRehash: valid };
+}
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    // POST /api/auth - Login
     if (req.method === 'POST') {
-      const { action, email, password, newPassword, userId } = req.body;
+      const { action, email, password, newPassword, userId } = req.body as Record<string, string>;
 
       // LOGIN
       if (action === 'login') {
@@ -26,62 +37,74 @@ export default async function handler(req: any, res: any) {
         }
 
         const usuario = await prisma.usuario.findFirst({
-          where: { email: email.toLowerCase() }
+          where: { email: email.toLowerCase() },
         });
 
-        if (!usuario) {
+        if (!usuario || !usuario.password) {
           return res.status(401).json({ error: 'Credenciales incorrectas' });
         }
 
-        if (!usuario.password) {
-          return res.status(401).json({ error: 'Usuario sin contraseña configurada. Contacta al administrador.' });
-        }
+        const { valid, needsRehash } = await verifyPassword(password, usuario.password);
 
-        if (!verifyPassword(password, usuario.password)) {
+        if (!valid) {
           return res.status(401).json({ error: 'Credenciales incorrectas' });
         }
 
-        // Login exitoso - devolver usuario sin password
+        // Migrate SHA-256 hash to bcrypt transparently
+        if (needsRehash) {
+          const newHash = await hashPassword(password);
+          await prisma.usuario.update({
+            where: { id: usuario.id },
+            data: { password: newHash },
+          });
+        }
+
         const { password: _, ...usuarioSinPassword } = usuario;
-        return res.status(200).json({ 
-          success: true, 
-          usuario: usuarioSinPassword 
-        });
+        return res.status(200).json({ success: true, usuario: usuarioSinPassword });
       }
 
-      // CAMBIAR CONTRASEÑA
+      // CAMBIAR CONTRASEÑA (usuario autenticado cambia la suya)
       if (action === 'change-password') {
         if (!userId || !password || !newPassword) {
           return res.status(400).json({ error: 'Datos incompletos' });
         }
 
-        const usuario = await prisma.usuario.findFirst({
-          where: { id: userId }
-        });
+        const usuario = await prisma.usuario.findUnique({ where: { id: userId } });
 
         if (!usuario) {
           return res.status(404).json({ error: 'Usuario no encontrado' });
         }
 
-        // Verificar contraseña actual
-        if (usuario.password && !verifyPassword(password, usuario.password)) {
-          return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+        if (usuario.password) {
+          const { valid } = await verifyPassword(password, usuario.password);
+          if (!valid) {
+            return res.status(401).json({ error: 'Contraseña actual incorrecta' });
+          }
         }
 
-        // Actualizar contraseña
         await prisma.usuario.update({
           where: { id: userId },
-          data: { password: hashPassword(newPassword) }
+          data: { password: await hashPassword(newPassword) },
         });
 
         return res.status(200).json({ success: true, message: 'Contraseña actualizada' });
       }
 
-      // ESTABLECER CONTRASEÑA (solo admin)
+      // ESTABLECER CONTRASEÑA (solo admin — verifica rol desde BD, no desde body)
       if (action === 'set-password') {
-        const { targetUserId, targetPassword, adminRole } = req.body;
+        const adminId = req.headers['x-user-id'] as string | undefined;
+        const { targetUserId, targetPassword } = req.body as Record<string, string>;
 
-        if (!['ADMIN', 'SUPERADMIN'].includes(adminRole)) {
+        if (!adminId) {
+          return res.status(401).json({ error: 'No autenticado' });
+        }
+
+        const adminUser = await prisma.usuario.findUnique({
+          where: { id: adminId },
+          select: { role: true },
+        });
+
+        if (!adminUser || !['ADMIN', 'SUPERADMIN'].includes(adminUser.role)) {
           return res.status(403).json({ error: 'No tienes permisos para esta acción' });
         }
 
@@ -91,7 +114,7 @@ export default async function handler(req: any, res: any) {
 
         await prisma.usuario.update({
           where: { id: targetUserId },
-          data: { password: hashPassword(targetPassword) }
+          data: { password: await hashPassword(targetPassword) },
         });
 
         return res.status(200).json({ success: true, message: 'Contraseña establecida' });
@@ -100,7 +123,7 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: 'Acción no válida' });
     }
 
-    // GET /api/auth - Verificar sesión (obtener usuario por ID)
+    // GET — Verificar sesión por userId
     if (req.method === 'GET') {
       const { userId } = req.query;
 
@@ -108,8 +131,8 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'ID de usuario requerido' });
       }
 
-      const usuario = await prisma.usuario.findFirst({
-        where: { id: userId as string }
+      const usuario = await prisma.usuario.findUnique({
+        where: { id: userId as string },
       });
 
       if (!usuario) {
@@ -121,11 +144,8 @@ export default async function handler(req: any, res: any) {
     }
 
     return res.status(405).json({ error: 'Método no permitido' });
-
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error en API auth:', error);
-    return res.status(500).json({ error: 'Error en la API', details: error.message });
-  } finally {
-    await prisma.$disconnect();
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 }

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../lib/auth-fetch';
 import { TaskType, TaskPriority } from '../types';
 import { Calendar, Clock, Briefcase, RefreshCw, BookOpen, Search, X, ChevronDown } from 'lucide-react';
 
@@ -80,7 +81,7 @@ export const TaskCreationModal: React.FC<TaskCreationModalProps> = ({ onSubmit, 
   const fetchCatalogo = async () => {
     setLoadingCatalogo(true);
     try {
-      const res = await fetch('/api/catalogo?tipo=categorias');
+      const res = await authFetch('/api/catalogo?tipo=categorias');
       if (res.ok) {
         const data = await res.json();
         // Mapear plantillas_tarea a plantillas para el frontend

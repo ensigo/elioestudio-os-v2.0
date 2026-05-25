@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import {
   FileText, Plus, Search, TrendingUp, Calendar, AlertTriangle,
   Edit, DollarSign, Building2, Package, Layers, Check
@@ -117,7 +118,7 @@ export default function ContratosPage() {
     const badges: Record<string, JSX.Element> = {
       'ACTIVO': <Badge variant="success">Activo</Badge>,
       'PAUSADO': <Badge variant="warning">Pausado</Badge>,
-      'CANCELADO': <Badge variant="error">Cancelado</Badge>,
+      'CANCELADO': <Badge variant="danger">Cancelado</Badge>,
       'FINALIZADO': <Badge variant="neutral">Finalizado</Badge>
     };
     return badges[estado] || <Badge variant="neutral">{estado}</Badge>;
@@ -432,7 +433,7 @@ function ModalServicio({ servicio, onClose, onSave }: { servicio: any; onClose: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/clientes?resource=servicios', {
+    await authFetch('/api/clientes?resource=servicios', {
       method: servicio ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(servicio ? { id: servicio.id, ...form } : form)
@@ -545,7 +546,7 @@ function ModalContrato({ contrato, clientes, servicios, onClose, onSave }: { con
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/clientes?resource=contratos', {
+    await authFetch('/api/clientes?resource=contratos', {
       method: contrato ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(contrato ? { id: contrato.id, ...form } : form)

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import { 
   Users, Briefcase, Plus, X, Trash2, Edit2, Shield, Mail, User,
   Clock, Search, ChevronDown, ChevronRight, Save, Loader2
@@ -95,7 +96,7 @@ export default function ConfiguracionPage() {
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/usuarios');
+      const res = await authFetch('/api/usuarios');
       if (res.ok) {
         const data = await res.json();
         setUsers(data);
@@ -109,7 +110,7 @@ export default function ConfiguracionPage() {
 
   const fetchCatalogo = async () => {
     try {
-      const res = await fetch('/api/catalogo?tipo=categorias');
+      const res = await authFetch('/api/catalogo?tipo=categorias');
       if (res.ok) {
         const data = await res.json();
         // Mapear plantillas_tarea a plantillas para el frontend
@@ -152,7 +153,7 @@ export default function ConfiguracionPage() {
           body: JSON.stringify(userForm)
         });
       } else {
-        await fetch('/api/usuarios', {
+        await authFetch('/api/usuarios', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userForm)
@@ -221,7 +222,7 @@ export default function ConfiguracionPage() {
           body: JSON.stringify(plantillaForm)
         });
       } else {
-        await fetch('/api/catalogo?tipo=plantillas', {
+        await authFetch('/api/catalogo?tipo=plantillas', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(plantillaForm)

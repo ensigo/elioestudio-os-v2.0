@@ -2,13 +2,14 @@ import React from 'react';
 
 // --- ENUMS (Single Source of Truth) ---
 
-export type UserRole = 
-  | 'ADMIN' 
-  | 'MANAGER' 
-  | 'SEO' 
-  | 'DESIGNER' 
-  | 'DEV' 
-  | 'COPY' 
+export type UserRole =
+  | 'SUPERADMIN'
+  | 'ADMIN'
+  | 'MANAGER'
+  | 'SEO'
+  | 'DESIGNER'
+  | 'DEV'
+  | 'COPY'
   | 'CLIENT';
 
 export type TaskStatus = 

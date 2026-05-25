@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { RendimientoEmpleado } from '../../components/RendimientoEmpleado';
@@ -191,7 +192,7 @@ export const TeamPage = () => {
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/usuarios', {
+      const response = await authFetch('/api/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -201,7 +202,7 @@ export const TeamPage = () => {
         const nuevoUsuario = await response.json();
         setUsuarios([...usuarios, nuevoUsuario]);
         setIsCreateModalOpen(false);
-        setFormData({ name: '', email: '', role: 'DEV', position: '' });
+        setFormData({ name: '', email: '', role: 'DEV', position: '', tipoContrato: 'COMPLETA', dni: '', fechaNacimiento: '', direccion: '', ciudad: '', codigoPostal: '', telefono: '', telefonoEmergencia: '', iban: '', titularCuenta: '', numSeguridadSocial: '', tipoContratacion: '', fechaAltaSS: '' });
       }
     } catch (err) {
       console.error('Error creando usuario:', err);
@@ -214,7 +215,7 @@ export const TeamPage = () => {
     if (!selectedUser) return;
 
     try {
-      const response = await fetch('/api/usuarios', {
+      const response = await authFetch('/api/usuarios', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: selectedUser.id, ...formData })
@@ -236,7 +237,7 @@ export const TeamPage = () => {
     if (!confirm('¿Estás seguro de eliminar este usuario?')) return;
 
     try {
-      const response = await fetch('/api/usuarios', {
+      const response = await authFetch('/api/usuarios', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: userId })
@@ -260,7 +261,7 @@ export const TeamPage = () => {
     setPasswordMessage({ type: '', text: '' });
 
     try {
-      const response = await fetch('/api/auth', {
+      const response = await authFetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -298,7 +299,7 @@ export const TeamPage = () => {
     if (!solicitanteId) return;
 
     try {
-      const response = await fetch('/api/permisos', {
+      const response = await authFetch('/api/permisos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -323,7 +324,7 @@ export const TeamPage = () => {
     if (!selectedPermiso || !currentUser) return;
 
     try {
-      const response = await fetch('/api/permisos', {
+      const response = await authFetch('/api/permisos', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

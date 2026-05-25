@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../lib/auth-fetch';
+import { useToast } from './ui/Toast';
 import { Send, X, AlertTriangle } from 'lucide-react';
 
 interface Usuario {
@@ -13,6 +15,7 @@ interface TicketModalProps {
 }
 
 export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
+  const { success, error } = useToast();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [priority, setPriority] = useState('MEDIUM');
@@ -26,7 +29,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => 
     if (isOpen) {
       const fetchUsuarios = async () => {
         try {
-          const response = await fetch('/api/usuarios');
+          const response = await authFetch('/api/usuarios');
           if (response.ok) {
             const data = await response.json();
             setUsuarios(data);
@@ -59,7 +62,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => 
     if (!title.trim() || !senderId) return;
 
     try {
-      const response = await fetch('/api/tickets', {
+      const response = await authFetch('/api/tickets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,10 +76,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => 
 
       if (!response.ok) throw new Error('Error al crear ticket');
 
-      alert('✅ Ticket enviado correctamente');
+      success('Ticket enviado correctamente');
       onClose();
     } catch (err) {
-      alert('Error al enviar ticket');
+      error('Error al enviar ticket');
     }
   };
 

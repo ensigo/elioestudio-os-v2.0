@@ -6,9 +6,17 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
+const SIZE_CLASSES: Record<string, string> = {
+  sm: 'max-w-sm',
+  md: 'max-w-lg',
+  lg: 'max-w-2xl',
+  xl: 'max-w-4xl',
+};
+
+export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'; // Prevent background scrolling
@@ -29,7 +37,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
         onClick={onClose}
       />
       
-      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+      <div className={`relative bg-white rounded-xl shadow-2xl w-full ${SIZE_CLASSES[size]} overflow-hidden flex flex-col max-h-[90vh]`}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50/50">
           <h3 className="text-lg font-bold text-gray-900">{title}</h3>
           <button 

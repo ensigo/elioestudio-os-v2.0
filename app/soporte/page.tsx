@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import { Search, FileText, Download, Upload, Trash2, FolderOpen, File, X, Eye } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
@@ -53,7 +54,7 @@ export default function SoportePage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/dashboard?tipo=documentos');
+      const res = await authFetch('/api/dashboard?tipo=documentos');
       if (res.ok) {
         const data = await res.json();
         setDocumentos(Array.isArray(data) ? data : []);
@@ -68,7 +69,7 @@ export default function SoportePage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('¿Eliminar este documento?')) return;
-    await fetch('/api/dashboard?tipo=documentos', {
+    await authFetch('/api/dashboard?tipo=documentos', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id })
@@ -277,7 +278,7 @@ function ModalSubir({ usuario, onClose, onSave }: { usuario: any; onClose: () =>
       if (ext) tipo = ext;
     }
 
-    await fetch('/api/dashboard?tipo=documentos', {
+    await authFetch('/api/dashboard?tipo=documentos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

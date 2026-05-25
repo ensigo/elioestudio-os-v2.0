@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { 
@@ -482,7 +483,7 @@ function ModalCampana({ campana, clientes, proyectos, onClose, onSave }: {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/dashboard?tipo=sem-campanas', {
+    await authFetch('/api/dashboard?tipo=sem-campanas', {
       method: campana ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(campana ? { id: campana.id, ...form } : form)
@@ -624,7 +625,7 @@ function ModalReporte({ campanaId, onClose, onSave }: { campanaId: string; onClo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    await fetch('/api/dashboard?tipo=sem-reportes', {
+    await authFetch('/api/dashboard?tipo=sem-reportes', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ campanaId, ...form })

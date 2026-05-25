@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma';
 import { requireAuth } from '../lib/api-middleware';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const userId = await requireAuth(req, res);
+  const userId = requireAuth(req, res);
   if (!userId) return;
 
   try {

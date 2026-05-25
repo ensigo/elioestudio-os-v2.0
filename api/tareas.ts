@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return handleGenerarRecurrentes(req, res);
     }
 
-    const userId = await requireAuth(req, res);
+    const userId = requireAuth(req, res);
     if (!userId) return;
 
     if (resource === 'recurrentes') {

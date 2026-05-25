@@ -7,7 +7,7 @@ const METRICOOL_USER_ID = '2646657';
 const METRICOOL_BASE_URL = 'https://app.metricool.com/api';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const userId = await requireAuth(req, res);
+  const userId = requireAuth(req, res);
   if (!userId) return;
 
   const { resource } = req.query;

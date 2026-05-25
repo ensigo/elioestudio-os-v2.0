@@ -85,9 +85,9 @@ export default function SEMPage() {
     setLoading(true);
     try {
       const [campRes, cliRes, proyRes] = await Promise.all([
-        fetch('/api/dashboard?tipo=sem-campanas'),
-        fetch('/api/clientes'),
-        fetch('/api/proyectos')
+        authFetch('/api/dashboard?tipo=sem-campanas'),
+        authFetch('/api/clientes'),
+        authFetch('/api/proyectos')
       ]);
       if (campRes.ok) {
         const data = await campRes.json();
@@ -110,7 +110,7 @@ export default function SEMPage() {
   };
 
   const fetchReportes = async (campanaId: string) => {
-    const res = await fetch(`/api/dashboard?tipo=sem-reportes&campanaId=${campanaId}`);
+    const res = await authFetch(`/api/dashboard?tipo=sem-reportes&campanaId=${campanaId}`);
     if (res.ok) setReportes(await res.json());
   };
 

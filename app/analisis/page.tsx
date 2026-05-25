@@ -53,7 +53,7 @@ export default function AnalisisPage() {
     setLoading(true);
     try {
       if (activeTab === 'carga') {
-        const res = await fetch(`/api/dashboard?tipo=carga-trabajo&periodo=${periodoCarga}`);
+        const res = await authFetch(`/api/dashboard?tipo=carga-trabajo&periodo=${periodoCarga}`);
         if (res.ok) setCargaData(await res.json());
       } else {
         const res = await authFetch('/api/dashboard?tipo=rentabilidad');

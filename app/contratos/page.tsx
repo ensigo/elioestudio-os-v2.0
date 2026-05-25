@@ -85,10 +85,10 @@ export default function ContratosPage() {
     setLoading(true);
     try {
       const [dashRes, contRes, servRes, cliRes] = await Promise.all([
-        fetch('/api/clientes?resource=contratos&dashboard=true'),
-        fetch('/api/clientes?resource=contratos'),
-        fetch('/api/clientes?resource=servicios'),
-        fetch('/api/clientes')
+        authFetch('/api/clientes?resource=contratos&dashboard=true'),
+        authFetch('/api/clientes?resource=contratos'),
+        authFetch('/api/clientes?resource=servicios'),
+        authFetch('/api/clientes')
       ]);
       if (dashRes.ok) setDashboard(await dashRes.json());
       if (contRes.ok) {

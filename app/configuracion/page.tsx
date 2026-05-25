@@ -147,7 +147,7 @@ export default function ConfiguracionPage() {
 
     try {
       if (editingUserId) {
-        await fetch(`/api/usuarios/${editingUserId}`, {
+        await authFetch(`/api/usuarios/${editingUserId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(userForm)
@@ -171,7 +171,7 @@ export default function ConfiguracionPage() {
   const handleDeleteUser = async (id: string) => {
     if (!window.confirm('¿Estás seguro de eliminar este usuario?')) return;
     try {
-      await fetch(`/api/usuarios/${id}`, { method: 'DELETE' });
+      await authFetch(`/api/usuarios/${id}`, { method: 'DELETE' });
       await fetchUsers();
     } catch (error) {
       console.error('Error eliminando usuario:', error);
@@ -216,7 +216,7 @@ export default function ConfiguracionPage() {
 
     try {
       if (editingPlantilla) {
-        await fetch(`/api/catalogo?tipo=plantillas&id=${editingPlantilla.id}`, {
+        await authFetch(`/api/catalogo?tipo=plantillas&id=${editingPlantilla.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(plantillaForm)
@@ -240,7 +240,7 @@ export default function ConfiguracionPage() {
   const handleDeletePlantilla = async (id: string) => {
     if (!window.confirm('¿Desactivar esta plantilla de tarea?')) return;
     try {
-      await fetch(`/api/catalogo?tipo=plantillas&id=${id}`, { method: 'DELETE' });
+      await authFetch(`/api/catalogo?tipo=plantillas&id=${id}`, { method: 'DELETE' });
       await fetchCatalogo();
     } catch (error) {
       console.error('Error eliminando plantilla:', error);

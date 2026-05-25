@@ -131,13 +131,13 @@ export default function HostingPage() {
     setLoading(true);
     try {
       const [dashRes, hostRes, domRes, provRes, cliRes, planRes, emailRes] = await Promise.all([
-        fetch('/api/hosting?entity=dashboard'),
-        fetch('/api/hosting?entity=hostings'),
-        fetch('/api/hosting?entity=dominios'),
-        fetch('/api/hosting?entity=proveedores'),
-        fetch('/api/clientes'),
-        fetch('/api/hosting?entity=planes'),
-        fetch('/api/hosting?entity=emails')
+        authFetch('/api/hosting?entity=dashboard'),
+        authFetch('/api/hosting?entity=hostings'),
+        authFetch('/api/hosting?entity=dominios'),
+        authFetch('/api/hosting?entity=proveedores'),
+        authFetch('/api/clientes'),
+        authFetch('/api/hosting?entity=planes'),
+        authFetch('/api/hosting?entity=emails')
       ]);
 
       if (dashRes.ok) setDashboard(await dashRes.json());

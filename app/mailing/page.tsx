@@ -62,8 +62,8 @@ export default function MailingPage() {
     setLoading(true);
     try {
       const [campRes, cliRes] = await Promise.all([
-        fetch('/api/dashboard?tipo=mailing'),
-        fetch('/api/clientes')
+        authFetch('/api/dashboard?tipo=mailing'),
+        authFetch('/api/clientes')
       ]);
       if (campRes.ok) {
         const data = await campRes.json();

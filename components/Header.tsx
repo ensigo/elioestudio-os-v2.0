@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { authFetch } from '../lib/auth-fetch';
-import { Search, Plus, Menu, LogOut, User, Key, X, Eye, EyeOff, Check, AlertCircle } from 'lucide-react';
+import { Search, Plus, Menu, LogOut, User, Key, X, Check, AlertCircle } from 'lucide-react';
 import { NotificationBell } from './NotificationBell';
 import { TicketModal } from './TicketModal';
 
@@ -15,14 +15,24 @@ interface Usuario {
   avatarUrl: string | null;
 }
 
+const PAGE_TITLES: Record<string, string> = {
+  dashboard: 'Dashboard', clientes: 'Clientes', proyectos: 'Proyectos',
+  tareas: 'Tareas', calendario: 'Calendario', equipo: 'Mi Equipo',
+  reportes: 'Reportes', tickets: 'Tickets', sem: 'SEM Ads',
+  mailing: 'E-mail Marketing', hosting: 'Hosting y Dominios',
+  analisis: 'Análisis', contratos: 'Contratos',
+  configuracion: 'Configuración', soporte: 'Soporte',
+};
+
 interface HeaderProps {
   usuario?: Usuario | null;
   onLogout?: () => void;
   onNavigate?: (page: string) => void;
   onMenuClick?: () => void;
+  currentPage?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ usuario, onLogout, onNavigate, onMenuClick }) => {
+export const Header: React.FC<HeaderProps> = ({ usuario, onLogout, onNavigate, onMenuClick, currentPage = 'dashboard' }) => {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -110,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({ usuario, onLogout, onNavigate, o
             <Menu size={24} className="text-gray-500" />
           </button>
           <h1 className="text-xl font-bold text-gray-900 hidden md:block">
-            Dashboard
+            {PAGE_TITLES[currentPage] || 'Dashboard'}
           </h1>
           <span className="md:hidden font-bold text-lg text-gray-900">ElioOS</span>
         </div>

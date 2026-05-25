@@ -105,7 +105,7 @@ function AppContent() {
         />
 
         <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden lg:ml-64 transition-all duration-300">
-          <Header usuario={usuario} onLogout={logout} onNavigate={handleNavigate} onMenuClick={() => setIsSidebarOpen(true)} />
+          <Header usuario={usuario} onLogout={logout} onNavigate={handleNavigate} onMenuClick={() => setIsSidebarOpen(true)} currentPage={currentPage} />
           
           <main className="flex-1 overflow-y-auto p-4 lg:p-8 relative bg-slate-50">
             <div className="max-w-7xl mx-auto pb-20">

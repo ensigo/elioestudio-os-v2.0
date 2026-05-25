@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
+import { useAuth } from '../../context/AuthContext';
 import { Card } from '../../components/ui/Card';
 import {
   Plus, Search, LayoutGrid, List, ChevronDown, ChevronRight,
@@ -40,6 +41,8 @@ const ESTADOS = [
 const TARIFA_HORA = 40; // €/h por defecto
 
 export const ProjectsPage = () => {
+  const { usuario } = useAuth();
+  const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const [projects, setProjects]     = useState<Proyecto[]>([]);
   const [clientes, setClientes]     = useState<Cliente[]>([]);
   const [usuarios, setUsuarios]     = useState<Usuario[]>([]);
@@ -61,16 +64,19 @@ export const ProjectsPage = () => {
       const now = new Date();
       const mes = now.getMonth() + 1;
       const año = now.getFullYear();
-      const [projRes, cliRes, usrRes, teRes] = await Promise.all([
+      const requests: Promise<Response>[] = [
         fetch('/api/proyectos'),
         fetch('/api/clientes'),
         fetch('/api/usuarios'),
-        fetch(`/api/control-horario?entity=time-entries&mes=${mes}&año=${año}`),
-      ]);
+      ];
+      if (isAdmin) {
+        requests.push(fetch(`/api/control-horario?entity=time-entries&mes=${mes}&año=${año}`));
+      }
+      const [projRes, cliRes, usrRes, teRes] = await Promise.all(requests);
       if (projRes.ok) setProjects(await projRes.json());
       if (cliRes.ok)  setClientes(await cliRes.json());
       if (usrRes.ok)  setUsuarios(await usrRes.json());
-      if (teRes.ok)   setTimeEntries(await teRes.json());
+      if (teRes?.ok)  setTimeEntries(await teRes.json());
     } catch (err) {
       console.error('Error:', err);
     } finally {
@@ -159,7 +165,7 @@ export const ProjectsPage = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Proyectos</h1>
-          <p className="text-gray-500 text-sm">Progreso, horas registradas y rentabilidad</p>
+          <p className="text-gray-500 text-sm">{isAdmin ? 'Progreso, horas registradas y rentabilidad' : 'Estado y progreso de proyectos'}</p>
         </div>
         <button
           onClick={() => { setEditingProject(null); setShowModal(true); }}
@@ -255,14 +261,16 @@ export const ProjectsPage = () => {
                     <span className="text-xs text-slate-500 w-12 text-right">{progress.completed}/{progress.total}</span>
                   </div>
 
-                  {/* Horas este mes */}
-                  <div className="hidden lg:flex items-center gap-1 text-sm text-slate-600 w-20">
-                    <Timer size={14} className="text-slate-400" />
-                    <span className="font-medium">{horas > 0 ? `${Math.round(horas * 10) / 10}h` : '-'}</span>
-                  </div>
+                  {/* Horas este mes — solo admin */}
+                  {isAdmin && (
+                    <div className="hidden lg:flex items-center gap-1 text-sm text-slate-600 w-20">
+                      <Timer size={14} className="text-slate-400" />
+                      <span className="font-medium">{horas > 0 ? `${Math.round(horas * 10) / 10}h` : '-'}</span>
+                    </div>
+                  )}
 
-                  {/* Rentabilidad */}
-                  {rent && (
+                  {/* Rentabilidad — solo admin */}
+                  {isAdmin && rent && (
                     <div className={`hidden lg:flex items-center gap-1 text-sm font-bold w-16 ${
                       rent.pct >= 20 ? 'text-green-600' : rent.pct >= 0 ? 'text-orange-500' : 'text-red-600'
                     }`}>
@@ -303,17 +311,21 @@ export const ProjectsPage = () => {
                           {formatDate(project.deadline)}{deadlineStatus === 'overdue' && ' · Vencido'}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500 uppercase font-medium mb-1">Presupuesto</p>
-                        <p className="text-sm font-semibold">{formatCurrency(project.budget)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500 uppercase font-medium mb-1">Horas este mes</p>
-                        <p className="text-sm font-semibold flex items-center gap-1">
-                          <Timer size={14} className="text-slate-400" />
-                          {horas > 0 ? `${Math.round(horas * 10) / 10}h registradas` : 'Sin registros'}
-                        </p>
-                      </div>
+                      {isAdmin && (
+                        <div>
+                          <p className="text-xs text-slate-500 uppercase font-medium mb-1">Presupuesto</p>
+                          <p className="text-sm font-semibold">{formatCurrency(project.budget)}</p>
+                        </div>
+                      )}
+                      {isAdmin && (
+                        <div>
+                          <p className="text-xs text-slate-500 uppercase font-medium mb-1">Horas este mes</p>
+                          <p className="text-sm font-semibold flex items-center gap-1">
+                            <Timer size={14} className="text-slate-400" />
+                            {horas > 0 ? `${Math.round(horas * 10) / 10}h registradas` : 'Sin registros'}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     {/* Progress bar tareas */}
@@ -327,8 +339,8 @@ export const ProjectsPage = () => {
                       </div>
                     </div>
 
-                    {/* Rentabilidad detalle */}
-                    {rent && (
+                    {/* Rentabilidad detalle — solo admin */}
+                    {isAdmin && rent && (
                       <div className="mt-4 grid grid-cols-3 gap-3">
                         <div className="bg-slate-50 rounded-lg p-3">
                           <p className="text-xs text-slate-500 mb-1">Coste real (mes)</p>
@@ -393,9 +405,9 @@ export const ProjectsPage = () => {
                         </div>
                         <div className="flex items-center justify-between text-xs text-slate-500">
                           <span>{progress.completed}/{progress.total} tareas</span>
-                          {horas > 0 && <span className="flex items-center gap-0.5"><Timer size={11} />{Math.round(horas * 10) / 10}h</span>}
+                          {isAdmin && horas > 0 && <span className="flex items-center gap-0.5"><Timer size={11} />{Math.round(horas * 10) / 10}h</span>}
                         </div>
-                        {rent && (
+                        {isAdmin && rent && (
                           <div className={`mt-2 text-xs font-bold flex items-center gap-1 ${rent.pct >= 20 ? 'text-green-600' : rent.pct >= 0 ? 'text-orange-500' : 'text-red-600'}`}>
                             {rent.pct >= 20 ? <TrendingUp size={12} /> : rent.pct >= 0 ? <Minus size={12} /> : <TrendingDown size={12} />}
                             {rent.pct}% margen
@@ -416,6 +428,7 @@ export const ProjectsPage = () => {
           proyecto={editingProject}
           clientes={clientes}
           usuarios={usuarios}
+          isAdmin={isAdmin}
           onClose={() => setShowModal(false)}
           onSave={() => { fetchData(); setShowModal(false); }}
         />
@@ -424,10 +437,11 @@ export const ProjectsPage = () => {
   );
 };
 
-function ModalProyecto({ proyecto, clientes, usuarios, onClose, onSave }: {
+function ModalProyecto({ proyecto, clientes, usuarios, isAdmin, onClose, onSave }: {
   proyecto: Proyecto | null;
   clientes: Cliente[];
   usuarios: Usuario[];
+  isAdmin: boolean;
   onClose: () => void;
   onSave: () => void;
 }) {
@@ -492,11 +506,13 @@ function ModalProyecto({ proyecto, clientes, usuarios, onClose, onSave }: {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Presupuesto €</label>
-              <input type="number" step="0.01" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg" placeholder="0.00" />
-            </div>
+            {isAdmin && (
+              <div>
+                <label className="block text-sm font-medium mb-1">Presupuesto €</label>
+                <input type="number" step="0.01" value={form.budget} onChange={e => setForm({ ...form, budget: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg" placeholder="0.00" />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium mb-1">Deadline</label>
               <input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })}

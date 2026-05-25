@@ -86,8 +86,8 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
   const fetchData = async () => {
     try {
       const [ticketsRes, usuariosRes] = await Promise.all([
-        fetch('/api/tickets'),
-        fetch('/api/usuarios')
+        authFetch('/api/tickets'),
+        authFetch('/api/usuarios')
       ]);
 
       if (ticketsRes.ok) {

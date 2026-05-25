@@ -155,7 +155,7 @@ export const TeamPage = () => {
     useEffect(() => {
       if (miTab === 'horario' && currentUser?.id) {
         setLoadingJornadas(true);
-        fetch(`/api/control-horario?entity=jornadas&usuarioId=${currentUser.id}&fechaInicio=${semana.inicio}&fechaFin=${semana.fin}`)
+        authFetch(`/api/control-horario?entity=jornadas&usuarioId=${currentUser.id}&fechaInicio=${semana.inicio}&fechaFin=${semana.fin}`)
           .then(res => res.json())
           .then(data => {
             setMisJornadas(Array.isArray(data) ? data : []);
@@ -168,8 +168,8 @@ export const TeamPage = () => {
   const fetchData = async () => {
     try {
       const [usuariosRes, permisosRes] = await Promise.all([
-        fetch('/api/usuarios'),
-        fetch('/api/permisos')
+        authFetch('/api/usuarios'),
+        authFetch('/api/permisos')
       ]);
 
       if (usuariosRes.ok) {

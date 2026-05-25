@@ -60,7 +60,10 @@ async function handleClientes(req: any, res: any) {
       if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado' });
       return res.status(200).json(cliente);
     }
-    const clientes = await prisma.cliente.findMany({ orderBy: { createdAt: 'desc' } });
+    const clientes = await prisma.cliente.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { proyectos: true } } }
+    });
     return res.status(200).json(clientes);
   }
 
@@ -88,7 +91,7 @@ async function handleClientes(req: any, res: any) {
     if (!id) return res.status(400).json({ error: 'id es requerido' });
     // Eliminar relaciones primero
     await prisma.clienteUsuario.deleteMany({ where: { clienteId: id } });
-    await prisma.credencial.deleteMany({ where: { clienteId: id } });
+    await prisma.credential.deleteMany({ where: { clienteId: id } });
     await prisma.cliente.delete({ where: { id } });
     return res.status(200).json({ success: true });
   }

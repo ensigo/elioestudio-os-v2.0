@@ -6,10 +6,12 @@ import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { ClientForm } from '../../components/ClientForm';
 import { ClientDetailPage } from './ClientDetailPage';
-import { Plus, Search, MoreVertical, AlertTriangle, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, MoreVertical, AlertTriangle, Edit, Trash2, Eye, FolderOpen } from 'lucide-react';
 import { Client } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 export const ClientsPage = () => {
+  const { usuario } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,14 +54,14 @@ export const ClientsPage = () => {
     }
   };
 
-  const currentUser = { id: '1', role: 'ADMIN', name: 'Admin' };
+  const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [clientesRes, usuariosRes] = await Promise.all([
-          fetch('/api/clientes'),
-          fetch('/api/usuarios')
+          authFetch('/api/clientes'),
+          authFetch('/api/usuarios')
         ]);
         
         if (!clientesRes.ok) {
@@ -84,7 +86,8 @@ export const ClientsPage = () => {
           address: cliente.address,
           contactPerson: cliente.contactPerson,
           credentials: [],
-          metricoolBrandId: cliente.metricoolBrandId || null
+          metricoolBrandId: cliente.metricoolBrandId || null,
+          _count: cliente._count || undefined
         }));
         
         setClients(clientesFormateados);
@@ -265,7 +268,7 @@ export const ClientsPage = () => {
         client={selectedClient} 
         onBack={() => setSelectedClientId(null)}
         usuarios={usuarios}
-        currentUser={currentUser}
+        currentUser={{ id: usuario?.id || '', role: usuario?.role || 'USER', name: usuario?.name || '' }}
         onClientUpdate={(updatedClient) => {
           setClients(clients.map(c => c.id === updatedClient.id ? updatedClient : c));
         }}
@@ -276,7 +279,7 @@ export const ClientsPage = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-elio-yellow animate-pulse">Cargando clientes reales de Neon...</p>
+        <p className="text-xl text-elio-yellow animate-pulse">Cargando clientes...</p>
       </div>
     );
   }
@@ -325,7 +328,7 @@ export const ClientsPage = () => {
                <th className="px-6 py-4 font-semibold text-gray-600">Cliente</th>
                <th className="px-6 py-4 font-semibold text-gray-600">Responsable</th>
                <th className="px-6 py-4 font-semibold text-gray-600">Estado</th>
-               <th className="px-6 py-4 font-semibold text-gray-600">Última Actividad</th>
+               <th className="px-6 py-4 font-semibold text-gray-600">Proyectos / Actividad</th>
                <th className="px-6 py-4 font-semibold text-gray-600 text-right">Acciones</th>
              </tr>
           </thead>
@@ -376,8 +379,14 @@ export const ClientsPage = () => {
                       </span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-gray-500">
-                    {formatLastActivity(client.lastActivity)}
+                  <td className="px-6 py-4">
+                    {client._count != null && (
+                      <span className="inline-flex items-center gap-1 text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-full font-medium mr-2">
+                        <FolderOpen size={11} />
+                        {client._count.proyectos}
+                      </span>
+                    )}
+                    <span className="text-gray-400 text-xs">{formatLastActivity(client.lastActivity || 'Sin actividad')}</span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="relative" ref={openMenuId === client.id ? menuRef : null}>
@@ -405,7 +414,7 @@ export const ClientsPage = () => {
                             Ver Detalles
                           </button>
                           
-                          {currentUser.role === 'ADMIN' && (
+                          {isAdmin && (
                             <>
                               <button
                                 onClick={(e) => {

@@ -70,6 +70,7 @@ export interface Client {
   phone?: string;
   address?: string;
   contactPerson?: string;
+  metricoolBrandId?: string | null;
   contract?: {
     startDate: string;
     endDate: string;
@@ -78,6 +79,7 @@ export interface Client {
     hourlyRate: number;
   };
   credentials?: ClientCredential[];
+  _count?: { proyectos: number };
 }
 
 export interface Contract {

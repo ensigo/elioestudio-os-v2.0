@@ -1,28 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { prisma } from '../lib/prisma';
 
-const BCRYPT_ROUNDS = 12;
-
-function sha256Hash(password: string): string {
+function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, BCRYPT_ROUNDS);
-}
-
-async function verifyPassword(password: string, stored: string): Promise<{ valid: boolean; needsRehash: boolean }> {
-  // Try bcrypt first
-  const isBcrypt = stored.startsWith('$2');
-  if (isBcrypt) {
-    const valid = await bcrypt.compare(password, stored);
-    return { valid, needsRehash: false };
-  }
-  // Fallback: legacy SHA-256 — migrate to bcrypt on success
-  const valid = sha256Hash(password) === stored;
-  return { valid, needsRehash: valid };
+function verifyPassword(password: string, stored: string): boolean {
+  return hashPassword(password) === stored;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -44,19 +29,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(401).json({ error: 'Credenciales incorrectas' });
         }
 
-        const { valid, needsRehash } = await verifyPassword(password, usuario.password);
-
-        if (!valid) {
+        if (!verifyPassword(password, usuario.password)) {
           return res.status(401).json({ error: 'Credenciales incorrectas' });
-        }
-
-        // Migrate SHA-256 hash to bcrypt transparently
-        if (needsRehash) {
-          const newHash = await hashPassword(password);
-          await prisma.usuario.update({
-            where: { id: usuario.id },
-            data: { password: newHash },
-          });
         }
 
         const { password: _, ...usuarioSinPassword } = usuario;
@@ -75,16 +49,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(404).json({ error: 'Usuario no encontrado' });
         }
 
-        if (usuario.password) {
-          const { valid } = await verifyPassword(password, usuario.password);
-          if (!valid) {
-            return res.status(401).json({ error: 'Contraseña actual incorrecta' });
-          }
+        if (usuario.password && !verifyPassword(password, usuario.password)) {
+          return res.status(401).json({ error: 'Contraseña actual incorrecta' });
         }
 
         await prisma.usuario.update({
           where: { id: userId },
-          data: { password: await hashPassword(newPassword) },
+          data: { password: hashPassword(newPassword) },
         });
 
         return res.status(200).json({ success: true, message: 'Contraseña actualizada' });
@@ -114,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         await prisma.usuario.update({
           where: { id: targetUserId },
-          data: { password: await hashPassword(targetPassword) },
+          data: { password: hashPassword(targetPassword) },
         });
 
         return res.status(200).json({ success: true, message: 'Contraseña establecida' });

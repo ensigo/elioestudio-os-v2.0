@@ -34,6 +34,12 @@ interface ResumenSemanal {
   promedioMinutosDia: number;
   cumplimiento: number;
 }
+interface ProyectoReporte {
+  id: string;
+  title: string;
+  budget: number | null;
+  cliente?: { name: string };
+}
 interface TimeEntry {
   id: string;
   userId: string;
@@ -70,18 +76,22 @@ export default function ReportesPage() {
   const { error: toastError } = useToast();
   const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([]);
   const [loadingTimeEntries, setLoadingTimeEntries] = useState(false);
+  const [proyectos, setProyectos] = useState<ProyectoReporte[]>([]);
   const [vistaParteTrabajo, setVistaParteTrabajo] = useState<'semana' | 'mes'>('semana');
   const [semanaActual, setSemanaActual] = useState(new Date());
   const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const horasEsperadas = usuario?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
   const minutosEsperados = horasEsperadas * 60;
-  // Cargar usuarios (solo admin)
+  // Cargar usuarios y proyectos (solo admin)
   useEffect(() => {
     if (isAdmin) {
-      fetch('/api/usuarios')
-        .then(res => res.json())
-        .then(data => setUsuarios(data))
-        .catch(err => console.error(err));
+      Promise.all([
+        fetch('/api/usuarios').then(r => r.json()),
+        fetch('/api/proyectos').then(r => r.json()),
+      ]).then(([usuariosData, proyectosData]) => {
+        setUsuarios(usuariosData);
+        setProyectos(Array.isArray(proyectosData) ? proyectosData : []);
+      }).catch(err => console.error(err));
     }
   }, [isAdmin]);
   // Cargar jornadas
@@ -724,6 +734,85 @@ export default function ReportesPage() {
           )}
         </Card>
       )}
+      {/* Rentabilidad por Proyecto - Solo Admin */}
+      {isAdmin && timeEntries.length > 0 && (() => {
+        const TARIFA = 40;
+        const porProyecto: Record<string, { title: string; cliente: string; minutos: number; budget: number | null }> = {};
+        timeEntries.forEach(entry => {
+          if (!entry.tarea?.proyecto) return;
+          const pid = entry.tarea.proyecto.id;
+          if (!porProyecto[pid]) {
+            const proy = proyectos.find(p => p.id === pid);
+            porProyecto[pid] = {
+              title: entry.tarea.proyecto.title,
+              cliente: entry.tarea.proyecto.cliente?.name || 'Sin cliente',
+              minutos: 0,
+              budget: proy?.budget ?? null,
+            };
+          }
+          if (entry.endTime) {
+            porProyecto[pid].minutos += Math.round(
+              (new Date(entry.endTime).getTime() - new Date(entry.startTime).getTime()) / 60000
+            );
+          }
+        });
+        const filas = Object.values(porProyecto).sort((a, b) => b.minutos - a.minutos);
+        if (filas.length === 0) return null;
+        return (
+          <Card title="Rentabilidad por Proyecto">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left font-bold text-slate-600">Proyecto</th>
+                    <th className="px-4 py-3 text-left font-bold text-slate-600">Cliente</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-600">Horas</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-600">Coste ({TARIFA}€/h)</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-600">Presupuesto</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-600">Margen</th>
+                    <th className="px-4 py-3 text-center font-bold text-slate-600">%</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filas.map((fila, i) => {
+                    const horas = fila.minutos / 60;
+                    const coste = horas * TARIFA;
+                    const margen = fila.budget != null ? fila.budget - coste : null;
+                    const pct = fila.budget && fila.budget > 0 ? Math.round((margen! / fila.budget) * 100) : null;
+                    const colorPct = pct == null ? 'text-slate-400' : pct >= 20 ? 'text-green-600' : pct >= 0 ? 'text-orange-500' : 'text-red-600';
+                    const bgPct = pct == null ? '' : pct >= 20 ? 'bg-green-50' : pct >= 0 ? 'bg-orange-50' : 'bg-red-50';
+                    return (
+                      <tr key={i} className="hover:bg-slate-50">
+                        <td className="px-4 py-3 font-medium text-slate-900">{fila.title}</td>
+                        <td className="px-4 py-3">
+                          <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-medium">{fila.cliente}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono font-medium">
+                          {Math.floor(horas)}h {fila.minutos % 60}m
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-700">
+                          {coste.toFixed(0)}€
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono text-slate-700">
+                          {fila.budget != null ? `${fila.budget.toLocaleString('es-ES')}€` : <span className="text-slate-300">-</span>}
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono font-bold">
+                          {margen != null
+                            ? <span className={margen >= 0 ? 'text-green-600' : 'text-red-600'}>{margen >= 0 ? '+' : ''}{margen.toFixed(0)}€</span>
+                            : <span className="text-slate-300">-</span>}
+                        </td>
+                        <td className={`px-4 py-3 text-center font-bold rounded ${bgPct}`}>
+                          <span className={colorPct}>{pct != null ? `${pct}%` : '-'}</span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        );
+      })()}
       {/* Resumen Mensual */}
       {jornadas.length > 0 && (
         <Card title="Resumen del Mes">

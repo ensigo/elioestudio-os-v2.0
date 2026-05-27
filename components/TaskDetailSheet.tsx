@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../lib/auth-fetch';
 import { useToast } from './ui/Toast';
+import { useAuth } from '../context/AuthContext';
 import { Sheet } from './ui/Sheet';
 import { Badge } from './ui/Badge';
-import { Clock, Calendar, Play, Square, Trash2, Edit3, Save, X, Timer } from 'lucide-react';
+import { Clock, Calendar, Play, Square, Trash2, Edit3, Save, X, Timer, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Proyecto {
   id: string;
@@ -51,11 +52,11 @@ interface TaskDetailSheetProps {
   elapsedTime?: number;
 }
 
-export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({ 
-  task, 
-  isOpen, 
-  onClose, 
-  onUpdate, 
+export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
+  task,
+  isOpen,
+  onClose,
+  onUpdate,
   onDelete,
   proyectos,
   usuarios,
@@ -64,10 +65,15 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
   onStopTimer,
   elapsedTime = 0
 }) => {
-  const { error } = useToast();
+  const { error, success } = useToast();
+  const { canAdjustSchedules } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [totalTime, setTotalTime] = useState(0);
   const [loadingTime, setLoadingTime] = useState(false);
+  const [timeEntries, setTimeEntries] = useState<any[]>([]);
+  const [showTimeEntries, setShowTimeEntries] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<any | null>(null);
+  const [entryEditForm, setEntryEditForm] = useState({ startTime: '', endTime: '' });
   const [editForm, setEditForm] = useState({
     title: '',
     description: '',
@@ -84,22 +90,19 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     setIsEditing(false);
   }, [task?.id]);
 
-  // Cargar tiempo acumulado de la tarea
+  // Cargar tiempo acumulado y time entries de la tarea
   useEffect(() => {
-    const fetchTotalTime = async () => {
+    const fetchTimeData = async () => {
       if (!task?.id) return;
-      
       setLoadingTime(true);
       try {
-        const response = await fetch(`/api/control-horario?entity=time-entries&tareaId=${task.id}`);
+        const response = await authFetch(`/api/control-horario?entity=time-entries&tareaId=${task.id}`);
         if (response.ok) {
           const entries = await response.json();
-          // Calcular tiempo total en segundos
+          setTimeEntries(entries);
           const total = entries.reduce((acc: number, entry: any) => {
             if (entry.startTime && entry.endTime) {
-              const start = new Date(entry.startTime).getTime();
-              const end = new Date(entry.endTime).getTime();
-              return acc + Math.floor((end - start) / 1000);
+              return acc + Math.floor((new Date(entry.endTime).getTime() - new Date(entry.startTime).getTime()) / 1000);
             }
             return acc;
           }, 0);
@@ -113,9 +116,70 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
     };
 
     if (isOpen && task?.id) {
-      fetchTotalTime();
+      fetchTimeData();
     }
   }, [isOpen, task?.id]);
+
+  const handleEditEntry = (entry: any) => {
+    setEditingEntry(entry);
+    const toLocalInput = (d: string) => {
+      const date = new Date(d);
+      date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+      return date.toISOString().slice(0, 16);
+    };
+    setEntryEditForm({
+      startTime: toLocalInput(entry.startTime),
+      endTime: entry.endTime ? toLocalInput(entry.endTime) : ''
+    });
+  };
+
+  const handleSaveEntry = async () => {
+    if (!editingEntry) return;
+    try {
+      const response = await authFetch('/api/control-horario?entity=time-entries', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingEntry.id,
+          startTime: entryEditForm.startTime,
+          endTime: entryEditForm.endTime || null
+        })
+      });
+      if (!response.ok) throw new Error();
+      const updated = await response.json();
+      setTimeEntries(prev => prev.map(e => e.id === updated.id ? updated : e));
+      const total = timeEntries.map(e => e.id === updated.id ? updated : e).reduce((acc: number, e: any) => {
+        if (e.startTime && e.endTime) return acc + Math.floor((new Date(e.endTime).getTime() - new Date(e.startTime).getTime()) / 1000);
+        return acc;
+      }, 0);
+      setTotalTime(total);
+      setEditingEntry(null);
+      success('Registro actualizado');
+    } catch {
+      error('Error al guardar el registro');
+    }
+  };
+
+  const handleDeleteEntry = async (entryId: string) => {
+    if (!confirm('¿Eliminar este registro de tiempo?')) return;
+    try {
+      const response = await authFetch('/api/control-horario?entity=time-entries', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: entryId })
+      });
+      if (!response.ok) throw new Error();
+      const updated = timeEntries.filter(e => e.id !== entryId);
+      setTimeEntries(updated);
+      setTotalTime(updated.reduce((acc: number, e: any) => {
+        if (e.startTime && e.endTime) return acc + Math.floor((new Date(e.endTime).getTime() - new Date(e.startTime).getTime()) / 1000);
+        return acc;
+      }, 0));
+      success('Registro eliminado');
+    } catch {
+      error('Error al eliminar el registro');
+    }
+  };
 
   if (!task) return null;
 
@@ -467,6 +531,93 @@ export const TaskDetailSheet: React.FC<TaskDetailSheetProps> = ({
             {task.description && (
               <div className="text-sm text-gray-600 italic bg-yellow-50 p-3 rounded-lg border border-yellow-100">
                 "{task.description}"
+              </div>
+            )}
+
+            {/* Gestión de registros de tiempo — solo admins */}
+            {canAdjustSchedules && (
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setShowTimeEntries(v => !v)}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 text-sm font-bold text-gray-700 transition-colors"
+                >
+                  <span className="flex items-center gap-2">
+                    <Timer size={15} />
+                    Registros de tiempo ({timeEntries.length})
+                  </span>
+                  {showTimeEntries ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                </button>
+
+                {showTimeEntries && (
+                  <div className="divide-y divide-gray-100">
+                    {timeEntries.length === 0 ? (
+                      <p className="text-center text-gray-400 py-6 text-sm">Sin registros</p>
+                    ) : timeEntries.map((entry: any) => (
+                      <div key={entry.id} className="px-4 py-3">
+                        {editingEntry?.id === entry.id ? (
+                          <div className="space-y-2">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Inicio</label>
+                                <input
+                                  type="datetime-local"
+                                  value={entryEditForm.startTime}
+                                  onChange={e => setEntryEditForm(f => ({ ...f, startTime: e.target.value }))}
+                                  className="w-full text-xs px-2 py-1 border border-gray-300 rounded-lg outline-none focus:border-elio-yellow"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase">Fin</label>
+                                <input
+                                  type="datetime-local"
+                                  value={entryEditForm.endTime}
+                                  onChange={e => setEntryEditForm(f => ({ ...f, endTime: e.target.value }))}
+                                  className="w-full text-xs px-2 py-1 border border-gray-300 rounded-lg outline-none focus:border-elio-yellow"
+                                />
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={handleSaveEntry} className="flex-1 text-xs bg-elio-yellow text-white py-1.5 rounded-lg font-medium hover:bg-elio-yellow-hover">
+                                Guardar
+                              </button>
+                              <button onClick={() => setEditingEntry(null)} className="flex-1 text-xs bg-gray-100 text-gray-700 py-1.5 rounded-lg font-medium hover:bg-gray-200">
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div className="text-xs text-gray-600 space-y-0.5">
+                              <div className="font-medium text-gray-800">{entry.usuario?.name}</div>
+                              <div className="font-mono">
+                                <span className="text-green-700">{new Date(entry.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                                {' → '}
+                                {entry.endTime
+                                  ? <span className="text-red-700">{new Date(entry.endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                                  : <span className="text-orange-500 animate-pulse">en curso</span>}
+                                {' '}
+                                <span className="text-gray-400">{new Date(entry.startTime).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })}</span>
+                              </div>
+                              {entry.startTime && entry.endTime && (
+                                <div className="text-gray-400">
+                                  {formatHoursMinutes(Math.floor((new Date(entry.endTime).getTime() - new Date(entry.startTime).getTime()) / 1000))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex gap-1 ml-2">
+                              <button onClick={() => handleEditEntry(entry)} className="p-1.5 hover:bg-blue-50 rounded-lg text-gray-400 hover:text-blue-600">
+                                <Edit3 size={13} />
+                              </button>
+                              <button onClick={() => handleDeleteEntry(entry.id)} className="p-1.5 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>

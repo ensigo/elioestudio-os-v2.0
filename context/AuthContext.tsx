@@ -19,6 +19,7 @@ interface AuthContextType {
   logout: () => void;
   canAccessReports: boolean;
   canManageUsers: boolean;
+  canAdjustSchedules: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -87,6 +88,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const canAccessReports = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const canManageUsers = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
+  const canAdjustSchedules = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
 
   return (
     <AuthContext.Provider value={{
@@ -96,7 +98,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       login,
       logout,
       canAccessReports,
-      canManageUsers
+      canManageUsers,
+      canAdjustSchedules
     }}>
       {children}
     </AuthContext.Provider>

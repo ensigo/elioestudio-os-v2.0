@@ -1,6 +1,17 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+async function getRequesterRole(req: any): Promise<string | null> {
+  const userId = req.headers['x-user-id'];
+  if (!userId) return null;
+  const usuario = await prisma.usuario.findUnique({ where: { id: userId }, select: { role: true } });
+  return usuario?.role ?? null;
+}
+
+function isAdminRole(role: string | null): boolean {
+  return role === 'ADMIN' || role === 'SUPERADMIN';
+}
+
 export default async function handler(req: any, res: any) {
   const { entity } = req.query;
 
@@ -81,9 +92,37 @@ export default async function handler(req: any, res: any) {
           });
           return res.status(200).json(jornadaFinalizada);
         }
+        if (action === 'manual') {
+          const role = await getRequesterRole(req);
+          if (!isAdminRole(role)) return res.status(403).json({ error: 'Solo administradores pueden crear jornadas manuales' });
+          const { targetUsuarioId, fecha, horaInicio: hI, horaFin: hF, horaPausaAlmuerzo: hP, horaReinicioAlmuerzo: hR } = req.body;
+          if (!targetUsuarioId || !fecha || !hI) return res.status(400).json({ error: 'targetUsuarioId, fecha y horaInicio son obligatorios' });
+          const fechaDate = new Date(fecha); fechaDate.setHours(0, 0, 0, 0);
+          const inicioDate = new Date(hI);
+          const pausaDate = hP ? new Date(hP) : null;
+          const reinicioDate = hR ? new Date(hR) : null;
+          const finDate = hF ? new Date(hF) : null;
+          let totalMinutos: number | null = null;
+          if (finDate) {
+            if (pausaDate && reinicioDate) {
+              totalMinutos = Math.floor((pausaDate.getTime() - inicioDate.getTime()) / 60000) + Math.floor((finDate.getTime() - reinicioDate.getTime()) / 60000);
+            } else {
+              totalMinutos = Math.floor((finDate.getTime() - inicioDate.getTime()) / 60000);
+            }
+          }
+          const jornadaManual = await prisma.jornadas.upsert({
+            where: { usuarioId_fecha: { usuarioId: targetUsuarioId, fecha: fechaDate } },
+            update: { horaInicio: inicioDate, horaPausaAlmuerzo: pausaDate, horaReinicioAlmuerzo: reinicioDate, horaFin: finDate, totalMinutos, estado: finDate ? 'FINALIZADA' : 'EN_CURSO', updatedAt: new Date() },
+            create: { id: crypto.randomUUID(), usuarioId: targetUsuarioId, fecha: fechaDate, horaInicio: inicioDate, horaPausaAlmuerzo: pausaDate, horaReinicioAlmuerzo: reinicioDate, horaFin: finDate, totalMinutos, estado: finDate ? 'FINALIZADA' : 'EN_CURSO', updatedAt: new Date() },
+            include: { usuario: { select: { id: true, name: true, email: true, position: true } } }
+          });
+          return res.status(200).json(jornadaManual);
+        }
         return res.status(400).json({ error: 'Acción no válida' });
       }
       if (req.method === 'PUT') {
+        const role = await getRequesterRole(req);
+        if (!isAdminRole(role)) return res.status(403).json({ error: 'Solo administradores pueden ajustar jornadas' });
         const { id, horaInicio, horaPausaAlmuerzo, horaReinicioAlmuerzo, horaFin } = req.body;
         if (!id) return res.status(400).json({ error: 'ID es obligatorio' });
         const dataToUpdate: any = { updatedAt: new Date() };
@@ -113,6 +152,8 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json(jornadaActualizada);
       }
       if (req.method === 'DELETE') {
+        const role = await getRequesterRole(req);
+        if (!isAdminRole(role)) return res.status(403).json({ error: 'Solo administradores pueden eliminar jornadas' });
         const { id } = req.body;
         if (!id) return res.status(400).json({ error: 'ID es obligatorio' });
         await prisma.jornadas.delete({ where: { id } });
@@ -159,11 +200,16 @@ export default async function handler(req: any, res: any) {
         return res.status(201).json(newEntry);
       }
       if (req.method === 'PUT') {
-        const { id, endTime, description } = req.body;
+        const role = await getRequesterRole(req);
+        if (!isAdminRole(role)) return res.status(403).json({ error: 'Solo administradores pueden ajustar registros de tiempo' });
+        const { id, startTime, endTime, description } = req.body;
         if (!id) return res.status(400).json({ error: 'ID es obligatorio' });
+        const data: any = { description };
+        if (startTime) data.startTime = new Date(startTime);
+        if (endTime) data.endTime = new Date(endTime);
         const updatedEntry = await prisma.timeEntry.update({
           where: { id },
-          data: { endTime: endTime ? new Date(endTime) : new Date(), description },
+          data,
           include: {
             usuario: { select: { id: true, name: true } },
             tarea: { include: { proyecto: { include: { cliente: true } } } }
@@ -172,6 +218,8 @@ export default async function handler(req: any, res: any) {
         return res.status(200).json(updatedEntry);
       }
       if (req.method === 'DELETE') {
+        const role = await getRequesterRole(req);
+        if (!isAdminRole(role)) return res.status(403).json({ error: 'Solo administradores pueden eliminar registros de tiempo' });
         const { id } = req.body;
         if (!id) return res.status(400).json({ error: 'ID es obligatorio' });
         await prisma.timeEntry.delete({ where: { id } });

@@ -89,6 +89,14 @@ export const TeamPage = () => {
   const [misJornadas, setMisJornadas] = useState<any[]>([]);
   const [loadingJornadas, setLoadingJornadas] = useState(false);
   const [semanaOffset, setSemanaOffset] = useState(0);
+
+  // Estados para gestión admin de jornadas
+  const [adminJornadas, setAdminJornadas] = useState<any[]>([]);
+  const [loadingAdminJornadas, setLoadingAdminJornadas] = useState(false);
+  const [adminSemanaOffset, setAdminSemanaOffset] = useState(0);
+  const [adminTab, setAdminTab] = useState<'personal' | 'bancario' | 'seguridad' | 'horario'>('personal');
+  const [jornadaModal, setJornadaModal] = useState<{ open: boolean; jornada: any | null }>({ open: false, jornada: null });
+  const [jornadaForm, setJornadaForm] = useState({ fecha: '', horaInicio: '', horaFin: '', horaPausaAlmuerzo: '', horaReinicioAlmuerzo: '' });
   
   // Form states
   const [formData, setFormData] = useState({
@@ -135,7 +143,7 @@ export const TeamPage = () => {
   }, []);
 
   // Calcular fechas de la semana
-    const getWeekDates = (offset: number) => {
+  const getWeekDates = (offset: number) => {
       const hoy = new Date();
       const lunes = new Date(hoy);
       lunes.setDate(hoy.getDate() - hoy.getDay() + 1 + (offset * 7));
@@ -151,19 +159,83 @@ export const TeamPage = () => {
 
     const semana = getWeekDates(semanaOffset);
 
-  // Cargar jornadas cuando cambia la pestaña o la semana
-    useEffect(() => {
-      if (miTab === 'horario' && currentUser?.id) {
-        setLoadingJornadas(true);
-        authFetch(`/api/control-horario?entity=jornadas&usuarioId=${currentUser.id}&fechaInicio=${semana.inicio}&fechaFin=${semana.fin}`)
-          .then(res => res.json())
-          .then(data => {
-            setMisJornadas(Array.isArray(data) ? data : []);
-            setLoadingJornadas(false);
-          })
-          .catch(() => setLoadingJornadas(false));
-      }
-    }, [miTab, semanaOffset, currentUser?.id]);
+  // Cargar jornadas cuando cambia la pestaña o la semana (vista no-admin)
+  useEffect(() => {
+    if (miTab === 'horario' && currentUser?.id) {
+      setLoadingJornadas(true);
+      authFetch(`/api/control-horario?entity=jornadas&usuarioId=${currentUser.id}&fechaInicio=${semana.inicio}&fechaFin=${semana.fin}`)
+        .then(res => res.json())
+        .then(data => {
+          setMisJornadas(Array.isArray(data) ? data : []);
+          setLoadingJornadas(false);
+        })
+        .catch(() => setLoadingJornadas(false));
+    }
+  }, [miTab, semanaOffset, currentUser?.id]);
+
+  // Cargar jornadas del empleado seleccionado (vista admin)
+  const adminSemana = getWeekDates(adminSemanaOffset);
+  useEffect(() => {
+    if (adminTab === 'horario' && selectedUser?.id && isAdmin) {
+      setLoadingAdminJornadas(true);
+      authFetch(`/api/control-horario?entity=jornadas&usuarioId=${selectedUser.id}&fechaInicio=${adminSemana.inicio}&fechaFin=${adminSemana.fin}`)
+        .then(res => res.json())
+        .then(data => { setAdminJornadas(Array.isArray(data) ? data : []); setLoadingAdminJornadas(false); })
+        .catch(() => setLoadingAdminJornadas(false));
+    }
+  }, [adminTab, adminSemanaOffset, selectedUser?.id]);
+
+  const handleSaveJornada = async () => {
+    if (!selectedUser) return;
+    try {
+      const res = await authFetch('/api/control-horario?entity=jornadas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'manual',
+          targetUsuarioId: selectedUser.id,
+          fecha: jornadaForm.fecha,
+          horaInicio: jornadaForm.fecha && jornadaForm.horaInicio ? `${jornadaForm.fecha}T${jornadaForm.horaInicio}` : null,
+          horaFin: jornadaForm.fecha && jornadaForm.horaFin ? `${jornadaForm.fecha}T${jornadaForm.horaFin}` : null,
+          horaPausaAlmuerzo: jornadaForm.fecha && jornadaForm.horaPausaAlmuerzo ? `${jornadaForm.fecha}T${jornadaForm.horaPausaAlmuerzo}` : null,
+          horaReinicioAlmuerzo: jornadaForm.fecha && jornadaForm.horaReinicioAlmuerzo ? `${jornadaForm.fecha}T${jornadaForm.horaReinicioAlmuerzo}` : null,
+        })
+      });
+      if (!res.ok) throw new Error();
+      const saved = await res.json();
+      setAdminJornadas(prev => {
+        const idx = prev.findIndex(j => j.id === saved.id);
+        return idx >= 0 ? prev.map(j => j.id === saved.id ? saved : j) : [...prev, saved];
+      });
+      setJornadaModal({ open: false, jornada: null });
+    } catch { alert('Error al guardar la jornada'); }
+  };
+
+  const handleEditJornada = (jornada: any) => {
+    const toTime = (d: string | null) => d ? new Date(d).toTimeString().slice(0, 5) : '';
+    const toDate = (d: string) => new Date(d).toISOString().split('T')[0];
+    setJornadaForm({
+      fecha: toDate(jornada.fecha),
+      horaInicio: toTime(jornada.horaInicio),
+      horaFin: toTime(jornada.horaFin),
+      horaPausaAlmuerzo: toTime(jornada.horaPausaAlmuerzo),
+      horaReinicioAlmuerzo: toTime(jornada.horaReinicioAlmuerzo),
+    });
+    setJornadaModal({ open: true, jornada });
+  };
+
+  const handleDeleteJornada = async (id: string) => {
+    if (!confirm('¿Eliminar esta jornada?')) return;
+    try {
+      const res = await authFetch('/api/control-horario?entity=jornadas', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      if (!res.ok) throw new Error();
+      setAdminJornadas(prev => prev.filter(j => j.id !== id));
+    } catch { alert('Error al eliminar la jornada'); }
+  };
 
   const fetchData = async () => {
     try {
@@ -844,39 +916,49 @@ export const TeamPage = () => {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="flex border-b border-slate-200">
             <button
-              onClick={() => setActiveTab('personal')}
+              onClick={() => setAdminTab('personal')}
               className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === 'personal' 
-                  ? 'bg-elio-yellow text-white' 
+                adminTab === 'personal'
+                  ? 'bg-elio-yellow text-white'
                   : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
               Datos Personales
             </button>
             <button
-              onClick={() => setActiveTab('bancario')}
+              onClick={() => setAdminTab('bancario')}
               className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === 'bancario' 
-                  ? 'bg-elio-yellow text-white' 
+                adminTab === 'bancario'
+                  ? 'bg-elio-yellow text-white'
                   : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
               Datos Bancarios
             </button>
             <button
-              onClick={() => setActiveTab('seguridad')}
+              onClick={() => setAdminTab('seguridad')}
               className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                activeTab === 'seguridad' 
+                adminTab === 'seguridad'
                   ? 'bg-elio-yellow text-white' 
                   : 'text-slate-600 hover:bg-slate-50'
               }`}
             >
               Seguridad Social
             </button>
+            <button
+              onClick={() => setAdminTab('horario')}
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                adminTab === 'horario'
+                  ? 'bg-elio-yellow text-white'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              Horario
+            </button>
           </div>
 
           <div className="p-6">
-            {activeTab === 'personal' && (
+            {adminTab === 'personal' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">DNI/NIE</label>
@@ -913,7 +995,7 @@ export const TeamPage = () => {
               </div>
             )}
 
-            {activeTab === 'bancario' && (
+            {adminTab === 'bancario' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1 md:col-span-2">
                   <label className="text-xs font-bold text-slate-500 uppercase">IBAN</label>
@@ -926,7 +1008,7 @@ export const TeamPage = () => {
               </div>
             )}
 
-            {activeTab === 'seguridad' && (
+            {adminTab === 'seguridad' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-500 uppercase">Nº Seguridad Social</label>
@@ -952,8 +1034,133 @@ export const TeamPage = () => {
                 </div>
               </div>
             )}
+            {adminTab === 'horario' && (
+              <div className="space-y-4">
+                {/* Navegación de semana */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setAdminSemanaOffset(p => p - 1)} className="p-2 hover:bg-slate-100 rounded-lg"><ArrowLeft size={16} /></button>
+                    <span className="text-sm font-medium min-w-[200px] text-center">
+                      {adminSemana.lunesDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}
+                      {' - '}
+                      {adminSemana.domingoDate.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </span>
+                    <button onClick={() => setAdminSemanaOffset(p => p + 1)} className="p-2 hover:bg-slate-100 rounded-lg rotate-180"><ArrowLeft size={16} /></button>
+                    {adminSemanaOffset !== 0 && <button onClick={() => setAdminSemanaOffset(0)} className="px-3 py-1 text-xs bg-slate-100 rounded-lg hover:bg-slate-200">Hoy</button>}
+                  </div>
+                  <button
+                    onClick={() => { setJornadaForm({ fecha: '', horaInicio: '', horaFin: '', horaPausaAlmuerzo: '', horaReinicioAlmuerzo: '' }); setJornadaModal({ open: true, jornada: null }); }}
+                    className="flex items-center gap-2 px-3 py-2 bg-elio-yellow text-white rounded-lg text-sm font-medium hover:bg-elio-yellow-hover"
+                  >
+                    <Plus size={14} /> Nueva jornada
+                  </button>
+                </div>
+
+                {/* Tabla de jornadas */}
+                {loadingAdminJornadas ? (
+                  <div className="flex justify-center py-8"><Loader2 className="animate-spin text-elio-yellow" size={28} /></div>
+                ) : adminJornadas.length === 0 ? (
+                  <p className="text-center text-slate-400 py-8 text-sm">No hay jornadas registradas esta semana</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-slate-50 border-b">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-bold text-slate-600">Fecha</th>
+                          <th className="px-3 py-2 text-center font-bold text-slate-600">Entrada</th>
+                          <th className="px-3 py-2 text-center font-bold text-slate-600">Pausa</th>
+                          <th className="px-3 py-2 text-center font-bold text-slate-600">Regreso</th>
+                          <th className="px-3 py-2 text-center font-bold text-slate-600">Salida</th>
+                          <th className="px-3 py-2 text-center font-bold text-slate-600">Total</th>
+                          <th className="px-3 py-2 text-center font-bold text-slate-600">Estado</th>
+                          <th className="px-3 py-2 text-center font-bold text-slate-600"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y">
+                        {adminJornadas.map((j: any) => {
+                          const fmtH = (d: string | null) => d ? new Date(d).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+                          const fmtMin = (m: number | null) => { if (!m) return '--'; return `${Math.floor(m/60)}h ${m%60}m`; };
+                          return (
+                            <tr key={j.id} className="hover:bg-slate-50">
+                              <td className="px-3 py-2 font-medium capitalize">
+                                {new Date(j.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: '2-digit' })}
+                              </td>
+                              <td className="px-3 py-2 text-center font-mono"><span className="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs">{fmtH(j.horaInicio)}</span></td>
+                              <td className="px-3 py-2 text-center font-mono">{j.horaPausaAlmuerzo ? <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-xs">{fmtH(j.horaPausaAlmuerzo)}</span> : <span className="text-slate-300 text-xs">--:--</span>}</td>
+                              <td className="px-3 py-2 text-center font-mono">{j.horaReinicioAlmuerzo ? <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">{fmtH(j.horaReinicioAlmuerzo)}</span> : <span className="text-slate-300 text-xs">--:--</span>}</td>
+                              <td className="px-3 py-2 text-center font-mono">{j.horaFin ? <span className="bg-red-50 text-red-700 px-2 py-0.5 rounded text-xs">{fmtH(j.horaFin)}</span> : <span className="text-orange-400 text-xs animate-pulse">activa</span>}</td>
+                              <td className="px-3 py-2 text-center font-bold text-sm">{fmtMin(j.totalMinutos)}</td>
+                              <td className="px-3 py-2 text-center">
+                                <Badge variant={j.estado === 'FINALIZADA' ? 'success' : j.estado === 'PAUSADA' ? 'warning' : 'blue'}>
+                                  {j.estado === 'FINALIZADA' ? 'Finalizada' : j.estado === 'PAUSADA' ? 'Pausada' : 'En curso'}
+                                </Badge>
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <div className="flex gap-1 justify-center">
+                                  <button onClick={() => handleEditJornada(j)} className="p-1.5 hover:bg-blue-50 rounded text-slate-400 hover:text-blue-600"><Edit3 size={13} /></button>
+                                  <button onClick={() => handleDeleteJornada(j.id)} className="p-1.5 hover:bg-red-50 rounded text-slate-400 hover:text-red-600"><Trash2 size={13} /></button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Modal jornada */}
+        {jornadaModal.open && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-lg">{jornadaModal.jornada ? 'Editar jornada' : 'Nueva jornada manual'}</h3>
+                <button onClick={() => setJornadaModal({ open: false, jornada: null })} className="p-2 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Fecha *</label>
+                  <input type="date" value={jornadaForm.fecha} onChange={e => setJornadaForm(f => ({ ...f, fecha: e.target.value }))}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-elio-yellow" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Entrada *</label>
+                    <input type="time" value={jornadaForm.horaInicio} onChange={e => setJornadaForm(f => ({ ...f, horaInicio: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-elio-yellow" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Salida</label>
+                    <input type="time" value={jornadaForm.horaFin} onChange={e => setJornadaForm(f => ({ ...f, horaFin: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-elio-yellow" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Pausa almuerzo</label>
+                    <input type="time" value={jornadaForm.horaPausaAlmuerzo} onChange={e => setJornadaForm(f => ({ ...f, horaPausaAlmuerzo: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-elio-yellow" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Regreso almuerzo</label>
+                    <input type="time" value={jornadaForm.horaReinicioAlmuerzo} onChange={e => setJornadaForm(f => ({ ...f, horaReinicioAlmuerzo: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm outline-none focus:border-elio-yellow" />
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 mt-5">
+                <button onClick={handleSaveJornada} className="flex-1 bg-elio-yellow text-white py-2 rounded-lg font-bold hover:bg-elio-yellow-hover">
+                  Guardar
+                </button>
+                <button onClick={() => setJornadaModal({ open: false, jornada: null })} className="flex-1 bg-slate-100 text-slate-700 py-2 rounded-lg font-medium hover:bg-slate-200">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Grid de acciones */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

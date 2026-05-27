@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { requireAuth, getUserRole, isAdminRole } from '../lib/api-middleware';
+import { requireAuth, getUserRole, isAdminRole } from './_middleware';
 
 const prisma = new PrismaClient();
 

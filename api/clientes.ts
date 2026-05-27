@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { requireAuth } from '../lib/api-middleware';
+import { requireAuth } from './_middleware';
 const prisma = new PrismaClient();
 
 const METRICOOL_API_KEY = process.env.METRICOOL_API_KEY;

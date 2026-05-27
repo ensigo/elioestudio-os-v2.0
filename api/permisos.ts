@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { requireAuth } from '../lib/api-middleware';
+import { requireAuth } from './_middleware';
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {

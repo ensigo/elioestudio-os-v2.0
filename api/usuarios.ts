@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { requireAuth, isAdminRole } from '../lib/api-middleware';
+import { requireAuth, isAdminRole } from './_middleware';
 const prisma = new PrismaClient();
 
 // Public profile fields — safe for all authenticated users

@@ -1,5 +1,16 @@
 import { PrismaClient } from '@prisma/client';
-import { requireAuth, getUserRole, isAdminRole } from './_middleware';
+function requireAuth(req: any, res: any): string | null {
+  const userId = req.headers?.['x-user-id'] as string | undefined;
+  if (!userId) { res.status(401).json({ error: 'No autenticado' }); return null; }
+  return userId;
+}
+async function getUserRole(prisma: any, userId: string): Promise<string | null> {
+  const user = await prisma.usuario.findUnique({ where: { id: userId }, select: { role: true } });
+  return user?.role ?? null;
+}
+function isAdminRole(role: string | null): boolean {
+  return role === 'ADMIN' || role === 'SUPERADMIN';
+}
 
 const prisma = new PrismaClient();
 

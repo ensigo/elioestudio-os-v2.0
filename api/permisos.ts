@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { requireAuth } from './_middleware';
+function requireAuth(req: any, res: any): string | null {
+  const userId = req.headers?.['x-user-id'] as string | undefined;
+  if (!userId) { res.status(401).json({ error: 'No autenticado' }); return null; }
+  return userId;
+}
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {

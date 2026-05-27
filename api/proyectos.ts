@@ -1,11 +1,16 @@
 import { PrismaClient } from '@prisma/client';
+import { requireAuth, getUserRole, isAdminRole } from '../lib/api-middleware';
 
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
   try {
     // GET - Obtener todos los proyectos con relaciones
     if (req.method === 'GET') {
+      const role = await getUserRole(prisma, userId);
+      const adminAccess = isAdminRole(role);
       const proyectos = await prisma.proyecto.findMany({
         include: {
           cliente: true,
@@ -13,7 +18,10 @@ export default async function handler(req: any, res: any) {
         },
         orderBy: { createdAt: 'desc' }
       });
-      return res.status(200).json(proyectos);
+      const resultado = adminAccess
+        ? proyectos
+        : proyectos.map(({ budget: _b, ...p }) => p);
+      return res.status(200).json(resultado);
     }
 
     // POST - Crear un nuevo proyecto

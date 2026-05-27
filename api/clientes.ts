@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { requireAuth } from '../lib/api-middleware';
 const prisma = new PrismaClient();
 
 const METRICOOL_API_KEY = process.env.METRICOOL_API_KEY;
@@ -6,6 +7,8 @@ const METRICOOL_USER_ID = '2646657';
 const METRICOOL_BASE_URL = 'https://app.metricool.com/api';
 
 export default async function handler(req: any, res: any) {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
   const { resource } = req.query;
   try {
     // CREDENTIALS: /api/clientes?resource=credentials

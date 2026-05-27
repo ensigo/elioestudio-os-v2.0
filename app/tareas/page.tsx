@@ -4,6 +4,7 @@ import { useToast } from '../../components/ui/Toast';
 import { useAuth } from '../../context/AuthContext';
 import { useTimeTracking } from '../../context/TimeTrackingContext';
 import { Card } from '../../components/ui/Card';
+import { PageLoader } from '../../components/ui/PageLoader';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { TaskCreationModal } from '../../components/TaskCreationModal';
@@ -189,11 +190,7 @@ export const TasksPage = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-elio-yellow animate-pulse">Cargando tareas...</p>
-      </div>
-    );
+    return <PageLoader label="Cargando tareas..." />;
   }
 
   if (error) {
@@ -419,8 +416,8 @@ export const TasksPage = () => {
                         key={task.id}
                         onClick={() => setSelectedTask(task)}
                         className={`group hover:bg-gray-50 transition-colors cursor-pointer ${
-                          isTimerActive ? 'bg-yellow-50/60 border-l-4 border-l-elio-yellow' : ''
-                        } ${task.priority === 'URGENT' ? 'border-l-4 border-l-red-400' : ''}`}
+                          isTimerActive ? 'bg-yellow-50/60' : ''
+                        } ${task.priority === 'URGENT' ? 'bg-red-50/40' : ''}`}
                       >
                         {/* Timer button */}
                         <td className="px-4 py-3 text-center">

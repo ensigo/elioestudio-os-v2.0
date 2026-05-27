@@ -1,7 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import { requireAuth } from '../lib/api-middleware';
 const prisma = new PrismaClient();
 
 export default async function handler(req: any, res: any) {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
   try {
     if (req.method === 'GET') {
       const eventos = await prisma.eventos.findMany({

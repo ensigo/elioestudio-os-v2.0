@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../lib/auth-fetch';
 import { 
   Clock, CheckCircle, AlertTriangle, TrendingUp, TrendingDown,
   Calendar, Target, Loader2, ChevronLeft, ChevronRight
@@ -84,13 +85,13 @@ export const RendimientoEmpleado: React.FC<RendimientoEmpleadoProps> = ({
 
       try {
         // Cargar jornadas
-        const jornadasRes = await fetch(
+        const jornadasRes = await authFetch(
           `/api/control-horario?entity=jornadas&usuarioId=${usuarioId}&fechaInicio=${inicio}&fechaFin=${fin}`
         );
         const jornadasData = jornadasRes.ok ? await jornadasRes.json() : [];
 
         // Cargar tareas
-        const tareasRes = await fetch(`/api/tareas?assigneeId=${usuarioId}`);
+        const tareasRes = await authFetch(`/api/tareas?assigneeId=${usuarioId}`);
         const tareasData = tareasRes.ok ? await tareasRes.json() : [];
 
         setJornadas(Array.isArray(jornadasData) ? jornadasData : []);

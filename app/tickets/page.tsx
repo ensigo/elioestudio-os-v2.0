@@ -4,7 +4,9 @@ import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
 import { useAuth } from '../../context/AuthContext';
-import { Send, Clock, Search, Filter, Inbox, Trash2, Loader2, MessageCircle, X } from 'lucide-react';
+import { useToast } from '../../components/ui/Toast';
+import { PageLoader } from '../../components/ui/PageLoader';
+import { Send, Clock, Search, Inbox, Trash2, Loader2, MessageCircle } from 'lucide-react';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 
 interface Usuario {
@@ -41,6 +43,7 @@ interface TicketsPageProps {
 export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps) => {
   const { usuario: currentUser } = useAuth();
   const { confirm } = useConfirm();
+  const { success: toastSuccess, error: toastError } = useToast();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -63,9 +66,9 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
 
   useEffect(() => {
     const loadAndMarkAsRead = async () => {
-      await fetchData();
-      if (currentUser?.id) {
-        markTicketsAsRead();
+      const fetched = await fetchData();
+      if (currentUser?.id && fetched.length > 0) {
+        markTicketsAsRead(fetched);
       }
     };
 
@@ -85,50 +88,50 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
     }
   }, [ticketIdToOpen, tickets]);
 
-  const fetchData = async () => {
+  const fetchData = async (): Promise<Ticket[]> => {
     try {
       const [ticketsRes, usuariosRes] = await Promise.all([
         authFetch('/api/tickets'),
         authFetch('/api/usuarios')
       ]);
 
+      let fetched: Ticket[] = [];
       if (ticketsRes.ok) {
-        const ticketsData = await ticketsRes.json();
-        setTickets(ticketsData);
+        fetched = await ticketsRes.json();
+        setTickets(fetched);
       }
 
       if (usuariosRes.ok) {
         const usuariosData = await usuariosRes.json();
         setUsuarios(usuariosData);
       }
+
+      return fetched;
     } catch (err) {
       console.error('Error cargando datos:', err);
+      return [];
     } finally {
       setIsLoading(false);
     }
   };
 
-  const markTicketsAsRead = async () => {
+  const markTicketsAsRead = async (ticketsList: Ticket[]) => {
     if (!currentUser?.id) return;
 
     try {
-      const response = await authFetch('/api/tickets');
-      if (response.ok) {
-        const allTickets = await response.json();
-        const ticketsToMark = allTickets.filter((t: Ticket) => {
-          const isForMe = t.recipient?.id === currentUser.id || t.recipient === null;
-          const notSentByMe = t.sender.id !== currentUser.id;
-          const notReadByMe = !t.readBy?.includes(currentUser.id);
-          return isForMe && notSentByMe && notReadByMe;
-        });
+      const ticketsToMark = ticketsList.filter(t => {
+        const isForMe = t.recipient?.id === currentUser.id || t.recipient === null;
+        const notSentByMe = t.sender.id !== currentUser.id;
+        const notReadByMe = !t.readBy?.includes(currentUser.id);
+        return isForMe && notSentByMe && notReadByMe;
+      });
 
-        for (const ticket of ticketsToMark) {
-          await authFetch('/api/tickets', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: ticket.id, markReadBy: currentUser.id })
-          });
-        }
+      for (const ticket of ticketsToMark) {
+        await authFetch('/api/tickets', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: ticket.id, markReadBy: currentUser.id })
+        });
       }
     } catch (err) {
       console.error('Error marcando tickets como leídos:', err);
@@ -189,9 +192,13 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         setTitle('');
         setPriority('MEDIUM');
         setMessage('');
+        toastSuccess('Mensaje enviado');
+      } else {
+        toastError('Error al enviar el mensaje');
       }
     } catch (err) {
       console.error('Error enviando ticket:', err);
+      toastError('Error al enviar el mensaje');
     } finally {
       setIsSending(false);
     }
@@ -232,9 +239,13 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         if (selectedTicket?.id === ticketId) {
           setSelectedTicket(null);
         }
+        toastSuccess('Ticket eliminado');
+      } else {
+        toastError('Error al eliminar el ticket');
       }
     } catch (err) {
       console.error('Error eliminando ticket:', err);
+      toastError('Error al eliminar el ticket');
     }
   };
 
@@ -318,11 +329,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
   const filteredTickets = getFilteredTickets();
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <Loader2 className="w-8 h-8 text-elio-yellow animate-spin" />
-      </div>
-    );
+    return <PageLoader label="Cargando..." />;
   }
 
   return (
@@ -441,20 +448,15 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                   <Clock size={16} className="mr-2" /> Archivados ({tickets.filter(t => t.status === 'CLOSED').length})
                 </button>
               </div>
-              <div className="flex space-x-2">
-                <div className="relative">
-                  <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Buscar..." 
-                    className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-elio-yellow w-40"
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                  />
-                </div>
-                <button className="p-1.5 bg-white border border-gray-200 rounded-lg text-gray-500 hover:text-elio-black">
-                  <Filter size={14} />
-                </button>
+              <div className="relative">
+                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar..."
+                  className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-elio-yellow w-40"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                />
               </div>
             </div>
 

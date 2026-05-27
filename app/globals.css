@@ -18,7 +18,7 @@
   }
 }
 
-/* Custom Scrollbar for sidebar */
+/* Scrollbar — sidebar */
 .sidebar-scroll::-webkit-scrollbar {
   width: 4px;
 }
@@ -30,26 +30,38 @@
   border-radius: 20px;
 }
 
-/* --- CSS NUCLEAR: OCULTAR NOTIFICACIONES PERSISTENTES --- */
-[data-sonner-toaster],
-[data-sonner-toast],
-[data-radix-toast-viewport],
-div[data-is-toast="true"],
-li[data-sonner-toast],
-.toaster,
-div[class*="toaster"],
-button[aria-label="Dismiss all"],
-div:has(> button[aria-label="Dismiss all"]) {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    z-index: -9999 !important;
-    height: 0 !important;
-    width: 0 !important;
-    position: fixed !important;
-    bottom: -9999px !important;
+/* Scrollbar — app-wide thin scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #D1D5DB;
+  border-radius: 20px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: #9CA3AF;
+}
+
+/* Focus ring accesible */
+:focus-visible {
+  outline: 2px solid #EAB308;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Transición de página suave */
+.page-transition {
+  animation: fadeInPage 0.2s ease-out;
+}
+@keyframes fadeInPage {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 
 /* Animación de campana */
 @keyframes ring {

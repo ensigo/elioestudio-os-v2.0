@@ -4,6 +4,7 @@ import { authFetch } from '../../lib/auth-fetch';
 import { Search, FileText, Download, Upload, Trash2, FolderOpen, File, X, Eye } from 'lucide-react';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { Card } from '../../components/ui/Card';
+import { PageLoader } from '../../components/ui/PageLoader';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 
@@ -112,7 +113,7 @@ export default function SoportePage() {
   })).filter(f => f.docs.length > 0);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-96"><p className="text-xl text-blue-500 animate-pulse">Cargando documentos...</p></div>;
+    return <PageLoader label="Cargando documentos..." />;
   }
 
   return (

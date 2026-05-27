@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
+import { PageLoader } from '../../components/ui/PageLoader';
 import { RendimientoEmpleado } from '../../components/RendimientoEmpleado';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../components/ui/Toast';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
-import { 
-  Users, 
-  Clock, 
-  Calendar, 
-  ArrowLeft, 
-  Mail, 
-  Shield, 
-  CheckCircle2, 
+import {
+  Users,
+  Clock,
+  Calendar,
+  ArrowLeft,
+  Mail,
+  Shield,
+  CheckCircle2,
   AlertCircle,
-  TrendingUp,
   Plus,
   X,
   Key,
@@ -72,6 +73,7 @@ interface Permiso {
 export const TeamPage = () => {
   const { usuario: currentUser, canAccessReports, canManageUsers } = useAuth();
   const { confirm } = useConfirm();
+  const { success: toastSuccess, error: toastError } = useToast();
 
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [permisos, setPermisos] = useState<Permiso[]>([]);
@@ -277,9 +279,13 @@ export const TeamPage = () => {
         setUsuarios([...usuarios, nuevoUsuario]);
         setIsCreateModalOpen(false);
         setFormData({ name: '', email: '', role: 'DEV', position: '', tipoContrato: 'COMPLETA', dni: '', fechaNacimiento: '', direccion: '', ciudad: '', codigoPostal: '', telefono: '', telefonoEmergencia: '', iban: '', titularCuenta: '', numSeguridadSocial: '', tipoContratacion: '', fechaAltaSS: '' });
+        toastSuccess('Miembro añadido al equipo');
+      } else {
+        toastError('Error al crear el usuario');
       }
     } catch (err) {
       console.error('Error creando usuario:', err);
+      toastError('Error al crear el usuario');
     }
   };
 
@@ -300,9 +306,13 @@ export const TeamPage = () => {
         setUsuarios(usuarios.map(u => u.id === usuarioActualizado.id ? usuarioActualizado : u));
         setSelectedUser(usuarioActualizado);
         setIsEditModalOpen(false);
+        toastSuccess('Datos actualizados');
+      } else {
+        toastError('Error al actualizar el usuario');
       }
     } catch (err) {
       console.error('Error actualizando usuario:', err);
+      toastError('Error al actualizar el usuario');
     }
   };
 
@@ -320,9 +330,13 @@ export const TeamPage = () => {
       if (response.ok) {
         setUsuarios(usuarios.filter(u => u.id !== userId));
         setSelectedUser(null);
+        toastSuccess('Usuario eliminado');
+      } else {
+        toastError('Error al eliminar el usuario');
       }
     } catch (err) {
       console.error('Error eliminando usuario:', err);
+      toastError('Error al eliminar el usuario');
     }
   };
 
@@ -387,9 +401,13 @@ export const TeamPage = () => {
         setPermisos([nuevoPermiso, ...permisos]);
         setIsPermisoModalOpen(false);
         setPermisoForm({ tipo: 'VACACIONES', motivo: '', fechaInicio: '', fechaFin: '' });
+        toastSuccess('Solicitud enviada');
+      } else {
+        toastError('Error al enviar la solicitud');
       }
     } catch (err) {
       console.error('Error solicitando permiso:', err);
+      toastError('Error al enviar la solicitud');
     }
   };
 
@@ -415,9 +433,13 @@ export const TeamPage = () => {
         setIsApprovalModalOpen(false);
         setSelectedPermiso(null);
         setComentarioAdmin('');
+        toastSuccess(estado === 'APROBADO' ? 'Permiso aprobado' : 'Permiso rechazado');
+      } else {
+        toastError('Error al resolver el permiso');
       }
     } catch (err) {
       console.error('Error resolviendo permiso:', err);
+      toastError('Error al resolver el permiso');
     }
   };
 
@@ -487,11 +509,7 @@ export const TeamPage = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <Loader2 className="w-8 h-8 text-elio-yellow animate-spin" />
-      </div>
-    );
+    return <PageLoader label="Cargando..." />;
   }
 
   // Si NO es admin, mostrar solo su propia ficha

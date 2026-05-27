@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useToast } from '../../components/ui/Toast';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Modal } from '../../components/ui/Modal';
+import { PageLoader } from '../../components/ui/PageLoader';
 import { ClientForm } from '../../components/ClientForm';
 import { ClientDetailPage } from './ClientDetailPage';
 import { Plus, Search, MoreVertical, AlertTriangle, Edit, Trash2, Eye, FolderOpen } from 'lucide-react';
@@ -24,7 +25,7 @@ export const ClientsPage = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const { error: toastError } = useToast();
+  const { success: toastSuccess, error: toastError } = useToast();
   const menuRef = useRef<HTMLDivElement>(null);
   
   const getResponsibleName = (responsibleId: string | null) => {
@@ -157,6 +158,7 @@ export const ClientsPage = () => {
       
       setClients([clienteFormateado, ...clients]);
       setIsModalOpen(false);
+      toastSuccess('Cliente creado correctamente');
     } catch (err: any) {
       console.error('Error al crear cliente:', err);
       toastError('Error al crear cliente');
@@ -209,6 +211,7 @@ export const ClientsPage = () => {
       setClients(clients.map(c => c.id === clienteFormateado.id ? clienteFormateado : c));
       setIsEditModalOpen(false);
       setClientToEdit(null);
+      toastSuccess('Cliente actualizado');
     } catch (err: any) {
       console.error('Error al editar cliente:', err);
       toastError('Error al editar cliente');
@@ -231,6 +234,7 @@ export const ClientsPage = () => {
 
       setClients(clients.filter(c => c.id !== clientId));
       setOpenMenuId(null);
+      toastSuccess('Cliente eliminado');
     } catch (err: any) {
       console.error('Error al eliminar cliente:', err);
       toastError('Error al eliminar cliente');
@@ -279,11 +283,7 @@ export const ClientsPage = () => {
   }
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-elio-yellow animate-pulse">Cargando clientes...</p>
-      </div>
-    );
+    return <PageLoader label="Cargando..." />;
   }
 
   if (error) {
@@ -347,7 +347,7 @@ export const ClientsPage = () => {
                   key={client.id} 
                   onClick={() => setSelectedClientId(client.id)}
                   className={`group hover:bg-gray-50 transition-colors cursor-pointer ${
-                    client.status === 'RISK' ? 'bg-orange-50/50 border-l-4 border-l-orange-400' : 'border-l-4 border-l-transparent'
+                    client.status === 'RISK' ? 'bg-orange-50/60' : ''
                   }`}
                 >
                   <td className="px-6 py-4">

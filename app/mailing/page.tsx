@@ -1,14 +1,11 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { Card } from '../../components/ui/Card';
-import { Badge } from '../../components/ui/Badge';
-import { 
-  Mail, Plus, Search, Send, MousePointer2, 
-  Users, AlertOctagon, X, Edit, Eye,
-  BarChart2, Calendar, CheckCircle2
+import { PageLoader } from '../../components/ui/PageLoader';
+import {
+  Mail, Plus, Search, Send, MousePointer2,
+  Users, X, Edit, Eye
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
 
 interface CampanaMailing {
   id: string;
@@ -45,7 +42,6 @@ const ESTADOS = [
 ];
 
 export default function MailingPage() {
-  const { usuario } = useAuth();
   const [campanas, setCampanas] = useState<CampanaMailing[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +103,7 @@ export default function MailingPage() {
   const tasaClics = totalAperturas > 0 ? ((totalClics / totalAperturas) * 100).toFixed(1) : '0';
 
   if (loading) {
-    return <div className="flex justify-center items-center h-96"><p className="text-xl text-blue-500 animate-pulse">Cargando campañas...</p></div>;
+    return <PageLoader label="Cargando campañas..." />;
   }
 
   return (

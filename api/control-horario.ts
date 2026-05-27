@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { requireAuth } from '../lib/api-middleware';
 const prisma = new PrismaClient();
 
 async function getRequesterRole(req: any): Promise<string | null> {
@@ -13,6 +14,8 @@ function isAdminRole(role: string | null): boolean {
 }
 
 export default async function handler(req: any, res: any) {
+  const userId = requireAuth(req, res);
+  if (!userId) return;
   const { entity } = req.query;
 
   try {

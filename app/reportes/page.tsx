@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../../lib/auth-fetch';
 import { useToast } from '../../components/ui/Toast';
 import { 
   Clock, TrendingUp, Calendar, ChevronLeft, ChevronRight,
@@ -86,8 +87,8 @@ export default function ReportesPage() {
   useEffect(() => {
     if (isAdmin) {
       Promise.all([
-        fetch('/api/usuarios').then(r => r.json()),
-        fetch('/api/proyectos').then(r => r.json()),
+        authFetch('/api/usuarios').then(r => r.json()),
+        authFetch('/api/proyectos').then(r => r.json()),
       ]).then(([usuariosData, proyectosData]) => {
         setUsuarios(usuariosData);
         setProyectos(Array.isArray(proyectosData) ? proyectosData : []);
@@ -109,7 +110,7 @@ export default function ReportesPage() {
         } else if (isAdmin && selectedUserId !== 'todos') {
           url += `&usuarioId=${selectedUserId}`;
         }
-        const response = await fetch(url);
+        const response = await authFetch(url);
         if (response.ok) {
           const data = await response.json();
           setJornadas(data);
@@ -147,7 +148,7 @@ export default function ReportesPage() {
           url += `&userId=${selectedUserId}`;
         }
         
-        const response = await fetch(url);
+        const response = await authFetch(url);
         if (response.ok) {
           const data = await response.json();
           setTimeEntries(data);

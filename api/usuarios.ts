@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { requireAuth, isAdminRole } from '../lib/api-middleware';
 const prisma = new PrismaClient();
 
 // Public profile fields — safe for all authenticated users
@@ -18,15 +19,14 @@ const ALL_FIELDS = {
 
 
 export default async function handler(req: any, res: any) {
-  const requesterId = req.headers['x-user-id'] as string | undefined;
+  const requesterId = requireAuth(req, res);
+  if (!requesterId) return;
 
   try {
     // GET - Obtener todos los usuarios
     if (req.method === 'GET') {
-      const requester = requesterId
-        ? await prisma.usuario.findUnique({ where: { id: requesterId }, select: { role: true } })
-        : null;
-      const isAdmin = requester?.role === 'ADMIN' || requester?.role === 'SUPERADMIN';
+      const requester = await prisma.usuario.findUnique({ where: { id: requesterId }, select: { role: true } });
+      const isAdmin = isAdminRole(requester?.role ?? null);
 
       const usuarios = await prisma.usuario.findMany({
         select: isAdmin ? ALL_FIELDS : PUBLIC_FIELDS,

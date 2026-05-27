@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { authFetch } from '../lib/auth-fetch';
 import { 
   Calendar, ChevronLeft, ChevronRight, RefreshCw, ExternalLink, 
   AlertCircle, Loader2 
@@ -53,7 +54,7 @@ export const CalendarioContenidos: React.FC<CalendarioContenidosProps> = ({
     setError(null);
     
     try {
-      const res = await fetch(
+      const res = await authFetch(
         `/api/clientes?resource=metricool&action=scheduled&brandId=${metricoolBrandId}`
       );
       

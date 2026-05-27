@@ -1,5 +1,4 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import {
   Users, TrendingUp, TrendingDown, Clock, AlertTriangle,
@@ -7,6 +6,7 @@ import {
   ChevronDown, ChevronRight, Calendar
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
+import { PageLoader } from '../../components/ui/PageLoader';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 
@@ -38,6 +38,7 @@ interface RentabilidadProyecto {
 
 export default function AnalisisPage() {
   const { usuario } = useAuth();
+  const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const [activeTab, setActiveTab] = useState<'carga' | 'rentabilidad'>('carga');
   const [periodoCarga, setPeriodoCarga] = useState<'semana' | 'mes' | 'todo'>('semana');
   const [cargaData, setCargaData] = useState<any>(null);
@@ -99,7 +100,7 @@ export default function AnalisisPage() {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-96"><p className="text-xl text-blue-500 animate-pulse">Cargando análisis...</p></div>;
+    return <PageLoader label="Cargando análisis..." />;
   }
 
   return (
@@ -118,12 +119,14 @@ export default function AnalisisPage() {
         >
           <Users size={16} /> Carga de Trabajo
         </button>
-        <button
-          onClick={() => setActiveTab('rentabilidad')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'rentabilidad' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-        >
-          <BarChart3 size={16} /> Rentabilidad
-        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab('rentabilidad')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === 'rentabilidad' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+          >
+            <BarChart3 size={16} /> Rentabilidad
+          </button>
+        )}
       </div>
 
       {/* CARGA DE TRABAJO */}
@@ -285,7 +288,7 @@ export default function AnalisisPage() {
 
           {/* Tareas sin asignar */}
           {cargaData.tareasSinAsignar.length > 0 && (
-            <Card title={`⚠️ Tareas sin asignar (${cargaData.tareasSinAsignar.length})`} className="border-l-4 border-orange-500">
+            <Card title={`Tareas sin asignar (${cargaData.tareasSinAsignar.length})`} className="border border-orange-200 bg-orange-50/30">
               <div className="space-y-2">
                 {cargaData.tareasSinAsignar.map((t: any) => (
                   <div key={t.id} className="flex justify-between items-center bg-orange-50 p-3 rounded-lg">
@@ -312,7 +315,7 @@ export default function AnalisisPage() {
       )}
 
       {/* RENTABILIDAD */}
-      {activeTab === 'rentabilidad' && rentabilidadData && (
+      {isAdmin && activeTab === 'rentabilidad' && rentabilidadData && (
         <div className="space-y-6">
           {/* Resumen */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

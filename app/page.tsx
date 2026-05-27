@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { authFetch } from '../lib/auth-fetch';
 import { Card } from '../components/ui/Card';
+import { PageLoader } from '../components/ui/PageLoader';
 import {
   Play, Calendar, CheckSquare, ChevronLeft, ChevronRight,
-  Clock, Briefcase, MapPin, X, CheckCircle2, Flag, Users,
-  FolderOpen, Ticket, AlertTriangle, TrendingUp, Coffee, Square,
-  Timer, Zap, Activity, UserCheck
+  Clock, Briefcase, X, CheckCircle2, Flag, Users,
+  FolderOpen, Ticket, Coffee, Square,
+  Zap, Activity
 } from 'lucide-react';
 import { useTimeTracking } from '../context/TimeTrackingContext';
 import { useAuth } from '../context/AuthContext';
@@ -296,11 +297,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-elio-yellow animate-pulse">Cargando dashboard...</p>
-      </div>
-    );
+    return <PageLoader label="Cargando dashboard..." />;
   }
 
   return (

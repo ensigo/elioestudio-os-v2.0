@@ -6,6 +6,7 @@ import {
   Edit, DollarSign, Building2, Package, Layers, Check
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
+import { PageLoader } from '../../components/ui/PageLoader';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 
@@ -137,7 +138,7 @@ export default function ContratosPage() {
   const serviciosIndividuales = servicios.filter(s => s.tipo === 'INDIVIDUAL');
 
   if (loading) {
-    return <div className="flex justify-center items-center h-96"><p className="text-xl text-blue-500 animate-pulse">Cargando contratos...</p></div>;
+    return <PageLoader label="Cargando contratos..." />;
   }
 
   return (
@@ -175,27 +176,31 @@ export default function ContratosPage() {
       {/* DASHBOARD */}
       {activeTab === 'dashboard' && dashboard && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">MRR</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(dashboard.mrrTotal)}</p>
-                  <p className="text-xs text-slate-400">Ingresos mensuales</p>
+          <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'md:grid-cols-4' : 'md:grid-cols-2'}`}>
+            {isAdmin && (
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase">MRR</p>
+                    <p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(dashboard.mrrTotal)}</p>
+                    <p className="text-xs text-slate-400">Ingresos mensuales</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-xl"><DollarSign size={24} className="text-green-600" /></div>
                 </div>
-                <div className="p-3 bg-green-100 rounded-xl"><DollarSign size={24} className="text-green-600" /></div>
-              </div>
-            </Card>
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">ARR</p>
-                  <p className="text-2xl font-bold text-blue-600 mt-1">{formatCurrency(dashboard.arrTotal)}</p>
-                  <p className="text-xs text-slate-400">Ingresos anuales</p>
+              </Card>
+            )}
+            {isAdmin && (
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase">ARR</p>
+                    <p className="text-2xl font-bold text-blue-600 mt-1">{formatCurrency(dashboard.arrTotal)}</p>
+                    <p className="text-xs text-slate-400">Ingresos anuales</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-xl"><TrendingUp size={24} className="text-blue-600" /></div>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-xl"><TrendingUp size={24} className="text-blue-600" /></div>
-              </div>
-            </Card>
+              </Card>
+            )}
             <Card>
               <div className="flex items-center justify-between">
                 <div>
@@ -223,20 +228,22 @@ export default function ContratosPage() {
           </div>
 
           {/* MRR por categoría */}
-          <Card title="Ingresos por Categoría">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {CATEGORIAS.filter(cat => dashboard.porCategoria[cat.id]).map(cat => {
-                const data = dashboard.porCategoria[cat.id] || { count: 0, mrr: 0 };
-                return (
-                  <div key={cat.id} className="p-4 rounded-lg border border-slate-200">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${cat.color}`}>{cat.nombre}</span>
-                    <p className="text-2xl font-bold text-slate-900 mt-2">{formatCurrency(data.mrr)}</p>
-                    <p className="text-xs text-slate-500">{data.count} contratos</p>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
+          {isAdmin && (
+            <Card title="Ingresos por Categoría">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {CATEGORIAS.filter(cat => dashboard.porCategoria[cat.id]).map(cat => {
+                  const data = dashboard.porCategoria[cat.id] || { count: 0, mrr: 0 };
+                  return (
+                    <div key={cat.id} className="p-4 rounded-lg border border-slate-200">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${cat.color}`}>{cat.nombre}</span>
+                      <p className="text-2xl font-bold text-slate-900 mt-2">{formatCurrency(data.mrr)}</p>
+                      <p className="text-xs text-slate-500">{data.count} contratos</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
 
           {/* Próximos a renovar */}
           {dashboard.proximosVencer.length > 0 && (
@@ -249,9 +256,9 @@ export default function ContratosPage() {
                       <p className="text-sm text-slate-500">{c.servicio.nombre}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-orange-600">{formatCurrency(c.importeMensual)}/mes</p>
+                      {isAdmin && <p className="font-bold text-orange-600">{formatCurrency(c.importeMensual)}/mes</p>}
                       <p className="text-xs text-slate-500">
-                        {c.fechaRenovacion ? formatDate(c.fechaRenovacion) : formatDate(c.fechaFin)} 
+                        {c.fechaRenovacion ? formatDate(c.fechaRenovacion) : formatDate(c.fechaFin)}
                         ({getDaysUntil(c.fechaRenovacion || c.fechaFin)} días)
                       </p>
                     </div>
@@ -295,16 +302,16 @@ export default function ContratosPage() {
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Cliente</th>
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Servicio/Pack</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Tipo</th>
-                    <th className="px-4 py-3 text-right font-bold text-slate-600">Fee Mensual</th>
-                    <th className="px-4 py-3 text-right font-bold text-slate-600">Activación</th>
+                    {isAdmin && <th className="px-4 py-3 text-right font-bold text-slate-600">Fee Mensual</th>}
+                    {isAdmin && <th className="px-4 py-3 text-right font-bold text-slate-600">Activación</th>}
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Inicio</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Estado</th>
-                    <th className="px-4 py-3 text-center font-bold text-slate-600">Acciones</th>
+                    {isAdmin && <th className="px-4 py-3 text-center font-bold text-slate-600">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filteredContratos.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400"><FileText size={32} className="mx-auto mb-2 opacity-30" />No hay contratos</td></tr>
+                    <tr><td colSpan={isAdmin ? 8 : 5} className="px-4 py-12 text-center text-slate-400"><FileText size={32} className="mx-auto mb-2 opacity-30" />No hay contratos</td></tr>
                   ) : filteredContratos.map(c => (
                     <tr key={c.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium">{c.cliente.name}</td>
@@ -318,19 +325,23 @@ export default function ContratosPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right font-bold text-green-600">{formatCurrency(c.importeMensual)}</td>
-                      <td className="px-4 py-3 text-right">
-                        {c.cuotaActivacion ? (
-                          <span className={c.activacionPagada ? 'text-slate-400 line-through' : 'text-orange-600 font-medium'}>
-                            {formatCurrency(c.cuotaActivacion)}
-                          </span>
-                        ) : '-'}
-                      </td>
+                      {isAdmin && <td className="px-4 py-3 text-right font-bold text-green-600">{formatCurrency(c.importeMensual)}</td>}
+                      {isAdmin && (
+                        <td className="px-4 py-3 text-right">
+                          {c.cuotaActivacion ? (
+                            <span className={c.activacionPagada ? 'text-slate-400 line-through' : 'text-orange-600 font-medium'}>
+                              {formatCurrency(c.cuotaActivacion)}
+                            </span>
+                          ) : '-'}
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-center">{formatDate(c.fechaInicio)}</td>
                       <td className="px-4 py-3 text-center">{getEstadoBadge(c.estado)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <button onClick={() => { setEditingItem(c); setShowModalContrato(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>
-                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3 text-center">
+                          <button onClick={() => { setEditingItem(c); setShowModalContrato(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -359,7 +370,7 @@ export default function ContratosPage() {
                       <h3 className="font-bold text-slate-900 mt-2">{s.nombre}</h3>
                       <p className="text-xs text-slate-500">Código: {s.codigo}</p>
                     </div>
-                    <button onClick={() => { setEditingItem(s); setShowModalServicio(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>
+                    {isAdmin && <button onClick={() => { setEditingItem(s); setShowModalServicio(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>}
                   </div>
                   {s.serviciosIncluidos && (
                     <div className="mt-3 p-2 bg-slate-50 rounded text-xs text-slate-600">
@@ -367,14 +378,16 @@ export default function ContratosPage() {
                       <p className="whitespace-pre-line">{s.serviciosIncluidos}</p>
                     </div>
                   )}
-                  <div className="mt-3 flex justify-between items-end">
-                    <div>
-                      {s.precioBase && <p className="text-xl font-bold text-green-600">{formatCurrency(s.precioBase)}<span className="text-sm text-slate-400 font-normal">/mes</span></p>}
+                  {isAdmin && (
+                    <div className="mt-3 flex justify-between items-end">
+                      <div>
+                        {s.precioBase && <p className="text-xl font-bold text-green-600">{formatCurrency(s.precioBase)}<span className="text-sm text-slate-400 font-normal">/mes</span></p>}
+                      </div>
+                      {s.cuotaActivacion && (
+                        <p className="text-sm text-orange-600">+{formatCurrency(s.cuotaActivacion)} activación</p>
+                      )}
                     </div>
-                    {s.cuotaActivacion && (
-                      <p className="text-sm text-orange-600">+{formatCurrency(s.cuotaActivacion)} activación</p>
-                    )}
-                  </div>
+                  )}
                 </Card>
               ))}
             </div>
@@ -398,9 +411,9 @@ export default function ContratosPage() {
                       <h3 className="font-bold text-slate-900 mt-2">{s.nombre}</h3>
                       <p className="text-xs text-slate-500">Código: {s.codigo}</p>
                     </div>
-                    <button onClick={() => { setEditingItem(s); setShowModalServicio(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>
+                    {isAdmin && <button onClick={() => { setEditingItem(s); setShowModalServicio(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>}
                   </div>
-                  {s.precioBase && (
+                  {isAdmin && s.precioBase && (
                     <p className="mt-3 text-xl font-bold text-green-600">{formatCurrency(s.precioBase)}<span className="text-sm text-slate-400 font-normal">/mes</span></p>
                   )}
                 </Card>

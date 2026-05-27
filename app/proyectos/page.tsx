@@ -1,9 +1,9 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useAuth } from '../../context/AuthContext';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { Card } from '../../components/ui/Card';
+import { PageLoader } from '../../components/ui/PageLoader';
 import {
   Plus, Search, LayoutGrid, List, ChevronDown, ChevronRight,
   Calendar, Clock, AlertTriangle, Briefcase,
@@ -67,12 +67,12 @@ export const ProjectsPage = () => {
       const mes = now.getMonth() + 1;
       const año = now.getFullYear();
       const requests: Promise<Response>[] = [
-        fetch('/api/proyectos'),
-        fetch('/api/clientes'),
-        fetch('/api/usuarios'),
+        authFetch('/api/proyectos'),
+        authFetch('/api/clientes'),
+        authFetch('/api/usuarios'),
       ];
       if (isAdmin) {
-        requests.push(fetch(`/api/control-horario?entity=time-entries&mes=${mes}&año=${año}`));
+        requests.push(authFetch(`/api/control-horario?entity=time-entries&mes=${mes}&año=${año}`));
       }
       const [projRes, cliRes, usrRes, teRes] = await Promise.all(requests);
       if (projRes.ok) setProjects(await projRes.json());
@@ -158,7 +158,7 @@ export const ProjectsPage = () => {
   };
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-96"><p className="text-xl text-blue-500 animate-pulse">Cargando proyectos...</p></div>;
+    return <PageLoader label="Cargando proyectos..." />;
   }
 
   return (

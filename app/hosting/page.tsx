@@ -8,6 +8,7 @@ import {
   ExternalLink, Edit, Package, Mail, Plus, Eye, EyeOff, Link2
 } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
+import { PageLoader } from '../../components/ui/PageLoader';
 import { Badge } from '../../components/ui/Badge';
 import { useAuth } from '../../context/AuthContext';
 
@@ -211,7 +212,7 @@ export default function HostingPage() {
   const planesDominio = planes.filter(p => p.tipo === 'DOMINIO' && p.activo);
 
   if (loading) {
-    return <div className="flex justify-center items-center h-96"><p className="text-xl text-blue-500 animate-pulse">Cargando...</p></div>;
+    return <PageLoader label="Cargando hosting..." />;
   }
 
   return (
@@ -261,37 +262,43 @@ export default function HostingPage() {
       {/* DASHBOARD */}
       {activeTab === 'dashboard' && dashboard && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">Ingresos Anuales</p>
-                  <p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(dashboard.ingresoAnualTotal)}</p>
-                  <p className="text-xs text-slate-400">{dashboard.totalHostings} hostings + {dashboard.totalDominios} dominios</p>
+          <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-2'}`}>
+            {isAdmin && (
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Ingresos Anuales</p>
+                    <p className="text-2xl font-bold text-green-600 mt-1">{formatCurrency(dashboard.ingresoAnualTotal)}</p>
+                    <p className="text-xs text-slate-400">{dashboard.totalHostings} hostings + {dashboard.totalDominios} dominios</p>
+                  </div>
+                  <div className="p-3 bg-green-100 rounded-xl"><TrendingUp size={24} className="text-green-600" /></div>
                 </div>
-                <div className="p-3 bg-green-100 rounded-xl"><TrendingUp size={24} className="text-green-600" /></div>
-              </div>
-            </Card>
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">Costes Anuales</p>
-                  <p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(dashboard.costeAnualTotal)}</p>
-                  <p className="text-xs text-slate-400">Pagado a proveedores</p>
+              </Card>
+            )}
+            {isAdmin && (
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Costes Anuales</p>
+                    <p className="text-2xl font-bold text-red-600 mt-1">{formatCurrency(dashboard.costeAnualTotal)}</p>
+                    <p className="text-xs text-slate-400">Pagado a proveedores</p>
+                  </div>
+                  <div className="p-3 bg-red-100 rounded-xl"><TrendingDown size={24} className="text-red-600" /></div>
                 </div>
-                <div className="p-3 bg-red-100 rounded-xl"><TrendingDown size={24} className="text-red-600" /></div>
-              </div>
-            </Card>
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 uppercase">Margen Anual</p>
-                  <p className={`text-2xl font-bold mt-1 ${dashboard.margenTotal >= 0 ? 'text-blue-600' : 'text-red-600'}`}>{formatCurrency(dashboard.margenTotal)}</p>
-                  <p className="text-xs text-slate-400">{dashboard.ingresoAnualTotal > 0 ? `${Math.round((dashboard.margenTotal / dashboard.ingresoAnualTotal) * 100)}% margen` : '0%'}</p>
+              </Card>
+            )}
+            {isAdmin && (
+              <Card>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Margen Anual</p>
+                    <p className={`text-2xl font-bold mt-1 ${dashboard.margenTotal >= 0 ? 'text-blue-600' : 'text-red-600'}`}>{formatCurrency(dashboard.margenTotal)}</p>
+                    <p className="text-xs text-slate-400">{dashboard.ingresoAnualTotal > 0 ? `${Math.round((dashboard.margenTotal / dashboard.ingresoAnualTotal) * 100)}% margen` : '0%'}</p>
+                  </div>
+                  <div className="p-3 bg-blue-100 rounded-xl"><DollarSign size={24} className="text-blue-600" /></div>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-xl"><DollarSign size={24} className="text-blue-600" /></div>
-              </div>
-            </Card>
+              </Card>
+            )}
             <Card>
               <div className="flex items-center justify-between">
                 <div>
@@ -386,15 +393,15 @@ export default function HostingPage() {
                     <th className="px-4 py-3 text-center font-bold text-slate-600">SSL</th>
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Tipo</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Vencimiento</th>
-                    <th className="px-4 py-3 text-right font-bold text-slate-600">Coste</th>
-                    <th className="px-4 py-3 text-right font-bold text-slate-600">Venta</th>
+                    {isAdmin && <th className="px-4 py-3 text-right font-bold text-slate-600">Coste</th>}
+                    {isAdmin && <th className="px-4 py-3 text-right font-bold text-slate-600">Venta</th>}
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Estado</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filteredHostings.length === 0 ? (
-                    <tr><td colSpan={10} className="px-4 py-12 text-center text-slate-400"><Server size={32} className="mx-auto mb-2 opacity-30" />No hay hostings</td></tr>
+                    <tr><td colSpan={isAdmin ? 10 : 8} className="px-4 py-12 text-center text-slate-400"><Server size={32} className="mx-auto mb-2 opacity-30" />No hay hostings</td></tr>
                   ) : filteredHostings.map(h => (
                     <tr key={h.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium">{h.cliente.name}</td>
@@ -424,11 +431,11 @@ export default function HostingPage() {
                       </td>
                       <td className="px-4 py-3"><Badge variant="blue">{h.tipoHosting}</Badge></td>
                       <td className="px-4 py-3 text-center">{formatDate(h.fechaVencimiento)}</td>
-                      <td className="px-4 py-3 text-right text-red-600">{formatCurrency(h.importeCoste)}</td>
-                      <td className="px-4 py-3 text-right text-green-600">{formatCurrency(h.importeVenta)}</td>
+                      {isAdmin && <td className="px-4 py-3 text-right text-red-600">{formatCurrency(h.importeCoste)}</td>}
+                      {isAdmin && <td className="px-4 py-3 text-right text-green-600">{formatCurrency(h.importeVenta)}</td>}
                       <td className="px-4 py-3 text-center">{getEstadoBadge(h.estado)}</td>
                       <td className="px-4 py-3 text-center">
-                        <button onClick={() => { setEditingItem(h); setShowModalHosting(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>
+                        {isAdmin && <button onClick={() => { setEditingItem(h); setShowModalHosting(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>}
                       </td>
                     </tr>
                   ))}
@@ -462,15 +469,15 @@ export default function HostingPage() {
                     <th className="px-4 py-3 text-left font-bold text-slate-600">Dominio</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">SSL</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Vencimiento</th>
-                    <th className="px-4 py-3 text-right font-bold text-slate-600">Coste</th>
-                    <th className="px-4 py-3 text-right font-bold text-slate-600">Venta</th>
+                    {isAdmin && <th className="px-4 py-3 text-right font-bold text-slate-600">Coste</th>}
+                    {isAdmin && <th className="px-4 py-3 text-right font-bold text-slate-600">Venta</th>}
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Estado</th>
                     <th className="px-4 py-3 text-center font-bold text-slate-600">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {filteredDominios.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-12 text-center text-slate-400"><Globe size={32} className="mx-auto mb-2 opacity-30" />No hay dominios</td></tr>
+                    <tr><td colSpan={isAdmin ? 8 : 6} className="px-4 py-12 text-center text-slate-400"><Globe size={32} className="mx-auto mb-2 opacity-30" />No hay dominios</td></tr>
                   ) : filteredDominios.map(d => (
                     <tr key={d.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium">{d.cliente.name}</td>
@@ -486,11 +493,11 @@ export default function HostingPage() {
                         ) : '-'}
                       </td>
                       <td className="px-4 py-3 text-center">{formatDate(d.fechaVencimiento)}</td>
-                      <td className="px-4 py-3 text-right text-red-600">{formatCurrency(d.importeCoste)}</td>
-                      <td className="px-4 py-3 text-right text-green-600">{formatCurrency(d.importeVenta)}</td>
+                      {isAdmin && <td className="px-4 py-3 text-right text-red-600">{formatCurrency(d.importeCoste)}</td>}
+                      {isAdmin && <td className="px-4 py-3 text-right text-green-600">{formatCurrency(d.importeVenta)}</td>}
                       <td className="px-4 py-3 text-center">{getEstadoBadge(d.estado)}</td>
                       <td className="px-4 py-3 text-center">
-                        <button onClick={() => { setEditingItem(d); setShowModalDominio(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>
+                        {isAdmin && <button onClick={() => { setEditingItem(d); setShowModalDominio(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>}
                       </td>
                     </tr>
                   ))}
@@ -656,13 +663,15 @@ export default function HostingPage() {
                       <h4 className="font-bold text-slate-900">{plan.nombre}</h4>
                       {plan.espacio && <p className="text-sm text-slate-500">{plan.espacio}</p>}
                     </div>
-                    <button onClick={() => { setEditingItem(plan); setShowModalPlan(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>
+                    {isAdmin && <button onClick={() => { setEditingItem(plan); setShowModalPlan(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>}
                   </div>
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-blue-600">{formatCurrency(plan.precioCoste)}</span>
-                    <span className="text-sm text-slate-400">/año</span>
-                  </div>
-                  {plan.precioSugerido && <p className="text-sm text-green-600">Sugerido: {formatCurrency(plan.precioSugerido)}</p>}
+                  {isAdmin && (
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-blue-600">{formatCurrency(plan.precioCoste)}</span>
+                      <span className="text-sm text-slate-400">/año</span>
+                    </div>
+                  )}
+                  {isAdmin && plan.precioSugerido && <p className="text-sm text-green-600">Sugerido: {formatCurrency(plan.precioSugerido)}</p>}
                   <div className="mt-2 flex flex-wrap gap-1">
                     {plan.emails && <Badge variant="neutral">{plan.emails} emails</Badge>}
                     {plan.incluyeDominio && <Badge variant="success">+Dominio</Badge>}
@@ -681,13 +690,15 @@ export default function HostingPage() {
                 <Card key={plan.id} className={!plan.activo ? 'opacity-50' : ''}>
                   <div className="flex justify-between items-start">
                     <h4 className="font-bold text-slate-900">{plan.nombre}</h4>
-                    <button onClick={() => { setEditingItem(plan); setShowModalPlan(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>
+                    {isAdmin && <button onClick={() => { setEditingItem(plan); setShowModalPlan(true); }} className="p-1 text-slate-400 hover:text-blue-600"><Edit size={16} /></button>}
                   </div>
-                  <div className="mt-3 flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-green-600">{formatCurrency(plan.precioCoste)}</span>
-                    <span className="text-sm text-slate-400">/año</span>
-                  </div>
-                  {plan.precioSugerido && <p className="text-sm text-green-600">Sugerido: {formatCurrency(plan.precioSugerido)}</p>}
+                  {isAdmin && (
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-2xl font-bold text-green-600">{formatCurrency(plan.precioCoste)}</span>
+                      <span className="text-sm text-slate-400">/año</span>
+                    </div>
+                  )}
+                  {isAdmin && plan.precioSugerido && <p className="text-sm text-green-600">Sugerido: {formatCurrency(plan.precioSugerido)}</p>}
                   {!plan.activo && <Badge variant="danger">Inactivo</Badge>}
                 </Card>
               ))}

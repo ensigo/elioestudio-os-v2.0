@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, MouseEvent, DragEvent, FormEvent } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useToast } from '../../components/ui/Toast';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -12,8 +12,9 @@ import {
   daysOfWeek,
   isDateInRange
 } from '../../lib/date-utils';
-import { 
-  ChevronLeft, 
+import { PageLoader } from '../../components/ui/PageLoader';
+import {
+  ChevronLeft,
   ChevronRight, 
   Plus,
   Users,
@@ -21,12 +22,9 @@ import {
   Sun,
   Briefcase,
   Trash2,
-  Edit3,
   AlertTriangle,
   Clock
 } from 'lucide-react';
-
-type EventType = 'MEETING' | 'DEADLINE' | 'VACATION' | 'REMINDER';
 
 interface Evento {
   id: string;
@@ -51,7 +49,7 @@ export const CalendarPage = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEvento, setSelectedEvento] = useState<Evento | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [, setSelectedDate] = useState<string>('');
   
   // Form state
   const [formData, setFormData] = useState({
@@ -130,7 +128,7 @@ export const CalendarPage = () => {
   };
 
   // Abrir modal de editar
-  const handleEventClick = (evento: Evento, e: React.MouseEvent) => {
+  const handleEventClick = (evento: Evento, e: MouseEvent) => {
     e.stopPropagation();
     setSelectedEvento(evento);
     setFormData({
@@ -147,7 +145,7 @@ export const CalendarPage = () => {
   };
 
   // Crear evento
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.startDate) return;
 
@@ -178,7 +176,7 @@ export const CalendarPage = () => {
   };
 
   // Actualizar evento
-  const handleUpdate = async (e: React.FormEvent) => {
+  const handleUpdate = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedEvento || !formData.title) return;
 
@@ -232,17 +230,17 @@ export const CalendarPage = () => {
   };
 
   // Drag & Drop handlers
-  const handleDragStart = (evento: Evento, e: React.DragEvent) => {
+  const handleDragStart = (evento: Evento, e: DragEvent) => {
     setDraggedEvento(evento);
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = async (dateStr: string, e: React.DragEvent) => {
+  const handleDrop = async (dateStr: string, e: DragEvent) => {
     e.preventDefault();
     if (!draggedEvento) return;
 
@@ -268,11 +266,7 @@ export const CalendarPage = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-elio-yellow animate-pulse">Cargando calendario...</p>
-      </div>
-    );
+    return <PageLoader label="Cargando calendario..." />;
   }
 
   if (error) {

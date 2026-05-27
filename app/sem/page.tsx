@@ -1,5 +1,4 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { Card } from '../../components/ui/Card';
 import { Sheet } from '../../components/ui/Sheet';
@@ -710,7 +709,7 @@ function ModalCampana({ campana, clientes, proyectos, isAdmin, onClose, onSave, 
 
   const proyectosFiltrados = proyectos.filter(p => p.clienteId === form.clienteId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -921,7 +920,7 @@ function ModalReporte({ campanaId, onClose, onSave, onError }: {
     if (conv > 0) setForm(f => ({ ...f, cpa: (gasto / conv).toFixed(2) }));
   }, [form.conversiones, form.gastoDia]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {

@@ -1,12 +1,12 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { 
   Users, Briefcase, Plus, X, Trash2, Edit2, Shield, Mail, User,
-  Clock, Search, ChevronDown, ChevronRight, Save, Loader2
+  Clock, Search, ChevronDown, ChevronRight, Loader2
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
+import { PageLoader } from '../../components/ui/PageLoader';
 
 // --- INTERFACES ---
 interface CategoriaServicio {
@@ -70,8 +70,6 @@ export default function ConfiguracionPage() {
   // Modales
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [isPlantillaModalOpen, setIsPlantillaModalOpen] = useState(false);
-  const [isCategoriaModalOpen, setIsCategoriaModalOpen] = useState(false);
-  
   // Formularios
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [userForm, setUserForm] = useState({ name: '', email: '', role: 'DEV' });
@@ -142,7 +140,7 @@ export default function ConfiguracionPage() {
     setIsUserModalOpen(true);
   };
 
-  const handleSaveUser = async (e: React.FormEvent) => {
+  const handleSaveUser = async (e: FormEvent) => {
     e.preventDefault();
     if (!userForm.name || !userForm.email) return;
     setSaving(true);
@@ -211,7 +209,7 @@ export default function ConfiguracionPage() {
     setIsPlantillaModalOpen(true);
   };
 
-  const handleSavePlantilla = async (e: React.FormEvent) => {
+  const handleSavePlantilla = async (e: FormEvent) => {
     e.preventDefault();
     if (!plantillaForm.nombre || !plantillaForm.categoriaId) return;
     setSaving(true);
@@ -298,9 +296,7 @@ export default function ConfiguracionPage() {
           </div>
           
           {loadingUsers ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="animate-spin text-yellow-500" size={32} />
-            </div>
+            <PageLoader label="Cargando..." />
           ) : (
             <div className="space-y-3">
               {users.length > 0 ? users.map(user => (
@@ -375,9 +371,7 @@ export default function ConfiguracionPage() {
 
           {/* Lista de categorías con plantillas */}
           {loadingCatalogo ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="animate-spin text-yellow-500" size={32} />
-            </div>
+            <PageLoader label="Cargando..." />
           ) : (
             <div className="space-y-4">
               {categorias.map(categoria => {

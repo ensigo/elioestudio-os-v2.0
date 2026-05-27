@@ -1,5 +1,4 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import {
   FileText, Plus, Search, TrendingUp, Calendar, AlertTriangle,
@@ -247,7 +246,7 @@ export default function ContratosPage() {
 
           {/* Próximos a renovar */}
           {dashboard.proximosVencer.length > 0 && (
-            <Card title="⚠️ Contratos por Renovar (30 días)" className="border-l-4 border-orange-500">
+            <Card title="Contratos por Renovar (30 días)" className="border border-orange-200 bg-orange-50/30">
               <div className="space-y-2">
                 {dashboard.proximosVencer.map((c: any) => (
                   <div key={c.id} className="flex justify-between items-center bg-orange-50 p-3 rounded-lg">
@@ -363,7 +362,7 @@ export default function ContratosPage() {
               {packs.length === 0 ? (
                 <p className="text-slate-400 col-span-full">No hay packs creados</p>
               ) : packs.map(s => (
-                <Card key={s.id} className="border-l-4 border-purple-500">
+                <Card key={s.id} className="border border-purple-200 bg-purple-50/20">
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-700">Pack</span>
@@ -443,7 +442,7 @@ function ModalServicio({ servicio, onClose, onSave }: { servicio: any; onClose: 
   });
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     await authFetch('/api/clientes?resource=servicios', {
@@ -556,7 +555,7 @@ function ModalContrato({ contrato, clientes, servicios, onClose, onSave }: { con
 
   const selectedServicio = servicios.find(s => s.id === form.servicioId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     await authFetch('/api/clientes?resource=contratos', {

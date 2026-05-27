@@ -1,5 +1,4 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useToast } from '../../components/ui/Toast';
 import { 
@@ -8,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
+import { PageLoader } from '../../components/ui/PageLoader';
 import { useAuth } from '../../context/AuthContext';
 import { exportToPDF, exportToExcel } from '../../utils/exportUtils';
 const HORAS_COMPLETA = 37.5;
@@ -355,11 +355,7 @@ export default function ReportesPage() {
     }
   };
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-96">
-        <p className="text-xl text-elio-yellow animate-pulse">Cargando reportes...</p>
-      </div>
-    );
+    return <PageLoader label="Cargando reportes..." />;
   }
   return (
     <div className="space-y-6 animate-in fade-in duration-300">

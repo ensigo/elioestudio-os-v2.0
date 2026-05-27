@@ -1,5 +1,4 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { Search, FileText, Download, Upload, Trash2, FolderOpen, File, X, Eye } from 'lucide-react';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
@@ -270,7 +269,7 @@ function ModalSubir({ usuario, onClose, onSave }: { usuario: any; onClose: () =>
 
   const subfamilias = SUBFAMILIAS[form.familia] || [];
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     

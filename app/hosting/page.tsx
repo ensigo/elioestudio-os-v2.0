@@ -1,5 +1,4 @@
-'use client';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useToast } from '../../components/ui/Toast';
 import {
@@ -324,7 +323,7 @@ export default function HostingPage() {
           </div>
 
           {dashboard.totalAlertas > 0 && (
-            <Card title="⚠️ Próximos Vencimientos (30 días)" className="border-l-4 border-orange-500">
+            <Card title="Próximos Vencimientos (30 días)" className="border border-orange-200 bg-orange-50/30">
               <div className="space-y-4">
                 {dashboard.alertas.hostings.length > 0 && (
                   <div>
@@ -722,7 +721,7 @@ function ModalProveedor({ proveedor, onClose, onSave }: { proveedor: any; onClos
   const [form, setForm] = useState({ nombre: proveedor?.nombre || '', tipo: proveedor?.tipo || 'AMBOS', website: proveedor?.website || '' });
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     await authFetch('/api/hosting?entity=proveedores', { method: proveedor ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(proveedor ? { id: proveedor.id, ...form } : form) });
@@ -758,7 +757,7 @@ function ModalPlan({ plan, onClose, onSave }: { plan: any; onClose: () => void; 
   });
   const [saving, setSaving] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     await authFetch('/api/hosting?entity=planes', { method: plan ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(plan ? { id: plan.id, ...form } : form) });
@@ -824,7 +823,7 @@ function ModalHosting({ hosting, clientes, proveedores, planes, onClose, onSave 
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     const dataToSend = {
@@ -943,7 +942,7 @@ function ModalDominio({ dominio, clientes, proveedores, planes, onClose, onSave 
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
     const dataToSend = {
@@ -1049,7 +1048,7 @@ function ModalEmail({ email, clientes, dominios, onClose, onSave }: { email: any
 
   const clienteDominios = dominios.filter(d => d.clienteId === form.clienteId);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.clienteId || !form.username || !form.passwordEncrypted) {
       toastWarning('Cliente, email y contraseña son obligatorios');

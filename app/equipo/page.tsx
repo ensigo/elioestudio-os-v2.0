@@ -71,7 +71,7 @@ interface Permiso {
 }
 
 export const TeamPage = () => {
-  const { usuario: currentUser, canAccessReports, canManageUsers } = useAuth();
+  const { usuario: currentUser, canAccessReports } = useAuth();
   const { confirm } = useConfirm();
   const { success: toastSuccess, error: toastError } = useToast();
 
@@ -86,7 +86,6 @@ export const TeamPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPermisoModalOpen, setIsPermisoModalOpen] = useState(false);
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'personal' | 'bancario' | 'seguridad'>('personal');
   const [selectedPermiso, setSelectedPermiso] = useState<Permiso | null>(null);
   // Estados para vista de empleado (no-admin)
   const [miTab, setMiTab] = useState<'perfil' | 'horario' | 'permisos'>('perfil');
@@ -896,13 +895,13 @@ export const TeamPage = () => {
           <div className="flex gap-2">
             <button
               onClick={() => openEditModal(selectedUser)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-700 text-sm font-medium transition-colors"
             >
               <Edit3 size={16} /> Editar
             </button>
             <button
               onClick={() => handleDeleteUser(selectedUser.id)}
-              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 text-sm font-medium transition-colors"
             >
               <Trash2 size={16} /> Eliminar
             </button>
@@ -934,47 +933,25 @@ export const TeamPage = () => {
 
         {/* Pestañas de Datos */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex border-b border-slate-200">
-            <button
-              onClick={() => setAdminTab('personal')}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                adminTab === 'personal'
-                  ? 'bg-elio-yellow text-white'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Datos Personales
-            </button>
-            <button
-              onClick={() => setAdminTab('bancario')}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                adminTab === 'bancario'
-                  ? 'bg-elio-yellow text-white'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Datos Bancarios
-            </button>
-            <button
-              onClick={() => setAdminTab('seguridad')}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                adminTab === 'seguridad'
-                  ? 'bg-elio-yellow text-white' 
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Seguridad Social
-            </button>
-            <button
-              onClick={() => setAdminTab('horario')}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
-                adminTab === 'horario'
-                  ? 'bg-elio-yellow text-white'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              Horario
-            </button>
+          <div className="flex border-b border-slate-200 bg-slate-50">
+            {([
+              { key: 'personal', label: 'Datos Personales' },
+              { key: 'bancario', label: 'Datos Bancarios' },
+              { key: 'seguridad', label: 'Seguridad Social' },
+              { key: 'horario', label: 'Horario' },
+            ] as const).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setAdminTab(tab.key)}
+                className={`flex-1 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                  adminTab === tab.key
+                    ? 'border-elio-yellow text-slate-900 bg-white'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           <div className="p-6">
@@ -1281,7 +1258,7 @@ export const TeamPage = () => {
 
       {/* Solicitudes pendientes */}
       {permisosPendientes.length > 0 && (
-        <Card title={`⚠️ Solicitudes Pendientes (${permisosPendientes.length})`} className="border-yellow-200 bg-yellow-50/30">
+        <Card title={`Solicitudes Pendientes (${permisosPendientes.length})`} className="border-amber-200 bg-amber-50/20">
           <div className="space-y-3">
             {permisosPendientes.map(permiso => (
               <div key={permiso.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-slate-200">
@@ -1328,7 +1305,7 @@ export const TeamPage = () => {
                   {user.name.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors">{user.name}</h3>
+                  <h3 className="font-bold text-slate-900 group-hover:text-elio-yellow transition-colors">{user.name}</h3>
                   <p className="text-xs text-slate-500 uppercase font-medium">{user.role}</p>
                 </div>
               </div>

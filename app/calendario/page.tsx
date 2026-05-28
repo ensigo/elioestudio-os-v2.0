@@ -330,7 +330,7 @@ export const CalendarPage = () => {
             return (
               <div 
                 key={idx} 
-                className={`relative bg-white p-2 min-h-[120px] hover:bg-blue-50 transition-colors cursor-pointer group flex flex-col gap-1 ${!cell.isCurrentMonth ? 'bg-gray-50/50' : ''} ${draggedEvento ? 'hover:bg-green-50' : ''}`}
+                className={`relative bg-white p-2 min-h-[120px] hover:bg-gray-50 transition-colors cursor-pointer group flex flex-col gap-1 ${!cell.isCurrentMonth ? 'bg-gray-50/50 opacity-60' : ''} ${draggedEvento ? 'hover:bg-amber-50' : ''}`}
                 onClick={() => handleDayClick(dateStr)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(dateStr, e)}
@@ -380,7 +380,7 @@ export const CalendarPage = () => {
             <input 
               autoFocus
               type="text" 
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
               placeholder="Ej: Reunión con Cliente..."
               value={formData.title}
               onChange={e => setFormData({...formData, title: e.target.value})}
@@ -391,7 +391,7 @@ export const CalendarPage = () => {
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label>
             <textarea 
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
               placeholder="Detalles del evento..."
               rows={2}
               value={formData.description}
@@ -403,7 +403,7 @@ export const CalendarPage = () => {
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo</label>
               <select 
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
                 value={formData.type}
                 onChange={e => setFormData({...formData, type: e.target.value})}
               >
@@ -417,7 +417,7 @@ export const CalendarPage = () => {
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha *</label>
               <input 
                 type="date" 
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
                 value={formData.startDate}
                 onChange={e => setFormData({...formData, startDate: e.target.value})}
                 required
@@ -430,7 +430,7 @@ export const CalendarPage = () => {
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hora inicio</label>
               <input 
                 type="time" 
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
                 value={formData.startTime}
                 onChange={e => setFormData({...formData, startTime: e.target.value})}
               />
@@ -439,7 +439,7 @@ export const CalendarPage = () => {
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hora fin</label>
               <input 
                 type="time" 
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
                 value={formData.endTime}
                 onChange={e => setFormData({...formData, endTime: e.target.value})}
               />
@@ -460,7 +460,7 @@ export const CalendarPage = () => {
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Título *</label>
             <input 
               type="text" 
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
               value={formData.title}
               onChange={e => setFormData({...formData, title: e.target.value})}
               required
@@ -470,7 +470,7 @@ export const CalendarPage = () => {
           <div>
             <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Descripción</label>
             <textarea 
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-elio-yellow/50"
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
               rows={2}
               value={formData.description}
               onChange={e => setFormData({...formData, description: e.target.value})}
@@ -481,7 +481,7 @@ export const CalendarPage = () => {
             <div>
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Tipo</label>
               <select 
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
                 value={formData.type}
                 onChange={e => setFormData({...formData, type: e.target.value})}
               >
@@ -495,7 +495,7 @@ export const CalendarPage = () => {
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Fecha *</label>
               <input 
                 type="date" 
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
                 value={formData.startDate}
                 onChange={e => setFormData({...formData, startDate: e.target.value})}
                 required
@@ -508,7 +508,7 @@ export const CalendarPage = () => {
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hora inicio</label>
               <input 
                 type="time" 
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
                 value={formData.startTime}
                 onChange={e => setFormData({...formData, startTime: e.target.value})}
               />
@@ -517,7 +517,7 @@ export const CalendarPage = () => {
               <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Hora fin</label>
               <input 
                 type="time" 
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none"
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none focus:border-elio-yellow"
                 value={formData.endTime}
                 onChange={e => setFormData({...formData, endTime: e.target.value})}
               />

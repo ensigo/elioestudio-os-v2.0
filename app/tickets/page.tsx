@@ -463,53 +463,68 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
             {/* List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
               {filteredTickets.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <Inbox size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>No hay tickets</p>
+                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                  <Inbox size={36} className="mb-3 opacity-30" />
+                  <p className="font-medium text-gray-500 text-sm">
+                    {showArchived ? 'No hay tickets archivados' : 'Bandeja vacía'}
+                  </p>
+                  {!showArchived && <p className="text-xs mt-1">Los mensajes enviados aparecerán aquí</p>}
                 </div>
               ) : (
-                filteredTickets.map(ticket => (
-                  <div 
-                    key={ticket.id} 
-                    className="bg-white p-4 rounded-xl border border-gray-200 hover:shadow-md transition-all cursor-pointer"
-                    onClick={() => setSelectedTicket(ticket)}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-elio-yellow text-white flex items-center justify-center font-bold border border-white shadow-sm">
-                          {ticket.sender.name.charAt(0)}
+                filteredTickets.map(ticket => {
+                  const isUnread = !ticket.readBy?.includes(currentUser?.id || '');
+                  return (
+                    <div
+                      key={ticket.id}
+                      className={`bg-white p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md ${
+                        isUnread ? 'border-elio-yellow/40 shadow-sm' : 'border-gray-200'
+                      }`}
+                      onClick={() => setSelectedTicket(ticket)}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm flex-shrink-0 ${
+                            isUnread ? 'bg-elio-yellow text-white' : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {ticket.sender.name.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className={`text-sm truncate max-w-[220px] ${isUnread ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                                {ticket.title}
+                              </p>
+                              {isUnread && <span className="w-2 h-2 bg-elio-yellow rounded-full flex-shrink-0" />}
+                            </div>
+                            <div className="flex items-center text-xs text-gray-400 mt-0.5">
+                              <span>{ticket.sender.name}</span>
+                              <span className="mx-1">→</span>
+                              <span>{ticket.recipient?.name || 'Todo el equipo'}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-bold text-gray-900">{ticket.title}</p>
-                          <div className="flex items-center text-xs text-gray-500 mt-0.5">
-                            <span className="font-medium text-gray-700">{ticket.sender.name}</span>
-                            <span className="mx-1">→</span>
-                            <span>{ticket.recipient?.name || 'Todo el equipo'}</span>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          <div className="flex gap-1">
+                            {getPriorityBadge(ticket.priority)}
+                            {getStatusBadge(ticket.status)}
+                          </div>
+                          <div className="flex items-center text-[10px] text-gray-400">
+                            <Clock size={10} className="mr-1" /> {formatTime(ticket.createdAt)}
+                            {(ticket.respuestas?.length || 0) > 0 && (
+                              <span className="ml-2 flex items-center text-blue-500">
+                                <MessageCircle size={10} className="mr-1" /> {ticket.respuestas?.length}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end space-y-1">
-                        <div className="flex gap-1">
-                          {getPriorityBadge(ticket.priority)}
-                          {getStatusBadge(ticket.status)}
+                      {ticket.description && (
+                        <div className="ml-12 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 text-xs text-gray-500 leading-relaxed line-clamp-2">
+                          {ticket.description}
                         </div>
-                        <div className="flex items-center text-[10px] text-gray-400">
-                          <Clock size={10} className="mr-1" /> {formatTime(ticket.createdAt)}
-                          {(ticket.respuestas?.length || 0) > 0 && (
-                            <span className="ml-2 flex items-center text-blue-500">
-                              <MessageCircle size={10} className="mr-1" /> {ticket.respuestas?.length}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                      )}
                     </div>
-                    <div className="ml-13 bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm text-gray-600 leading-relaxed">
-                      {ticket.description && ticket.description.length > 150 
-                        ? ticket.description.substring(0, 150) + '...' 
-                        : (ticket.description || "Sin descripción")}
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

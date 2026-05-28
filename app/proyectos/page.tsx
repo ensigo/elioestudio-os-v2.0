@@ -171,7 +171,7 @@ export const ProjectsPage = () => {
         </div>
         <button
           onClick={() => { setEditingProject(null); setShowModal(true); }}
-          className="flex items-center gap-2 px-4 py-2 bg-elio-yellow text-black font-bold rounded-lg hover:bg-yellow-400"
+          className="flex items-center gap-2 px-4 py-2 bg-elio-yellow text-white font-bold rounded-lg hover:bg-elio-yellow-hover transition-colors shadow-sm"
         >
           <Plus size={18} /> Alta de Proyecto
         </button>
@@ -180,15 +180,15 @@ export const ProjectsPage = () => {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: 'Total',       value: stats.total,     color: 'text-slate-900', bg: 'bg-slate-50' },
-          { label: 'Pendientes',  value: stats.pending,   color: 'text-slate-600', bg: 'bg-slate-50' },
-          { label: 'En Curso',    value: stats.active,    color: 'text-blue-600',  bg: 'bg-blue-50'  },
-          { label: 'Completados', value: stats.completed, color: 'text-green-600', bg: 'bg-green-50' },
-          { label: 'Bloqueados',  value: stats.blocked,   color: 'text-red-600',   bg: 'bg-red-50'   },
+          { label: 'Total',       value: stats.total,     alert: false },
+          { label: 'Pendientes',  value: stats.pending,   alert: false },
+          { label: 'En Curso',    value: stats.active,    alert: false },
+          { label: 'Completados', value: stats.completed, alert: false },
+          { label: 'Bloqueados',  value: stats.blocked,   alert: stats.blocked > 0 },
         ].map(s => (
-          <div key={s.label} className={`${s.bg} rounded-xl p-4`}>
-            <p className="text-xs font-medium text-slate-500 uppercase">{s.label}</p>
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+          <div key={s.label} className="bg-white border border-gray-100 rounded-xl p-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{s.label}</p>
+            <p className={`text-2xl font-bold tabular-nums ${s.alert ? 'text-red-600' : 'text-gray-900'}`}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -197,25 +197,25 @@ export const ProjectsPage = () => {
       <div className="flex flex-col md:flex-row gap-3 justify-between">
         <div className="flex flex-wrap gap-3 flex-1">
           <div className="relative flex-1 min-w-[200px] max-w-md">
-            <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text" placeholder="Buscar proyecto o cliente..."
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm"
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow"
             />
           </div>
-          <select value={filterEstado}  onChange={e => setFilterEstado(e.target.value)}  className="px-3 py-2 border rounded-lg text-sm">
+          <select value={filterEstado}  onChange={e => setFilterEstado(e.target.value)}  className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow bg-white text-gray-700">
             <option value="todos">Todos los estados</option>
             {ESTADOS.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
           </select>
-          <select value={filterCliente} onChange={e => setFilterCliente(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+          <select value={filterCliente} onChange={e => setFilterCliente(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow bg-white text-gray-700">
             <option value="todos">Todos los clientes</option>
             {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <div className="hidden md:flex bg-slate-100 p-1 rounded-lg">
-          <button onClick={() => setViewMode('list')}   className={`p-2 rounded ${viewMode === 'list'   ? 'bg-white shadow-sm' : 'text-slate-500'}`}><List size={18} /></button>
-          <button onClick={() => setViewMode('kanban')} className={`p-2 rounded ${viewMode === 'kanban' ? 'bg-white shadow-sm' : 'text-slate-500'}`}><LayoutGrid size={18} /></button>
+        <div className="hidden md:flex bg-gray-100 p-1 rounded-lg">
+          <button onClick={() => setViewMode('list')}   className={`p-2 rounded transition-colors ${viewMode === 'list'   ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-700'}`}><List size={17} /></button>
+          <button onClick={() => setViewMode('kanban')} className={`p-2 rounded transition-colors ${viewMode === 'kanban' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-400 hover:text-gray-700'}`}><LayoutGrid size={17} /></button>
         </div>
       </div>
 

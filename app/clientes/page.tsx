@@ -327,18 +327,34 @@ export const ClientsPage = () => {
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
              <tr>
-               <th className="px-6 py-4 font-semibold text-gray-600">Cliente</th>
-               <th className="px-6 py-4 font-semibold text-gray-600">Responsable</th>
-               <th className="px-6 py-4 font-semibold text-gray-600">Estado</th>
-               <th className="px-6 py-4 font-semibold text-gray-600">Proyectos / Actividad</th>
-               <th className="px-6 py-4 font-semibold text-gray-600 text-right">Acciones</th>
+               <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Cliente</th>
+               <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Responsable</th>
+               <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+               <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Proyectos / Actividad</th>
+               <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Acciones</th>
              </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {filteredClients.length === 0 && !isLoading ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                  <p>{searchTerm ? 'No se encontraron clientes con esa búsqueda.' : 'No se encontraron clientes. ¡Crea el primero!'}</p>
+                <td colSpan={5} className="px-6 py-16 text-center">
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    {searchTerm ? (
+                      <>
+                        <Search size={32} className="opacity-30 mb-1" />
+                        <p className="font-medium text-gray-500">Sin resultados para &ldquo;{searchTerm}&rdquo;</p>
+                        <p className="text-xs">Prueba con otro nombre o CIF</p>
+                      </>
+                    ) : (
+                      <>
+                        <FolderOpen size={32} className="opacity-30 mb-1" />
+                        <p className="font-medium text-gray-500">Todavía no hay clientes</p>
+                        <button onClick={() => setIsModalOpen(true)} className="mt-2 text-xs font-bold text-elio-yellow hover:underline">
+                          Crear el primero
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ) : (

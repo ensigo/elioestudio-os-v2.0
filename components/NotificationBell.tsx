@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { authFetch } from '../lib/auth-fetch';
 import { Bell, MessageSquare, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';

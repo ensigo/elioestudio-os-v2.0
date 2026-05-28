@@ -303,6 +303,8 @@ export const CalendarPage = () => {
 
       {/* CALENDAR GRID */}
       <div className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col">
+        <div className="overflow-x-auto flex-1 flex flex-col">
+        <div className="min-w-[560px] flex flex-col flex-1">
         {/* Weekday Headers */}
         <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
           {daysOfWeek.map(day => (
@@ -369,6 +371,8 @@ export const CalendarPage = () => {
               </div>
             );
           })}
+        </div>
+        </div>
         </div>
       </div>
 

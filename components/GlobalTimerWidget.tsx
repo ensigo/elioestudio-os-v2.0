@@ -7,8 +7,8 @@ export const GlobalTimerWidget = () => {
   if (!activeTaskEntry) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 duration-300">
-      <div className="bg-elio-black text-white px-4 py-3 rounded-xl shadow-2xl border border-gray-700 flex items-center gap-4 min-w-[280px]">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 animate-in slide-in-from-bottom-5 duration-300 max-w-[calc(100vw-2rem)] sm:max-w-none">
+      <div className="bg-elio-black text-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl shadow-2xl border border-gray-700 flex items-center gap-3 sm:gap-4 sm:min-w-[280px]">
         <div className="relative flex-shrink-0">
           <div className="w-2.5 h-2.5 bg-elio-yellow rounded-full animate-pulse" />
           <div className="absolute top-0 left-0 w-2.5 h-2.5 bg-elio-yellow rounded-full animate-ping opacity-60" />

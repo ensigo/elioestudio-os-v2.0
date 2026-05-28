@@ -223,20 +223,20 @@ export default function HostingPage() {
         </div>
         {isAdmin && (
           <div className="flex gap-2 flex-wrap">
-            <button onClick={() => { setEditingItem(null); setShowModalPlan(true); }} className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-              <Package size={18} /> Plan
+            <button onClick={() => { setEditingItem(null); setShowModalPlan(true); }} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+              <Package size={16} /> <span className="hidden sm:inline">Plan</span>
             </button>
-            <button onClick={() => { setEditingItem(null); setShowModalProveedor(true); }} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200">
-              <Building2 size={18} /> Proveedor
+            <button onClick={() => { setEditingItem(null); setShowModalProveedor(true); }} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200">
+              <Building2 size={16} /> <span className="hidden sm:inline">Proveedor</span>
             </button>
-            <button onClick={() => { setEditingItem(null); setShowModalHosting(true); }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              <Server size={18} /> Hosting
+            <button onClick={() => { setEditingItem(null); setShowModalHosting(true); }} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <Server size={16} /> <span className="hidden sm:inline">Hosting</span>
             </button>
-            <button onClick={() => { setEditingItem(null); setShowModalDominio(true); }} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-              <Globe size={18} /> Dominio
+            <button onClick={() => { setEditingItem(null); setShowModalDominio(true); }} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700">
+              <Globe size={16} /> <span className="hidden sm:inline">Dominio</span>
             </button>
-            <button onClick={() => { setEditingItem(null); setShowModalEmail(true); }} className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600">
-              <Mail size={18} /> Email
+            <button onClick={() => { setEditingItem(null); setShowModalEmail(true); }} className="flex items-center gap-1.5 px-3 py-2 text-sm bg-orange-500 text-white rounded-lg hover:bg-orange-600">
+              <Mail size={16} /> <span className="hidden sm:inline">Email</span>
             </button>
           </div>
         )}
@@ -261,7 +261,7 @@ export default function HostingPage() {
       {/* DASHBOARD */}
       {activeTab === 'dashboard' && dashboard && (
         <div className="space-y-6">
-          <div className={`grid grid-cols-1 gap-4 ${isAdmin ? 'md:grid-cols-5' : 'md:grid-cols-2'}`}>
+          <div className={`grid gap-4 ${isAdmin ? 'grid-cols-2 lg:grid-cols-5' : 'grid-cols-2'}`}>
             {isAdmin && (
               <Card>
                 <div className="flex items-center justify-between">
@@ -329,9 +329,9 @@ export default function HostingPage() {
                   <div>
                     <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Server size={16} /> Hostings</h4>
                     {dashboard.alertas.hostings.map((h: any) => (
-                      <div key={h.id} className="flex justify-between items-center bg-orange-50 p-3 rounded-lg mb-2">
+                      <div key={h.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-orange-50 p-3 rounded-lg mb-2 gap-1">
                         <span className="font-medium">{h.nombre} {h.webAsociada && <span className="text-blue-600">({h.webAsociada})</span>} <span className="text-slate-500">- {h.cliente.name}</span></span>
-                        <span className="text-orange-600 text-sm">{formatDate(h.fechaVencimiento)} - {getDaysUntil(h.fechaVencimiento)} días</span>
+                        <span className="text-orange-600 text-sm whitespace-nowrap">{formatDate(h.fechaVencimiento)} - {getDaysUntil(h.fechaVencimiento)} días</span>
                       </div>
                     ))}
                   </div>
@@ -340,9 +340,9 @@ export default function HostingPage() {
                   <div>
                     <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Globe size={16} /> Dominios</h4>
                     {dashboard.alertas.dominios.map((d: any) => (
-                      <div key={d.id} className="flex justify-between items-center bg-orange-50 p-3 rounded-lg mb-2">
+                      <div key={d.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-orange-50 p-3 rounded-lg mb-2 gap-1">
                         <span className="font-medium">{d.nombre}{d.extension} <span className="text-slate-500">({d.cliente.name})</span></span>
-                        <span className="text-orange-600 text-sm">{formatDate(d.fechaVencimiento)} - {getDaysUntil(d.fechaVencimiento)} días</span>
+                        <span className="text-orange-600 text-sm whitespace-nowrap">{formatDate(d.fechaVencimiento)} - {getDaysUntil(d.fechaVencimiento)} días</span>
                       </div>
                     ))}
                   </div>
@@ -351,7 +351,7 @@ export default function HostingPage() {
                   <div>
                     <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2"><Shield size={16} /> Certificados SSL</h4>
                     {dashboard.alertas.ssl.map((s: any, idx: number) => (
-                      <div key={s.id + idx} className="flex justify-between items-center bg-red-50 p-3 rounded-lg mb-2">
+                      <div key={s.id + idx} className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-red-50 p-3 rounded-lg mb-2 gap-1">
                         <span className="font-medium">
                           {s._tipo === 'hosting' ? s.nombre : `${s.nombre}${s.extension}`}
                           <span className="text-xs ml-2 bg-slate-200 px-2 py-0.5 rounded">{s._tipo === 'hosting' ? 'Hosting' : 'Dominio'}</span>
@@ -373,9 +373,9 @@ export default function HostingPage() {
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Buscar por cliente, hosting o web..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
+              <input type="text" placeholder="Buscar por cliente, hosting o web..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow" />
             </div>
-            <select value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+            <select value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow">
               <option value="todos">Todos los clientes</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -451,9 +451,9 @@ export default function HostingPage() {
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
+              <input type="text" placeholder="Buscar..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow" />
             </div>
-            <select value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+            <select value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow">
               <option value="todos">Todos los clientes</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
@@ -514,9 +514,9 @@ export default function HostingPage() {
             <div className="flex flex-wrap gap-3 flex-1">
               <div className="relative flex-1 min-w-[200px]">
                 <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input type="text" placeholder="Buscar por email, cliente o dominio..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border rounded-lg text-sm" />
+                <input type="text" placeholder="Buscar por email, cliente o dominio..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow" />
               </div>
-              <select value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="px-3 py-2 border rounded-lg text-sm">
+              <select value={filterCliente} onChange={(e) => setFilterCliente(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:border-elio-yellow">
                 <option value="todos">Todos los clientes</option>
                 {clientes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>

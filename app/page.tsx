@@ -313,20 +313,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     <div className="space-y-6 animate-in fade-in duration-300">
 
       {/* Saludo contextual */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-sm text-gray-400 capitalize">{todayLabel}</p>
-          <h2 className="text-2xl font-bold text-gray-900 mt-0.5">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mt-0.5">
             {getGreeting()}, {usuario?.name?.split(' ')[0] || 'equipo'}
           </h2>
         </div>
         {stats && stats.tareas.urgentes > 0 && (
           <button
             onClick={() => onNavigate?.('tareas')}
-            className="flex-shrink-0 flex items-center gap-2 bg-red-50 border border-red-100 text-red-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors"
+            className="flex-shrink-0 flex items-center gap-2 bg-red-50 border border-red-100 text-red-700 px-3 py-2 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors"
           >
             <Flag size={14} className="fill-current" />
-            {stats.tareas.urgentes} tarea{stats.tareas.urgentes > 1 ? 's' : ''} urgente{stats.tareas.urgentes > 1 ? 's' : ''}
+            {stats.tareas.urgentes} urgente{stats.tareas.urgentes > 1 ? 's' : ''}
           </button>
         )}
       </div>

@@ -559,7 +559,7 @@ export const TeamPage = () => {
         </div>
 
         {/* Pestañas */}
-        <div className="flex gap-2 border-b border-slate-200">
+        <div className="flex gap-2 border-b border-slate-200 overflow-x-auto">
           <button
             onClick={() => setMiTab('perfil')}
             className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
@@ -933,7 +933,7 @@ export const TeamPage = () => {
 
         {/* Pestañas de Datos */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="flex border-b border-slate-200 bg-slate-50">
+          <div className="flex border-b border-slate-200 bg-slate-50 overflow-x-auto">
             {([
               { key: 'personal', label: 'Datos Personales' },
               { key: 'bancario', label: 'Datos Bancarios' },

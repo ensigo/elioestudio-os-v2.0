@@ -274,17 +274,17 @@ export const TasksPage = () => {
 
       {/* Banner timer activo */}
       {activeTaskEntry && (
-        <div className="bg-elio-black text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 bg-elio-yellow rounded-full animate-pulse" />
-            <div>
-              <span className="text-xs text-gray-400 block leading-none mb-0.5">
+        <div className="bg-elio-black text-white px-4 py-3 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-2.5 h-2.5 bg-elio-yellow rounded-full animate-pulse flex-shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs text-gray-400 block leading-none mb-0.5 truncate">
                 {activeTaskEntry.proyectoTitle || 'Timer activo'}
               </span>
-              <span className="font-semibold text-sm">{activeTaskEntry.taskTitle}</span>
+              <span className="font-semibold text-sm truncate block">{activeTaskEntry.taskTitle}</span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="text-xl font-mono font-bold text-elio-yellow tabular-nums">
               {formatTime(taskElapsedSeconds)}
             </span>

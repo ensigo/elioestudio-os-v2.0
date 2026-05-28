@@ -386,7 +386,7 @@ export const TasksPage = () => {
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-bold tracking-wider">
                 <tr>
-                  <th className="px-4 py-3 w-12 text-center">▶</th>
+                  <th className="px-4 py-3 w-12 text-center">Timer</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3 w-2/5">Tarea / Proyecto</th>
                   <th className="px-4 py-3 text-center">Prio</th>

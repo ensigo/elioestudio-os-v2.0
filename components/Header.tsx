@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { authFetch } from '../lib/auth-fetch';
 import {
   Search, Plus, Menu, LogOut, User, Key, X, Check, AlertCircle,

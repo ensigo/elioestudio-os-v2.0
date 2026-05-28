@@ -300,8 +300,36 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
     return <PageLoader label="Cargando dashboard..." />;
   }
 
+  const getGreeting = () => {
+    const h = new Date().getHours();
+    if (h < 13) return 'Buenos días';
+    if (h < 20) return 'Buenas tardes';
+    return 'Buenas noches';
+  };
+
+  const todayLabel = new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).format(TODAY);
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+
+      {/* Saludo contextual */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-gray-400 capitalize">{todayLabel}</p>
+          <h2 className="text-2xl font-bold text-gray-900 mt-0.5">
+            {getGreeting()}, {usuario?.name?.split(' ')[0] || 'equipo'}
+          </h2>
+        </div>
+        {stats && stats.tareas.urgentes > 0 && (
+          <button
+            onClick={() => onNavigate?.('tareas')}
+            className="flex-shrink-0 flex items-center gap-2 bg-red-50 border border-red-100 text-red-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors"
+          >
+            <Flag size={14} className="fill-current" />
+            {stats.tareas.urgentes} tarea{stats.tareas.urgentes > 1 ? 's' : ''} urgente{stats.tareas.urgentes > 1 ? 's' : ''}
+          </button>
+        )}
+      </div>
 
       {/* MI DÍA — sección operativa */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
@@ -501,59 +529,29 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* FILA 2: Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="cursor-pointer hover:scale-105 transition-transform" onClick={() => onNavigate?.('clientes')}>
-          <Card className="bg-gradient-to-br from-blue-50 to-white border-blue-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-blue-600 uppercase">Clientes</p>
-                <p className="text-3xl font-bold text-gray-900">{stats?.clientes.activos || 0}</p>
-                <p className="text-xs text-gray-500">de {stats?.clientes.total || 0} totales</p>
+      {/* FILA 2: Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'Clientes activos', value: stats?.clientes.activos ?? 0, sub: `${stats?.clientes.total ?? 0} totales`, icon: Users, page: 'clientes', alert: false },
+          { label: 'Proyectos en curso', value: stats?.proyectos.activos ?? 0, sub: `${stats?.proyectos.total ?? 0} totales`, icon: FolderOpen, page: 'proyectos', alert: false },
+          { label: 'Tareas pendientes', value: stats?.tareas.pendientes ?? 0, sub: `${stats?.tareas.urgentes ?? 0} urgentes`, icon: CheckSquare, page: 'tareas', alert: (stats?.tareas.urgentes ?? 0) > 0 },
+          { label: 'Tickets abiertos', value: stats?.tickets.abiertos ?? 0, sub: 'sin resolver', icon: Ticket, page: 'tickets', alert: (stats?.tickets.abiertos ?? 0) > 0 },
+        ].map(({ label, value, sub, icon: Icon, page, alert }) => (
+          <button
+            key={page}
+            onClick={() => onNavigate?.(page)}
+            className="text-left bg-white border border-gray-100 rounded-xl p-5 hover:border-gray-200 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-start justify-between gap-2 mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide leading-tight">{label}</p>
+              <div className={`p-1.5 rounded-lg transition-colors ${alert ? 'bg-red-50' : 'bg-gray-50 group-hover:bg-elio-yellow/10'}`}>
+                <Icon size={14} className={alert ? 'text-red-400' : 'text-gray-400 group-hover:text-elio-yellow transition-colors'} />
               </div>
-              <div className="p-3 bg-blue-100 rounded-xl"><Users size={24} className="text-blue-600" /></div>
             </div>
-          </Card>
-        </div>
-
-        <div className="cursor-pointer hover:scale-105 transition-transform" onClick={() => onNavigate?.('proyectos')}>
-          <Card className="bg-gradient-to-br from-green-50 to-white border-green-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-green-600 uppercase">Proyectos</p>
-                <p className="text-3xl font-bold text-gray-900">{stats?.proyectos.activos || 0}</p>
-                <p className="text-xs text-gray-500">activos</p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-xl"><FolderOpen size={24} className="text-green-600" /></div>
-            </div>
-          </Card>
-        </div>
-
-        <div className="cursor-pointer hover:scale-105 transition-transform" onClick={() => onNavigate?.('tareas')}>
-          <Card className="bg-gradient-to-br from-orange-50 to-white border-orange-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-orange-600 uppercase">Tareas</p>
-                <p className="text-3xl font-bold text-gray-900">{stats?.tareas.pendientes || 0}</p>
-                <p className="text-xs text-gray-500">{stats?.tareas.urgentes || 0} urgentes</p>
-              </div>
-              <div className="p-3 bg-orange-100 rounded-xl"><CheckSquare size={24} className="text-orange-600" /></div>
-            </div>
-          </Card>
-        </div>
-
-        <div className="cursor-pointer hover:scale-105 transition-transform" onClick={() => onNavigate?.('tickets')}>
-          <Card className="bg-gradient-to-br from-purple-50 to-white border-purple-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-bold text-purple-600 uppercase">Tickets</p>
-                <p className="text-3xl font-bold text-gray-900">{stats?.tickets.abiertos || 0}</p>
-                <p className="text-xs text-gray-500">abiertos</p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-xl"><Ticket size={24} className="text-purple-600" /></div>
-            </div>
-          </Card>
-        </div>
+            <p className={`text-3xl font-bold tabular-nums ${alert ? 'text-red-600' : 'text-gray-900'}`}>{value}</p>
+            <p className={`text-xs mt-1 ${alert ? 'text-red-400 font-medium' : 'text-gray-400'}`}>{sub}</p>
+          </button>
+        ))}
       </div>
 
       {/* FILA 3: Semana */}

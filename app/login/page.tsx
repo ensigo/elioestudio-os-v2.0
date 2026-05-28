@@ -27,56 +27,59 @@ export const LoginPage: FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      {/* Fondo decorativo */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-elio-yellow/10 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-elio-yellow/5 rounded-full blur-3xl"></div>
+    <div className="min-h-screen bg-[#0f1117] flex">
+      {/* Panel izquierdo — marca */}
+      <div className="hidden lg:flex flex-col justify-between w-[420px] flex-shrink-0 bg-elio-yellow p-12">
+        <img src="/images/logo_vertical.png" alt="ElioEstudio" className="h-16 w-auto object-contain object-left" />
+        <div>
+          <p className="text-5xl font-bold text-white leading-tight mb-4">
+            Tu estudio,<br />en orden.
+          </p>
+          <p className="text-yellow-100 text-base leading-relaxed">
+            Gestión de proyectos, clientes y equipo desde un solo lugar.
+          </p>
+        </div>
+        <p className="text-yellow-200/60 text-xs">© {new Date().getFullYear()} ElioEstudio</p>
       </div>
 
-      <div className="relative w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <img 
-            src="/images/logo_vertical.png" 
-            alt="ElioEstudio" 
-            className="h-32 mx-auto mb-4 invert"
-          />
-          <p className="text-slate-400 text-sm">Área Privada</p>
-        </div>
+      {/* Panel derecho — formulario */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="w-full max-w-sm">
+          {/* Logo móvil */}
+          <div className="lg:hidden text-center mb-10">
+            <img src="/images/logo_vertical.png" alt="ElioEstudio" className="h-20 mx-auto invert" />
+          </div>
 
-        {/* Card de Login */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-slate-900">Iniciar Sesión</h1>
-            <p className="text-slate-500 text-sm mt-1">Accede con tus credenciales</p>
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-white">Accede a tu cuenta</h1>
+            <p className="text-slate-400 text-sm mt-1">Introduce tus credenciales para continuar</p>
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3 text-red-700">
-              <AlertCircle size={20} className="flex-shrink-0" />
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400">
+              <AlertCircle size={16} className="flex-shrink-0" />
               <p className="text-sm">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
                 Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-elio-yellow/50 focus:border-elio-yellow transition-all"
-                placeholder="tu@email.com"
+                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none focus:border-elio-yellow focus:bg-white/8 transition-all text-white placeholder-slate-600 text-sm"
+                placeholder="tu@elioestudio.com"
                 required
                 autoFocus
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
                 Contraseña
               </label>
               <div className="relative">
@@ -84,16 +87,16 @@ export const LoginPage: FC<LoginPageProps> = ({ onLogin }) => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-elio-yellow/50 focus:border-elio-yellow transition-all pr-12"
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none focus:border-elio-yellow focus:bg-white/8 transition-all text-white placeholder-slate-600 text-sm pr-12"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
                 >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
@@ -101,27 +104,23 @@ export const LoginPage: FC<LoginPageProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-elio-yellow text-white font-bold rounded-xl hover:bg-elio-yellow-hover transition-all shadow-lg shadow-elio-yellow/30 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-elio-yellow text-white font-bold rounded-xl hover:bg-elio-yellow-hover transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <LogIn size={18} />
-                  Acceder
+                  <LogIn size={16} />
+                  Entrar
                 </>
               )}
             </button>
           </form>
 
-          <p className="text-center text-xs text-slate-400 mt-6">
+          <p className="text-center text-xs text-slate-600 mt-8">
             ¿Problemas para acceder? Contacta al administrador
           </p>
         </div>
-
-        <p className="text-center text-slate-500 text-xs mt-6">
-          © {new Date().getFullYear()} ElioEstudio. Todos los derechos reservados.
-        </p>
       </div>
     </div>
   );

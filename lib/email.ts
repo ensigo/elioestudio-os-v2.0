@@ -1,6 +1,10 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 const FROM = 'Elio Studio OS <notificaciones@elioestudio.com>';
 
 // ── Plantillas ──────────────────────────────────────────────────────────────
@@ -92,7 +96,7 @@ export async function enviarEmailTareaAsignada(opts: {
   descripcion?: string;
   fecha?: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: opts.email,
     subject: `Nueva tarea asignada: ${opts.tarea}`,
@@ -107,7 +111,7 @@ export async function enviarEmailTareaUrgente(opts: {
   proyecto: string;
   descripcion?: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: opts.email,
     subject: `⚠️ Tarea urgente: ${opts.tarea}`,
@@ -120,7 +124,7 @@ export async function enviarEmailRegistroFaltante(opts: {
   nombre: string;
   fecha: string;
 }) {
-  return resend.emails.send({
+  return getResend().emails.send({
     from: FROM,
     to: opts.email,
     subject: `Registro horario pendiente — ${opts.fecha}`,

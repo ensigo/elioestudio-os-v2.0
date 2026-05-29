@@ -94,8 +94,8 @@ export const TasksPage = () => {
         setIsLoading(false);
       }
     };
-    fetchData();
-  }, []);
+    if (usuario?.id) fetchData();
+  }, [usuario?.id]);
 
   // Cerrar dropdown de estado al hacer click fuera
   useEffect(() => {

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { authFetch } from '../../lib/auth-fetch';
 import { useToast } from '../../components/ui/Toast';
-import { 
+import {
   Clock, TrendingUp, Calendar, ChevronLeft, ChevronRight,
-  ArrowUpRight, ArrowDownRight, FileDown, FileSpreadsheet
+  ArrowUpRight, ArrowDownRight, FileDown, FileSpreadsheet,
+  Pencil, Trash2, Plus, X, Check
 } from 'lucide-react';
 import { Badge } from '../../components/ui/Badge';
 import { Card } from '../../components/ui/Card';
@@ -80,6 +81,13 @@ export default function ReportesPage() {
   const [proyectos, setProyectos] = useState<ProyectoReporte[]>([]);
   const [vistaParteTrabajo, setVistaParteTrabajo] = useState<'semana' | 'mes'>('semana');
   const [semanaActual, setSemanaActual] = useState(new Date());
+
+  // Estados para gestión de time entries (admin)
+  const [teModal, setTeModal] = useState<{ open: boolean; entry: TimeEntry | null }>({ open: false, entry: null });
+  const [teForm, setTeForm] = useState({ userId: '', tareaId: '', fecha: '', horaInicio: '', horaFin: '', description: '' });
+  const [tareas, setTareas] = useState<any[]>([]);
+  const [savingTe, setSavingTe] = useState(false);
+  const { success: toastSuccess } = useToast();
   const isAdmin = usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN';
   const horasEsperadas = usuario?.tipoContrato === 'MEDIA' ? HORAS_MEDIA : HORAS_COMPLETA;
   const minutosEsperados = horasEsperadas * 60;
@@ -162,6 +170,95 @@ export default function ReportesPage() {
     
     fetchTimeEntries();
   }, [mesActual, semanaActual, selectedUserId, isAdmin, vistaParteTrabajo]);
+
+  // Cargar tareas para el selector del modal (solo admin)
+  useEffect(() => {
+    if (isAdmin) {
+      authFetch('/api/tareas').then(r => r.json()).then(data => {
+        if (Array.isArray(data)) setTareas(data);
+      }).catch(() => {});
+    }
+  }, [isAdmin]);
+
+  const openNewTe = () => {
+    const hoy = new Date().toISOString().split('T')[0];
+    setTeForm({ userId: selectedUserId !== 'todos' ? selectedUserId : '', tareaId: '', fecha: hoy, horaInicio: '', horaFin: '', description: '' });
+    setTeModal({ open: true, entry: null });
+  };
+
+  const openEditTe = (entry: TimeEntry) => {
+    const start = new Date(entry.startTime);
+    const end = entry.endTime ? new Date(entry.endTime) : null;
+    setTeForm({
+      userId: entry.userId,
+      tareaId: entry.tareaId || '',
+      fecha: start.toISOString().split('T')[0],
+      horaInicio: start.toTimeString().slice(0, 5),
+      horaFin: end ? end.toTimeString().slice(0, 5) : '',
+      description: entry.description || '',
+    });
+    setTeModal({ open: true, entry });
+  };
+
+  const saveTe = async () => {
+    if (!teForm.userId || !teForm.fecha || !teForm.horaInicio) return;
+    setSavingTe(true);
+    try {
+      const startTime = new Date(`${teForm.fecha}T${teForm.horaInicio}`).toISOString();
+      const endTime = teForm.horaFin ? new Date(`${teForm.fecha}T${teForm.horaFin}`).toISOString() : null;
+      if (teModal.entry) {
+        await authFetch('/api/control-horario?entity=time-entries', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: teModal.entry.id, startTime, endTime, description: teForm.description }),
+        });
+      } else {
+        await authFetch('/api/control-horario?entity=time-entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: teForm.userId, tareaId: teForm.tareaId || null, startTime, endTime, description: teForm.description }),
+        });
+      }
+      // Recargar time entries
+      const url = buildTimeEntriesUrl();
+      const res = await authFetch(url);
+      if (res.ok) setTimeEntries(await res.json());
+      setTeModal({ open: false, entry: null });
+      toastSuccess(teModal.entry ? 'Registro actualizado' : 'Registro añadido');
+    } catch {
+      toastError('Error al guardar el registro');
+    } finally {
+      setSavingTe(false);
+    }
+  };
+
+  const deleteTe = async (id: string) => {
+    if (!confirm('¿Eliminar este registro de tiempo?')) return;
+    try {
+      await authFetch('/api/control-horario?entity=time-entries', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      setTimeEntries(prev => prev.filter(e => e.id !== id));
+      toastSuccess('Registro eliminado');
+    } catch {
+      toastError('Error al eliminar');
+    }
+  };
+
+  const buildTimeEntriesUrl = () => {
+    let url = `/api/control-horario?entity=time-entries&`;
+    if (vistaParteTrabajo === 'semana') {
+      const inicio = getInicioSemana(semanaActual);
+      const fin = getFinSemana(semanaActual);
+      url += `fechaInicio=${inicio.toISOString()}&fechaFin=${fin.toISOString()}`;
+    } else {
+      url += `mes=${mesActual.getMonth() + 1}&año=${mesActual.getFullYear()}`;
+    }
+    if (selectedUserId !== 'todos') url += `&userId=${selectedUserId}`;
+    return url;
+  };
 
   const calcularResumenSemanal = (jornadasData: Jornada[]) => {
     const hoy = new Date();
@@ -582,8 +679,14 @@ export default function ReportesPage() {
       {isAdmin && (
         <Card title="Parte de Trabajo" className="overflow-hidden">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-            <div className="text-sm text-slate-500">
-              Desglose de tiempo por tarea y cliente
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-slate-500">Desglose de tiempo por tarea y cliente</div>
+              <button
+                onClick={openNewTe}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-elio-yellow text-black text-sm font-semibold rounded-lg hover:bg-yellow-400 transition-colors"
+              >
+                <Plus size={15} /> Añadir
+              </button>
             </div>
             <div className="flex items-center gap-3">
               {/* Toggle Semana/Mes */}
@@ -672,6 +775,7 @@ export default function ReportesPage() {
                       <th className="px-4 py-3 text-center font-bold text-slate-600">Inicio</th>
                       <th className="px-4 py-3 text-center font-bold text-slate-600">Fin</th>
                       <th className="px-4 py-3 text-center font-bold text-slate-600">Duración</th>
+                      <th className="px-4 py-3 text-center font-bold text-slate-600">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -679,7 +783,7 @@ export default function ReportesPage() {
                       const inicio = new Date(entry.startTime);
                       const fin = entry.endTime ? new Date(entry.endTime) : null;
                       const minutos = fin ? Math.round((fin.getTime() - inicio.getTime()) / 60000) : 0;
-                      
+
                       return (
                         <tr key={entry.id} className="hover:bg-slate-50">
                           {selectedUserId === 'todos' && (
@@ -720,6 +824,16 @@ export default function ReportesPage() {
                             <span className={`font-bold ${minutos >= 60 ? 'text-green-600' : 'text-slate-600'}`}>
                               {Math.floor(minutos / 60)}h {minutos % 60}m
                             </span>
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <button onClick={() => openEditTe(entry)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Editar">
+                                <Pencil size={14} />
+                              </button>
+                              <button onClick={() => deleteTe(entry.id)} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Eliminar">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -845,6 +959,111 @@ export default function ReportesPage() {
           </div>
         </Card>
       )}
+
+      {/* Modal añadir/editar time entry */}
+    {teModal.open && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="text-lg font-bold text-slate-900">
+              {teModal.entry ? 'Editar registro de tiempo' : 'Añadir registro de tiempo'}
+            </h3>
+            <button onClick={() => setTeModal({ open: false, entry: null })} className="text-slate-400 hover:text-slate-600">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="space-y-4">
+            {/* Empleado */}
+            {!teModal.entry && (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Empleado</label>
+                <select
+                  value={teForm.userId}
+                  onChange={e => setTeForm(f => ({ ...f, userId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-elio-yellow/50"
+                >
+                  <option value="">Seleccionar empleado</option>
+                  {usuarios.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {/* Tarea */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Tarea</label>
+              <select
+                value={teForm.tareaId}
+                onChange={e => setTeForm(f => ({ ...f, tareaId: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-elio-yellow/50"
+              >
+                <option value="">Sin tarea asignada</option>
+                {tareas.map((t: any) => (
+                  <option key={t.id} value={t.id}>
+                    {t.title}{t.proyecto ? ` — ${t.proyecto.title}` : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {/* Fecha */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Fecha</label>
+              <input
+                type="date"
+                value={teForm.fecha}
+                onChange={e => setTeForm(f => ({ ...f, fecha: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-elio-yellow/50"
+              />
+            </div>
+            {/* Hora inicio / fin */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Hora inicio</label>
+                <input
+                  type="time"
+                  value={teForm.horaInicio}
+                  onChange={e => setTeForm(f => ({ ...f, horaInicio: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-elio-yellow/50"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Hora fin</label>
+                <input
+                  type="time"
+                  value={teForm.horaFin}
+                  onChange={e => setTeForm(f => ({ ...f, horaFin: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-elio-yellow/50"
+                />
+              </div>
+            </div>
+            {/* Descripción */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Descripción <span className="text-slate-400 font-normal">(opcional)</span></label>
+              <input
+                type="text"
+                value={teForm.description}
+                onChange={e => setTeForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Ej: Reunión con cliente, Revisión código..."
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-elio-yellow/50"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 mt-6">
+            <button onClick={() => setTeModal({ open: false, entry: null })} className="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">
+              Cancelar
+            </button>
+            <button
+              onClick={saveTe}
+              disabled={savingTe || !teForm.userId || !teForm.fecha || !teForm.horaInicio}
+              className="flex items-center gap-2 px-4 py-2 bg-elio-yellow text-black text-sm font-semibold rounded-lg hover:bg-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Check size={15} />
+              {savingTe ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   );
 }

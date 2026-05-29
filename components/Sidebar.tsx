@@ -2,7 +2,7 @@ import React from 'react';
 import {
   LayoutDashboard, Calendar, Briefcase, CheckSquare, Users, BarChart3,
   FileText, Settings, LifeBuoy, X, Building2, MessageSquare,
-  Megaphone, Mail, Server, TrendingUp
+  Megaphone, Mail, Server, TrendingUp, Upload
 } from 'lucide-react';
 import { NavItem, UserRole } from '../types';
 
@@ -54,7 +54,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onNavigate, isOpen,
         { id: 'reportes',  label: 'Reportes',          icon: BarChart3,   roles: ['ADMIN', 'SUPERADMIN'] as UserRole[] },
         { id: 'hosting',   label: 'Hosting y Dominios',icon: Server,      roles: ['ADMIN', 'SUPERADMIN'] as UserRole[] },
         { id: 'analisis',  label: 'Análisis',          icon: TrendingUp,  roles: ['ADMIN', 'SUPERADMIN'] as UserRole[] },
-        { id: 'contratos', label: 'Contratos',         icon: FileText,    roles: ['ADMIN', 'SUPERADMIN'] as UserRole[] },
+        { id: 'contratos',               label: 'Contratos',               icon: FileText,  roles: ['ADMIN', 'SUPERADMIN'] as UserRole[] },
+        { id: 'importar-credenciales',   label: 'Importar credenciales',   icon: Upload,    roles: ['ADMIN', 'SUPERADMIN'] as UserRole[] },
       ]
     },
   ];

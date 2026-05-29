@@ -18,6 +18,7 @@ import ConfiguracionPage from './configuracion/page';
 import HostingPage from './hosting/page';
 import AnalisisPage from './analisis/page';
 import ContratosPage from './contratos/page';
+import ImportarCredencialesPage from './admin/importar-credenciales/page';
 import { LoginPage } from './login/page';
 
 import { TimeTrackingProvider } from '../context/TimeTrackingContext';
@@ -90,6 +91,7 @@ function AppContent() {
       case 'hosting': return <HostingPage />;
       case 'analisis': return <AnalisisPage />;
       case 'contratos': return <ContratosPage />;
+      case 'importar-credenciales': return usuario?.role === 'ADMIN' || usuario?.role === 'SUPERADMIN' ? <ImportarCredencialesPage /> : <DashboardPage />;
       default: return <DashboardPage />;
     }
   };

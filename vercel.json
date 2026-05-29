@@ -3,6 +3,10 @@
     {
       "path": "/api/tareas?resource=generar-recurrentes",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/notificaciones?resource=registros-faltantes",
+      "schedule": "0 9 * * 1-5"
     }
   ]
 }

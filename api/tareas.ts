@@ -1,4 +1,6 @@
 import { PrismaClient } from '@prisma/client';
+import { enviarEmailTareaAsignada, enviarEmailTareaUrgente } from '../lib/email';
+
 function requireAuth(req: any, res: any): string | null {
   const userId = req.headers?.['x-user-id'] as string | undefined;
   if (!userId) { res.status(401).json({ error: 'No autenticado' }); return null; }
@@ -113,6 +115,19 @@ export default async function handler(req: any, res: any) {
         }
       });
 
+      // Notificar al asignado
+      if (nuevaTarea.assignee?.email) {
+        enviarEmailTareaAsignada({
+          email: nuevaTarea.assignee.email,
+          nombre: nuevaTarea.assignee.name ?? nuevaTarea.assignee.email,
+          tarea: nuevaTarea.title,
+          proyecto: nuevaTarea.proyecto?.title ?? '',
+          prioridad: nuevaTarea.priority,
+          descripcion: nuevaTarea.description ?? undefined,
+          fecha: nuevaTarea.dueDate ? new Date(nuevaTarea.dueDate).toLocaleDateString('es-ES') : undefined,
+        }).catch(console.error);
+      }
+
       return res.status(201).json(nuevaTarea);
     }
 
@@ -123,6 +138,12 @@ export default async function handler(req: any, res: any) {
       if (!id) {
         return res.status(400).json({ error: 'ID es obligatorio' });
       }
+
+      // Leer estado previo para detectar cambios relevantes
+      const tareaPrevia = await prisma.tarea.findUnique({
+        where: { id },
+        select: { assigneeId: true, priority: true }
+      });
 
       const tareaActualizada = await prisma.tarea.update({
         where: { id },
@@ -142,6 +163,32 @@ export default async function handler(req: any, res: any) {
           assignee: true
         }
       });
+
+      const asignado = tareaActualizada.assignee;
+      if (asignado?.email) {
+        // Nueva asignación
+        if (assigneeId && assigneeId !== tareaPrevia?.assigneeId) {
+          enviarEmailTareaAsignada({
+            email: asignado.email,
+            nombre: asignado.name ?? asignado.email,
+            tarea: tareaActualizada.title,
+            proyecto: tareaActualizada.proyecto?.title ?? '',
+            prioridad: tareaActualizada.priority,
+            descripcion: tareaActualizada.description ?? undefined,
+            fecha: tareaActualizada.dueDate ? new Date(tareaActualizada.dueDate).toLocaleDateString('es-ES') : undefined,
+          }).catch(console.error);
+        }
+        // Cambio a HIGH (urgente)
+        if (priority === 'HIGH' && tareaPrevia?.priority !== 'HIGH') {
+          enviarEmailTareaUrgente({
+            email: asignado.email,
+            nombre: asignado.name ?? asignado.email,
+            tarea: tareaActualizada.title,
+            proyecto: tareaActualizada.proyecto?.title ?? '',
+            descripcion: tareaActualizada.description ?? undefined,
+          }).catch(console.error);
+        }
+      }
 
       return res.status(200).json(tareaActualizada);
     }

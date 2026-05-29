@@ -5,7 +5,7 @@
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/notificaciones?resource=registros-faltantes",
+      "path": "/api/control-horario?entity=registros-faltantes",
       "schedule": "0 9 * * 1-5"
     }
   ]

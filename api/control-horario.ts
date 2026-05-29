@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { enviarEmailRegistroFaltante } from '../lib/email';
 function requireAuth(req: any, res: any): string | null {
   const userId = req.headers?.['x-user-id'] as string | undefined;
   if (!userId) { res.status(401).json({ error: 'No autenticado' }); return null; }
@@ -259,6 +260,36 @@ export default async function handler(req: any, res: any) {
         };
       });
       return res.status(200).json(resultado);
+    }
+
+    // Cron: notificar usuarios sin registro horario del día anterior
+    if (entity === 'registros-faltantes') {
+      const hoy = new Date();
+      const diaSemana = hoy.getDay();
+      if (diaSemana === 0 || diaSemana === 6) {
+        return res.status(200).json({ message: 'Fin de semana, sin notificaciones' });
+      }
+      const ayer = new Date(hoy);
+      ayer.setDate(ayer.getDate() - (diaSemana === 1 ? 3 : 1));
+      ayer.setHours(0, 0, 0, 0);
+
+      const usuarios = await prisma.usuario.findMany({
+        where: { email: { not: null }, role: { not: 'SUPERADMIN' } },
+        select: { id: true, name: true, email: true }
+      });
+      const jornadasAyer = await prisma.jornadas.findMany({
+        where: { fecha: ayer },
+        select: { usuarioId: true }
+      });
+      const conRegistro = new Set(jornadasAyer.map((j: any) => j.usuarioId));
+      const sinRegistro = usuarios.filter((u: any) => !conRegistro.has(u.id) && u.email);
+      const fechaFormateada = ayer.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+
+      const resultados = await Promise.allSettled(
+        sinRegistro.map((u: any) => enviarEmailRegistroFaltante({ email: u.email!, nombre: u.name, fecha: fechaFormateada }))
+      );
+      const enviados = resultados.filter(r => r.status === 'fulfilled').length;
+      return res.status(200).json({ message: `Notificaciones enviadas: ${enviados}`, sinRegistro: sinRegistro.map((u: any) => u.name) });
     }
 
     return res.status(400).json({ error: 'Entity no válida. Usa: jornadas, time-entries, equipo-activo' });

@@ -77,7 +77,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [eventos, setEventos] = useState<Evento[]>([]);
-  const [tareas, setTareas] = useState<Tarea[]>([]);
   const [misTareas, setMisTareas] = useState<Tarea[]>([]);
   const [equipoActivo, setEquipoActivo] = useState<EquipoMiembro[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,7 +121,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         if (dashRes.ok) {
           const dashData = await dashRes.json();
           setStats(dashData.stats);
-          setTareas(dashData.tareasRecientes || []);
         }
 
         if (eventosRes.ok) {
@@ -170,17 +168,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
   const getEventsForDay = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     return eventos.filter(e => e.startDate.split('T')[0] === dateStr);
-  };
-
-  const openTaskDetail = (task: Tarea) => {
-    setSelectedDetail({
-      title: task.title,
-      type: 'Tarea',
-      category: task.priority,
-      info: `Estado: ${task.status}`,
-      meta: `Proyecto: ${task.proyecto?.title || 'Sin proyecto'}`,
-      subMeta: task.dueDate ? `Vencimiento: ${new Date(task.dueDate).toLocaleDateString('es-ES')}` : 'Sin fecha límite'
-    });
   };
 
   const openEventDetail = (evt: Evento) => {
@@ -245,27 +232,6 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
       case 'REMINDER': return 'bg-purple-50 text-purple-700 border-purple-100 hover:bg-purple-100';
       default: return 'bg-gray-50 text-gray-600 border-gray-100';
     }
-  };
-
-  const getPriorityColor = (prio: string) => {
-    switch(prio) {
-      case 'URGENT': return 'text-red-600 bg-red-50 border-red-100';
-      case 'HIGH': return 'text-orange-600 bg-orange-50 border-orange-100';
-      default: return 'text-blue-600 bg-blue-50 border-blue-100';
-    }
-  };
-
-  const getDueLabel = (dueDate: string | null) => {
-    if (!dueDate) return 'Sin fecha';
-    const due = new Date(dueDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    due.setHours(0, 0, 0, 0);
-    const diffDays = Math.ceil((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) return 'Vencida';
-    if (diffDays === 0) return 'Hoy';
-    if (diffDays === 1) return 'Mañana';
-    return `${diffDays} días`;
   };
 
   const getStatusLabel = (status: string) => {
@@ -448,15 +414,45 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-900 flex items-center gap-2">
                 <Zap size={18} className="text-elio-yellow" />
-                Mis Tareas
+                Mi Día
               </h3>
               <button
                 onClick={() => onNavigate?.('tareas')}
                 className="text-xs font-bold text-elio-yellow hover:underline"
               >
-                Ver todas
+                Ver tareas
               </button>
             </div>
+
+            {/* Eventos de hoy */}
+            {(() => {
+              const todayStr = TODAY.toISOString().split('T')[0];
+              const todayEvents = eventos.filter(e => e.startDate.split('T')[0] === todayStr);
+              if (todayEvents.length === 0) return null;
+              return (
+                <div className="mb-3 pb-3 border-b border-gray-100">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-2 flex items-center gap-1.5">
+                    <Calendar size={10} />
+                    Hoy
+                  </p>
+                  <div className="space-y-1.5">
+                    {todayEvents.slice(0, 3).map(evt => (
+                      <div
+                        key={evt.id}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs cursor-pointer ${getEventColor(evt.type)}`}
+                        onClick={() => openEventDetail(evt)}
+                      >
+                        <span className="font-bold flex-shrink-0 w-10 text-right">{evt.startTime || '·'}</span>
+                        <span className="truncate font-medium">{evt.title}</span>
+                      </div>
+                    ))}
+                    {todayEvents.length > 3 && (
+                      <p className="text-[10px] text-gray-400 pl-2">+{todayEvents.length - 3} más</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {misTareas.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-40 text-gray-400">
@@ -464,7 +460,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
                 <p className="text-sm">No tienes tareas asignadas pendientes</p>
               </div>
             ) : (
-              <div className="space-y-1.5 overflow-y-auto max-h-[300px] pr-1">
+              <div className="space-y-1.5 overflow-y-auto max-h-[240px] pr-1">
                 {misTareas.map(task => {
                   const isActive = activeTaskEntry?.tareaId === task.id;
                   return (
@@ -554,7 +550,79 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         ))}
       </div>
 
-      {/* FILA 3: Semana */}
+      {/* Equipo Activo (admin only) */}
+      {isAdmin && equipoActivo.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
+              <Activity size={20} className="text-green-500" />
+              Equipo Activo Hoy
+            </h3>
+            <span className="text-xs text-gray-400 font-medium">
+              {equipoActivo.filter(m => m.jornada.estado === 'EN_CURSO').length} en curso · {equipoActivo.length} con jornada
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            {equipoActivo.map((miembro) => (
+              <div
+                key={miembro.usuario.id}
+                className={`rounded-xl border p-4 transition-all ${
+                  miembro.jornada.estado === 'EN_CURSO'
+                    ? 'border-green-100 bg-green-50/50'
+                    : miembro.jornada.estado === 'PAUSADA'
+                      ? 'border-orange-100 bg-orange-50/30'
+                      : 'border-gray-100 bg-gray-50/50'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">
+                      {miembro.usuario.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${getEquipoStateColor(miembro.jornada.estado)}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{miembro.usuario.name}</p>
+                    <p className="text-[10px] text-slate-400 truncate">{miembro.usuario.position || 'Sin cargo'}</p>
+                  </div>
+                </div>
+                {miembro.tareaActiva ? (
+                  <div className="bg-white rounded-lg p-2.5 border border-slate-100">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
+                      Trabajando en
+                    </p>
+                    <p className="text-xs font-semibold text-slate-800 line-clamp-2 leading-tight">{miembro.tareaActiva.title}</p>
+                    {miembro.tareaActiva.proyecto && (
+                      <p className="text-[10px] text-slate-400 mt-1 truncate">{miembro.tareaActiva.proyecto}</p>
+                    )}
+                    {miembro.tareaActiva.minutos !== null && (
+                      <p className="text-[11px] font-mono font-bold text-green-600 mt-1.5">
+                        {Math.floor(miembro.tareaActiva.minutos / 60) > 0
+                          ? `${Math.floor(miembro.tareaActiva.minutos / 60)}h ${miembro.tareaActiva.minutos % 60}m`
+                          : `${miembro.tareaActiva.minutos}m`}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-lg p-2.5 border border-slate-100 text-center">
+                    <p className="text-xs text-slate-400">
+                      {miembro.jornada.estado === 'PAUSADA' ? 'En pausa' :
+                       miembro.jornada.estado === 'FINALIZADA' ? 'Jornada finalizada' :
+                       'Sin tarea activa'}
+                    </p>
+                  </div>
+                )}
+                <p className="text-[10px] text-slate-400 mt-2 text-right">
+                  Desde {new Date(miembro.jornada.horaInicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Mi Semana */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
           <h3 className="font-bold text-slate-900 text-lg flex items-center">
@@ -609,174 +677,59 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* FILA 4: Tareas prioritarias + Próximos eventos */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-        <div className="col-span-1 md:col-span-8">
-          <Card
-            title="Tareas Prioritarias"
-            action={<button onClick={() => onNavigate?.('tareas')} className="text-xs font-bold text-elio-yellow hover:underline">Ver todas</button>}
-            className="h-full"
-          >
-            {tareas.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <CheckSquare size={32} className="mx-auto mb-2 opacity-30" />
-                <p>No hay tareas urgentes. ¡Buen trabajo!</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {tareas.map(task => (
+      {/* Próximos Eventos */}
+      <Card
+        title="Próximos Eventos"
+        action={<button onClick={() => onNavigate?.('calendario')} className="text-xs font-bold text-elio-yellow hover:underline">Ver calendario</button>}
+      >
+        {(() => {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const upcoming = eventos
+            .filter(e => e.startDate.split('T')[0] >= todayStr)
+            .sort((a, b) => a.startDate.localeCompare(b.startDate))
+            .slice(0, 8);
+          return upcoming.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Calendar size={32} className="mx-auto mb-2 opacity-30" />
+              <p>No hay eventos próximos</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {upcoming.map(evt => {
+                const evtDate = new Date(evt.startDate);
+                const isToday = evt.startDate.split('T')[0] === todayStr;
+                return (
                   <div
-                    key={task.id}
-                    className="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-white hover:shadow-md border border-transparent hover:border-slate-100 cursor-pointer transition-all group"
-                    onClick={() => openTaskDetail(task)}
+                    key={evt.id}
+                    className={`flex items-start p-3 rounded-xl cursor-pointer transition-colors group border ${
+                      isToday
+                        ? 'bg-blue-50/50 border-blue-100 hover:bg-blue-50'
+                        : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
+                    }`}
+                    onClick={() => openEventDetail(evt)}
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="p-2 rounded-full bg-white border border-slate-200 text-slate-400 group-hover:text-elio-yellow group-hover:border-elio-yellow transition-colors">
-                        <CheckSquare size={20} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">{task.title}</p>
-                        <p className="text-xs text-slate-500 font-medium">{task.proyecto?.title || 'Sin proyecto'}</p>
+                    <div className="min-w-[50px] text-center border-r border-slate-100 pr-3 mr-3 flex-shrink-0">
+                      <span className={`block text-lg font-bold leading-none ${isToday ? 'text-blue-600' : 'text-slate-900'}`}>
+                        {evtDate.getDate()}
+                      </span>
+                      <span className="block text-[10px] uppercase font-bold text-slate-400">
+                        {new Intl.DateTimeFormat('es-ES', { month: 'short' }).format(evtDate)}
+                      </span>
+                      {isToday && <span className="block text-[9px] font-bold text-blue-500 uppercase">Hoy</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{evt.title}</h4>
+                      <div className="flex items-center mt-1 text-xs text-slate-500">
+                        <Clock size={12} className="mr-1" /> {evt.startTime || 'Todo el día'}
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${getPriorityColor(task.priority)}`}>
-                      {getDueLabel(task.dueDate).toUpperCase()}
-                    </span>
                   </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <div className="col-span-1 md:col-span-4">
-          <Card title="Próximos Eventos" className="h-full">
-            {(() => {
-              const todayStr = new Date().toISOString().split('T')[0];
-              const upcoming = eventos
-                .filter(e => e.startDate.split('T')[0] >= todayStr)
-                .sort((a, b) => a.startDate.localeCompare(b.startDate))
-                .slice(0, 5);
-              return upcoming.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Calendar size={32} className="mx-auto mb-2 opacity-30" />
-                  <p>No hay eventos próximos</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {upcoming.map(evt => {
-                    const evtDate = new Date(evt.startDate);
-                    const isToday = evt.startDate.split('T')[0] === todayStr;
-                    return (
-                      <div
-                        key={evt.id}
-                        className={`flex items-start p-3 rounded-xl cursor-pointer transition-colors group border ${
-                          isToday
-                            ? 'bg-blue-50/50 border-blue-100 hover:bg-blue-50'
-                            : 'hover:bg-slate-50 border-transparent hover:border-slate-100'
-                        }`}
-                        onClick={() => openEventDetail(evt)}
-                      >
-                        <div className="min-w-[50px] text-center border-r border-slate-100 pr-3 mr-3">
-                          <span className={`block text-lg font-bold leading-none ${isToday ? 'text-blue-600' : 'text-slate-900'}`}>
-                            {evtDate.getDate()}
-                          </span>
-                          <span className="block text-[10px] uppercase font-bold text-slate-400">
-                            {new Intl.DateTimeFormat('es-ES', { month: 'short' }).format(evtDate)}
-                          </span>
-                          {isToday && <span className="block text-[9px] font-bold text-blue-500 uppercase">Hoy</span>}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="text-sm font-bold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-1">{evt.title}</h4>
-                          <div className="flex items-center mt-1 text-xs text-slate-500">
-                            <Clock size={12} className="mr-1" /> {evt.startTime || 'Todo el día'}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })()}
-          </Card>
-        </div>
-      </div>
-
-      {/* FILA 5: Equipo Activo (admin only) */}
-      {isAdmin && equipoActivo.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="font-bold text-slate-900 text-lg flex items-center gap-2">
-              <Activity size={20} className="text-green-500" />
-              Equipo Activo Hoy
-            </h3>
-            <span className="text-xs text-gray-400 font-medium">
-              {equipoActivo.filter(m => m.jornada.estado === 'EN_CURSO').length} en curso · {equipoActivo.length} con jornada
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {equipoActivo.map((miembro) => (
-              <div
-                key={miembro.usuario.id}
-                className={`rounded-xl border p-4 transition-all ${
-                  miembro.jornada.estado === 'EN_CURSO'
-                    ? 'border-green-100 bg-green-50/50'
-                    : miembro.jornada.estado === 'PAUSADA'
-                      ? 'border-orange-100 bg-orange-50/30'
-                      : 'border-gray-100 bg-gray-50/50'
-                }`}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="relative flex-shrink-0">
-                    <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">
-                      {miembro.usuario.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${getEquipoStateColor(miembro.jornada.estado)}`} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-slate-900 truncate">{miembro.usuario.name}</p>
-                    <p className="text-[10px] text-slate-400 truncate">{miembro.usuario.position || 'Sin cargo'}</p>
-                  </div>
-                </div>
-
-                {miembro.tareaActiva ? (
-                  <div className="bg-white rounded-lg p-2.5 border border-slate-100">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase mb-1 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse inline-block" />
-                      Trabajando en
-                    </p>
-                    <p className="text-xs font-semibold text-slate-800 line-clamp-2 leading-tight">{miembro.tareaActiva.title}</p>
-                    {miembro.tareaActiva.proyecto && (
-                      <p className="text-[10px] text-slate-400 mt-1 truncate">{miembro.tareaActiva.proyecto}</p>
-                    )}
-                    {miembro.tareaActiva.minutos !== null && (
-                      <p className="text-[11px] font-mono font-bold text-green-600 mt-1.5">
-                        {Math.floor(miembro.tareaActiva.minutos / 60) > 0
-                          ? `${Math.floor(miembro.tareaActiva.minutos / 60)}h ${miembro.tareaActiva.minutos % 60}m`
-                          : `${miembro.tareaActiva.minutos}m`
-                        }
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-lg p-2.5 border border-slate-100 text-center">
-                    <p className="text-xs text-slate-400">
-                      {miembro.jornada.estado === 'PAUSADA' ? '☕ En pausa' :
-                       miembro.jornada.estado === 'FINALIZADA' ? '✅ Jornada finalizada' :
-                       'Sin tarea activa'}
-                    </p>
-                  </div>
-                )}
-
-                <p className="text-[10px] text-slate-400 mt-2 text-right">
-                  Desde {new Date(miembro.jornada.horaInicio).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                );
+              })}
+            </div>
+          );
+        })()}
+      </Card>
 
       {/* Modal de Detalle */}
       {selectedDetail && (

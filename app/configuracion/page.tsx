@@ -348,15 +348,15 @@ export default function ConfiguracionPage() {
                 <h3 className="font-bold text-lg text-slate-800">Catálogo de Tareas</h3>
                 <p className="text-sm text-slate-500">{categorias.length} categorías · {totalPlantillas} plantillas</p>
               </div>
-              <div className="flex gap-3">
-                <div className="relative">
+              <div className="flex flex-wrap gap-3">
+                <div className="relative flex-1 min-w-0">
                   <Search size={16} className="absolute left-3 top-2.5 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Buscar tarea..."
                     value={busqueda}
                     onChange={(e) => setBusqueda(e.target.value)}
-                    className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm w-64 focus:outline-none focus:border-slate-400"
+                    className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm w-full sm:w-64 focus:outline-none focus:border-elio-yellow"
                   />
                 </div>
                 <button 

@@ -331,7 +331,8 @@ export default function SEMPage() {
 
       {/* Tabla de Campañas */}
       <Card className="overflow-hidden p-0">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left font-semibold text-slate-500 text-xs uppercase tracking-wide">Estado</th>
@@ -423,6 +424,7 @@ export default function SEMPage() {
             })}
           </tbody>
         </table>
+        </div>
       </Card>
 
       {/* Sheet: Detalle Campaña */}

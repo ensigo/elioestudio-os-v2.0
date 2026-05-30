@@ -125,7 +125,7 @@ export default function SoportePage() {
           </h1>
           <p className="text-gray-500 text-sm">Guías, plantillas y recursos del equipo</p>
         </div>
-        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">
+        <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-elio-yellow text-white font-bold rounded-lg hover:bg-elio-yellow-hover">
           <Upload size={18} /> Subir Documento
         </button>
       </div>
@@ -149,7 +149,7 @@ export default function SoportePage() {
 
       {/* Filtros */}
       <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-[250px]">
+        <div className="relative flex-1 min-w-[180px] sm:min-w-[250px]">
           <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 

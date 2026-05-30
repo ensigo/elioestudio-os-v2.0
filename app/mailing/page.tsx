@@ -116,13 +116,13 @@ export default function MailingPage() {
           </h1>
           <p className="text-gray-500 text-sm">Gestión de campañas de correo electrónico</p>
         </div>
-        <button onClick={() => { setEditingCampana(null); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700">
+        <button onClick={() => { setEditingCampana(null); setShowModal(true); }} className="flex items-center gap-2 px-4 py-2 bg-elio-yellow text-white font-bold rounded-lg hover:bg-elio-yellow-hover">
           <Plus size={18} /> Nueva Campaña
         </button>
       </div>
 
       {/* Dashboard Resumen */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
         <Card>
           <div className="flex items-center justify-between">
             <div>
@@ -188,7 +188,8 @@ export default function MailingPage() {
 
       {/* Lista de Campañas */}
       <Card className="overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead className="bg-slate-50 border-b">
             <tr>
               <th className="px-4 py-3 text-left font-bold text-slate-600">Estado</th>
@@ -242,6 +243,7 @@ export default function MailingPage() {
             ))}
           </tbody>
         </table>
+        </div>
       </Card>
 
       {/* Modal Detalle */}

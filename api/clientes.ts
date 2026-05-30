@@ -40,6 +40,11 @@ export default async function handler(req: any, res: any) {
       return handleContratos(req, res);
     }
 
+    // IMPORTACIÓN MASIVA DE CREDENCIALES: /api/clientes?resource=import-credentials
+    if (resource === 'import-credentials') {
+      return handleImportCredentials(req, res, userId);
+    }
+
     // CLIENTES (default)
     return handleClientes(req, res);
   } catch (error: any) {
@@ -478,4 +483,70 @@ async function handleContratos(req: any, res: any) {
   }
 
   return res.status(405).json({ error: 'Método no permitido' });
+}
+
+// ============ HANDLER IMPORT CREDENTIALS ============
+const VALID_IMPORT_CATEGORIES = ['WEB_CMS','HOSTING','DOMAIN','EMAIL','SOCIAL','ADS','ANALYTICS','DESIGN','SEO','OTHER'];
+
+async function handleImportCredentials(req: any, res: any, userId: string) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' });
+
+  const { action, rows } = req.body as { action: 'preview' | 'import'; rows: any[] };
+  if (!rows || !Array.isArray(rows) || rows.length === 0)
+    return res.status(400).json({ error: 'No hay filas para procesar' });
+
+  const clientes = await prisma.cliente.findMany({ select: { id: true, name: true, nombreComercial: true } });
+  const norm = (s: string) => s?.toLowerCase().trim() ?? '';
+  const findCliente = (nombre: string) => {
+    const n = norm(nombre);
+    return clientes.find(c => norm(c.name) === n || norm(c.nombreComercial ?? '') === n);
+  };
+
+  const results = rows.map((row: any, i: number) => {
+    const rowNum = i + 1;
+    if (!row.clienteNombre?.trim()) return { row: rowNum, clienteNombre: row.clienteNombre, platform: row.platform, status: 'error', error: 'Nombre de cliente vacío' };
+    if (!row.platform?.trim())       return { row: rowNum, clienteNombre: row.clienteNombre, platform: row.platform, status: 'error', error: 'Plataforma vacía' };
+    if (!row.username?.trim())       return { row: rowNum, clienteNombre: row.clienteNombre, platform: row.platform, status: 'error', error: 'Usuario vacío' };
+    if (!row.password?.trim())       return { row: rowNum, clienteNombre: row.clienteNombre, platform: row.platform, status: 'error', error: 'Contraseña vacía' };
+    const cat = row.category?.trim().toUpperCase();
+    if (!VALID_IMPORT_CATEGORIES.includes(cat)) return { row: rowNum, clienteNombre: row.clienteNombre, platform: row.platform, status: 'error', error: `Categoría inválida: "${row.category}"` };
+    const cliente = findCliente(row.clienteNombre);
+    if (!cliente) return { row: rowNum, clienteNombre: row.clienteNombre, platform: row.platform, status: 'error', error: `Cliente no encontrado: "${row.clienteNombre}"` };
+    return { row: rowNum, clienteNombre: row.clienteNombre, platform: row.platform, status: 'ok', clienteId: cliente.id };
+  });
+
+  if (action === 'preview') {
+    return res.status(200).json({ results, total: rows.length, ok: results.filter((r: any) => r.status === 'ok').length, errors: results.filter((r: any) => r.status === 'error').length });
+  }
+
+  if (action === 'import') {
+    const validRows = rows.filter((_: any, i: number) => results[i].status === 'ok');
+    const validResults = results.filter((r: any) => r.status === 'ok');
+    if (validRows.length === 0) return res.status(400).json({ error: 'No hay filas válidas para importar' });
+    await prisma.$transaction(
+      validRows.map((row: any, i: number) =>
+        prisma.credential.create({
+          data: {
+            clienteId: (validResults[i] as any).clienteId,
+            category: row.category.trim().toUpperCase(),
+            platform: row.platform.trim(),
+            url: row.url?.trim() || null,
+            username: row.username.trim(),
+            passwordEncrypted: row.password.trim(),
+            email: row.email?.trim() || null,
+            isEmailAccount: false,
+            notes: row.notes?.trim() || null,
+            isActive: true,
+            createdById: userId,
+            createdByName: 'Importación masiva',
+            lastModifiedById: userId,
+            lastModifiedByName: 'Importación masiva',
+          },
+        })
+      )
+    );
+    return res.status(200).json({ imported: validRows.length, skipped: results.filter((r: any) => r.status === 'error').length });
+  }
+
+  return res.status(400).json({ error: 'action debe ser "preview" o "import"' });
 }

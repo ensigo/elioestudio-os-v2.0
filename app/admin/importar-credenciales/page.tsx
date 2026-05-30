@@ -104,7 +104,7 @@ export default function ImportarCredencialesPage() {
 
   const runPreview = async (data: ImportRow[]) => {
     setLoading(true);
-    const res = await authFetch('/api/import-credentials', {
+    const res = await authFetch('/api/clientes?resource=import-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'preview', rows: data }),
@@ -119,7 +119,7 @@ export default function ImportarCredencialesPage() {
   const handleImport = async () => {
     if (!confirm(`¿Confirmar la importación de ${previewStats?.ok} credenciales? Las filas con error serán omitidas.`)) return;
     setLoading(true);
-    const res = await authFetch('/api/import-credentials', {
+    const res = await authFetch('/api/clientes?resource=import-credentials', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'import', rows }),

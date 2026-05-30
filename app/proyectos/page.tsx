@@ -372,7 +372,7 @@ export const ProjectsPage = () => {
 
       {/* Vista Kanban */}
       {viewMode === 'kanban' && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {ESTADOS.map(estado => {
             const proyectosEstado = filteredProjects.filter(p => p.status === estado.id);
             return (
@@ -523,7 +523,7 @@ function ModalProyecto({ proyecto, clientes, usuarios, isAdmin, onClose, onSave 
           </div>
           <div className="flex justify-end gap-3 pt-4">
             <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg">Cancelar</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button type="submit" disabled={saving} className="px-4 py-2 bg-elio-yellow text-white font-bold rounded-lg hover:bg-elio-yellow-hover disabled:opacity-50">
               {saving ? 'Guardando...' : 'Guardar'}
             </button>
           </div>

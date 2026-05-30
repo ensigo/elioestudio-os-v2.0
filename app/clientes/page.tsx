@@ -323,8 +323,9 @@ export const ClientsPage = () => {
         </div>
       </div>
 
-      <Card noPadding className="overflow-visible">
-        <table className="w-full text-left text-sm">
+      <Card noPadding className="overflow-hidden">
+        <div className="overflow-x-auto">
+        <table className="w-full text-left text-sm min-w-[600px]">
           <thead className="bg-gray-50 border-b border-gray-100">
              <tr>
                <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase tracking-wider">Cliente</th>
@@ -466,6 +467,7 @@ export const ClientsPage = () => {
             )}
           </tbody>
         </table>
+        </div>
       </Card>
 
       <Modal 

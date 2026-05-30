@@ -433,27 +433,27 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
         <div className="w-full lg:w-[65%] flex flex-col">
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm flex-1 flex flex-col overflow-hidden">
             {/* Toolbar */}
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <button 
+            <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100 bg-gray-50 flex flex-wrap gap-2 justify-between items-center">
+              <div className="flex items-center gap-2">
+                <button
                   onClick={() => setShowArchived(false)}
-                  className={`font-bold flex items-center px-3 py-1 rounded-lg transition-colors ${!showArchived ? 'bg-elio-yellow text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                  className={`font-bold flex items-center px-2.5 sm:px-3 py-1 rounded-lg transition-colors text-sm ${!showArchived ? 'bg-elio-yellow text-white' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
-                  <Inbox size={16} className="mr-2" /> Activos ({tickets.filter(t => t.status !== 'CLOSED').length})
+                  <Inbox size={15} className="mr-1.5" /> <span className="hidden sm:inline">Activos </span>({tickets.filter(t => t.status !== 'CLOSED').length})
                 </button>
-                <button 
+                <button
                   onClick={() => setShowArchived(true)}
-                  className={`font-bold flex items-center px-3 py-1 rounded-lg transition-colors ${showArchived ? 'bg-gray-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+                  className={`font-bold flex items-center px-2.5 sm:px-3 py-1 rounded-lg transition-colors text-sm ${showArchived ? 'bg-gray-600 text-white' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
-                  <Clock size={16} className="mr-2" /> Archivados ({tickets.filter(t => t.status === 'CLOSED').length})
+                  <Clock size={15} className="mr-1.5" /> <span className="hidden sm:inline">Archivados </span>({tickets.filter(t => t.status === 'CLOSED').length})
                 </button>
               </div>
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Buscar..."
-                  className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-elio-yellow w-40"
+                  className="pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-elio-yellow w-32 sm:w-40"
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
@@ -490,7 +490,7 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                              <p className={`text-sm truncate max-w-[220px] ${isUnread ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                              <p className={`text-sm truncate max-w-[140px] sm:max-w-[220px] ${isUnread ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
                                 {ticket.title}
                               </p>
                               {isUnread && <span className="w-2 h-2 bg-elio-yellow rounded-full flex-shrink-0" />}
@@ -542,25 +542,25 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
           <div className="flex flex-col h-[70vh]">
             {/* Header del Ticket */}
             <div className="pb-4 border-b border-gray-200">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900">{selectedTicket.title}</h2>
-                  <div className="flex items-center text-sm text-gray-500 mt-1">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
+                <div className="min-w-0">
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 leading-snug">{selectedTicket.title}</h2>
+                  <div className="flex flex-wrap items-center text-xs sm:text-sm text-gray-500 mt-1 gap-x-1">
                     <span className="font-medium text-gray-700">{selectedTicket.sender.name}</span>
-                    <span className="mx-2">→</span>
+                    <span>→</span>
                     <span>{selectedTicket.recipient?.name || 'Todo el equipo'}</span>
-                    <span className="mx-2">•</span>
-                    <span>{formatDateTime(selectedTicket.createdAt)}</span>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="hidden sm:inline">{formatDateTime(selectedTicket.createdAt)}</span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-shrink-0">
                   {getPriorityBadge(selectedTicket.priority)}
                   {getStatusBadge(selectedTicket.status)}
                 </div>
               </div>
 
               {/* Cambiar Estado */}
-              <div className="flex items-center gap-2 mt-4">
+              <div className="flex flex-wrap items-center gap-2 mt-4">
                 <span className="text-xs text-gray-500">Estado:</span>
                 {['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map(status => (
                   <button
@@ -572,8 +572,8 @@ export const TicketsPage = ({ ticketIdToOpen, onTicketOpened }: TicketsPageProps
                         : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    {status === 'OPEN' ? 'Abierto' : 
-                     status === 'IN_PROGRESS' ? 'En Progreso' : 
+                    {status === 'OPEN' ? 'Abierto' :
+                     status === 'IN_PROGRESS' ? 'En Progreso' :
                      status === 'RESOLVED' ? 'Resuelto' : 'Cerrado'}
                   </button>
                 ))}
